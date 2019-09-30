@@ -1,2 +1,5 @@
 *.ipynb
 *.ods
+*.svg
+*.pdf
+*.pyc

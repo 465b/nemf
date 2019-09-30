@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import warnings
 
 ## integration schemes
 
@@ -22,28 +23,40 @@ def runge_kutta(d0,d1_weights,time_step,time_step_size):
     
     return d0, time_step
 
+def verify_stabel_soloution_of_time_evol():
+    """ i will require some criteria to check if solution is sufficiently stable
+        to break time_evolution early (safe comp. time) or to exclude because its unstable """
+    pass
 
-def run_time_evo(method,max_time,time_step_size,d1,d2_weights):
-    """ run_time_evo(method, max_time, time_step_size = 1/(365),d0=d0,d1=d1,d2_weights=d2_weights) """
-    
+def run_time_evo(method,T,dt,d0,d1_weights_model,
+                 d1_weights=None,weights_model_constants=None):
+    """ integrates first order ODE
+
+        integration scheme
+        method: {euler,runge_kutta}
+
+        T: postive float, time span that is integrated
+        dt: postive float, time step that is integrated
+
+        d0: 1D-numpy.array, set of initial values
+        d1_weights: 2D-square-numpy.array with ODE coefficients """
+
     # calculate all time constants
-    n_obs = len(d1)
-    n_steps = int(max_time/time_step_size)
+    n_obs = len(d0)
+    n_steps = int(T/dt)
     
     # initialize data arrays
-    d1_log = np.zeros( (n_steps,n_obs) )
-    d1_log[0] = d1
+    d0_log = np.zeros( (n_steps,n_obs) )
+    d0_log[0] = d0
 
     # calculate the time evolution
     time_step = 0
-    #d2_weights = careful_reshape(d2_weights)
-
-
-
     for ii in np.arange(1,n_steps):
-        d1_log[ii] = method(d1_log[ii-1],d2_weights,time_step,time_step_size)
+        d1_weights = d1_weights_model(d0_log[ii],d1_weights,weights_model_constants)
+        d0_log[ii] = method(d0_log[ii-1],d1_weights,time_step,dt)
     
-    return d1_log
+    return d0_log
+
 
 def careful_reshape(x):
     n_obs = len(x)
@@ -117,7 +130,7 @@ def normalize_columns(x):
                 buffer = x[ii,ii]
                 x[:,ii] -= x[:,ii]/(overshoot[ii]-buffer)*overshoot[ii]
                 x[ii,ii] = buffer
-            
+
     return x
 
 
@@ -139,6 +152,8 @@ def interaction_matrix_modifier():
 ### initialization routines 
 
 def init_variable_space_for_adjoint(x,y,max_iter):
+    """ Initializes the arrays needed for the iteration process 
+        Has no other function then to unclutter the code """
     
     # number of model input/output variables
     
@@ -146,7 +161,7 @@ def init_variable_space_for_adjoint(x,y,max_iter):
     n_y = len(y.flatten())
     
     # shape of map
-    map_shape = (n_x,n_y)
+    #map_shape = (n_x,n_y)
     
     # init variable space
     x_init = x.copy()
@@ -154,10 +169,10 @@ def init_variable_space_for_adjoint(x,y,max_iter):
     x[0] = x_init
     F = np.zeros( (max_iter,n_y) )
     J = np.zeros( max_iter )
-    A = np.zeros( (max_iter,)+map_shape)
+    #A = np.zeros( (max_iter,)+map_shape)
     
     
-    return x,F,J,A
+    return x,F,J
 
 ### Gradiant Decent Methods
 
@@ -165,9 +180,9 @@ def SGD_basic(x_0, delta_forcing, delta_x,grad_scale):
         """ construct the gradient of the cost function  
         to minimize it with an 'SGD' approach """
         
-        #division_scalar_vector_w_zeros(delta_forcing,delta_x)
-        gradient = division_scalar_vector_w_zeros(delta_forcing,delta_x)
-        #print(gradient)
+        #gradient = division_scalar_vector_w_zeros(delta_forcing,delta_x)
+        gradient = delta_forcing/delta_x
+
         x_1 = x_0 - grad_scale*gradient
         
         return x_1
@@ -188,7 +203,7 @@ def barrier_function(x,constrains,mu=1):
         must be positive, the larger the softer """
     
     if mu <= 0:
-        raise ValueError('mu must be a postive value.')    
+        raise ValueError('mu must be a postive value.')
 
     J_barrier_left = np.zeros(len(x))
     J_barrier_right = np.zeros(len(x))
@@ -196,7 +211,7 @@ def barrier_function(x,constrains,mu=1):
     
     for ii,[left,right] in enumerate(constrains):
         #left constrain
-        if (left == np.inf):
+        if (left == -np.inf):
             J_barrier_left[ii] = 0
         else:
             J_barrier_left[ii] = -np.log(left+x[ii])
@@ -212,25 +227,46 @@ def barrier_function(x,constrains,mu=1):
     
     return J_barrier
 
+def barrier_hard_enforcement(x,constrains,pert_scale=1e-4):
+    """ if outisde the search space we enforce a 'in-constrain'
+        search space by ignoring the recommendet step and
+        moving it back into the search space """
+    for ii,[left,right] in enumerate(constrains):
+        if (x[ii] <= left):
+            x[ii] = left + np.random.rand()*pert_scale
+            warnings.warn('A hard (left) barrier enforcment was necessary. '+
+                          'Consider adjusting your input parameter', Warning)
+            # we add a small pertubation to avoid
+            # that the we remain on the boarder
+        if (x[ii] >= right):
+            x[ii] = right - np.random.rand()*pert_scale
+            warnings.warn('A hard (right) barrier enforcment was necessary. '+
+                          'Consider adjusting your input parameter', Warning)
+
+    return x
+
 
 def gradient_decent(fit_model,gradient_method,x,y,
-                    constrains=None,max_iter=5,mu=1,pert_scale=0.01,grad_scale=0.01):
+                    constrains=np.array([None]),
+                    max_iter=5,mu=1,pert_scale=0.01,grad_scale=0.01):
     """ framework for applying a gradient decent approach to a 
         a model, applying a certain method 
         
         x: initial guess for the parameter set
         y: expected outcome of the model F(x)"""
     
-    if constrains == None:
-        constrains = np.full((len(x),2),np.inf)
+    if (constrains == None).all():
+        constrains = np.zeros((len(x),2))
+        constrains[:,0] = -np.inf
+        constrains[:,1] = +np.inf
 
     if len(constrains) != len(x):
         raise ValueError('List of constrains must have the same length as x')
     
     
-    X,F,J,A = init_variable_space_for_adjoint(x,y,max_iter)
+    X,F,J = init_variable_space_for_adjoint(x,y,max_iter)
     
-    for ii in np.arange(0,max_iter-1):   
+    for ii in np.arange(0,max_iter-1):
         if ii == 0:
             """ At the beginning of the iteration the cost function space 
                 is completely unexpored. To get started we do a random move """
@@ -246,26 +282,21 @@ def gradient_decent(fit_model,gradient_method,x,y,
             
             """ evaluate change in field caused by last step """
             F[ii] = fit_model(X[ii]) 
-            #print('F:\t\t\t{}'.format(F[ii]))
             J[ii] = cost_function(F[ii],y)
             J[ii] += barrier_function(x,constrains,mu)
             delta_forcing = J[ii] - J[ii-1]
             delta_x = X[ii]-X[ii-1]
             #print('forcing:\t\t{}'.format(delta_forcing))
-            
+            #print('x_diff:\t\t\t{}'.format(delta_x))
+            #print('gradient:\t\t{}'.format(delta_forcing/delta_x))
+
             """ applying a decent model to find a new ( and better)
                 input variable """
             X[ii+1] = gradient_method(X[ii], delta_forcing, delta_x,grad_scale)
-                        
-            """ we enforce a positive search parameter space """
-            #print('X pre  non-neg: \t{}'.format(X[ii+1]))
-            for jj, x_ii in enumerate(X[ii+1]):
-                if x_ii < 0:
-                    print(str(ii)+'X shift back into regime')
-                    X[ii+1,jj] = 0 #+ np.random.rand()*0.1
-            #print('X post non-neg: \t{}'.format(X[ii+1]))
+            X[ii+1] = barrier_hard_enforcement(X[ii+1],constrains)
             
-    return X, F, J, A
+            
+    return X, F, J
 
 
 ## plotting

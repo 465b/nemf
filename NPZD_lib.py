@@ -1,5 +1,6 @@
-
 """ helper function of the NPZD models """
+
+import numpy as np
 
 # coupling functions
 
@@ -24,7 +25,7 @@ def Grazomg_typeIII(epsilon,g,P):
     return G_val
 
 
-def LLM_model(N,P,Z,d1_weights,constants):
+def LLM_model(d0,d1,constants):
     """ See doi.org/10.1016/j.ecolmodel.2013.01.012 """
     [mort_P,mort_Z,mort_F,
      mort_P_square,mort_Z_square,mort_F_square,
@@ -35,8 +36,12 @@ def LLM_model(N,P,Z,d1_weights,constants):
      k_I,k_N,k_P,k_Z,
      mu_max,gamma] = constants
     
+    N,P,Z = d0[0],d0[1],d0[2]
+
     J_val = J(N,k_N,mu_max)
     G_val = Grazomg_typeIII(grazenc_Z,grazmax_Z,P)
+
+    d1_weights = np.zeros((4,4))
 
     d1_weights[0,1] = -J_val
     d1_weights[0,2] = mort_Z
@@ -54,7 +59,7 @@ def LLM_model(N,P,Z,d1_weights,constants):
     return d1_weights
 
 
-def LQM_model(N,P,Z,d1_weights,constants):
+def LQM_model(x,constants):
     """ See doi.org/10.1016/j.ecolmodel.2013.01.012 """
     [mort_P,mort_Z,mort_F,
      mort_P_square,mort_Z_square,mort_F_square,
@@ -64,9 +69,13 @@ def LQM_model(N,P,Z,d1_weights,constants):
      grazenc_Z, grazenc_F,
      k_I,k_N,k_P,k_Z,
      mu_max,gamma] = constants
+
+    N,P,Z = x[0],x[1],x[2]
     
     J_val = J(N,k_N,mu_max)
     G_val = Grazomg_typeIII(grazenc_Z,grazmax_Z,P)
+
+    d1_weights = np.zeros((4,4))
 
     d1_weights[0,1] = -J_val
     d1_weights[0,2] = mort_Z
@@ -84,7 +93,7 @@ def LQM_model(N,P,Z,d1_weights,constants):
     return d1_weights
 
 
-def QQM_model(N,P,Z,d1_weights,constants):
+def QQM_model(x,constants):
     """ See doi.org/10.1016/j.ecolmodel.2013.01.012 """
     [mort_P,mort_Z,mort_F,
      mort_P_square,mort_Z_square,mort_F_square,
@@ -94,6 +103,10 @@ def QQM_model(N,P,Z,d1_weights,constants):
      grazenc_Z, grazenc_F,
      k_I,k_N,k_P,k_Z,
      mu_max,gamma] = constants
+
+    N,P,Z = x[0],x[1],x[2]
+
+    d1_weights = np.zeros((4,4))
     
     J_val = J(N,k_N,mu_max)
     G_val = Grazomg_typeIII(grazenc_Z,grazmax_Z,P)
@@ -114,7 +127,7 @@ def QQM_model(N,P,Z,d1_weights,constants):
     return d1_weights
 
 
-def student_model_A(N,P,Z,d1_weights,constants):
+def student_model_A(N,P,Z,constants):
     
     [mort_P,mort_Z,mort_F,
      mort_P_square,mort_Z_square,mort_F_square,
@@ -128,6 +141,8 @@ def student_model_A(N,P,Z,d1_weights,constants):
     J_val = J(N,k_N,mu_max)
     G_val_Z = Grazing_typeII(grazmax_Z,k_P,P)
     G_val_F= Grazing_typeII(grazmax_F,k_Z,Z)
+
+    d1_weights = np.zeros((4,4))
     
     # N
     d1_weights[0,1] = -J_val + exc_P
