@@ -175,17 +175,34 @@ def init_variable_space_for_adjoint(x,y,max_iter):
     return x,F,J
 
 ### Gradiant Decent Methods
-
-def SGD_basic(x_0, delta_forcing, delta_x,grad_scale):
+def SGD_basic(X,J,grad_scale):
         """ construct the gradient of the cost function  
         to minimize it with an 'SGD' approach """
         
-        #gradient = division_scalar_vector_w_zeros(delta_forcing,delta_x)
+        delta_forcing = J[-1] - J[-2]
+        delta_x = X[-1]-X[-2]
         gradient = delta_forcing/delta_x
 
-        x_1 = x_0 - grad_scale*gradient
+        x_next = X[-1] - grad_scale*gradient
         
-        return x_1
+        return x_next
+
+def SGD_momentum(X,J,grad_scale):
+        """ construct the gradient of the cost function  
+            to minimize it with an 'SGD-momentum' approach """
+        
+        delta_forcing = J[-1] - J[-2]
+        delta_x = X[-1]-X[-2]
+        if len(X) >= 3:
+            previous_delta_x = X[-2]-X[-3]
+        else:
+            previous_delta_x = 0
+        gradient = delta_forcing/delta_x
+        alpha = 1
+
+        x_next = X[-1] - grad_scale*gradient + 1e-1*previous_delta_x
+        
+        return x_next
 
 def cost_function(F,y):
     J = (1/len(F))*np.sum( (F - y)**2 )
@@ -292,7 +309,7 @@ def gradient_decent(fit_model,gradient_method,x,y,
 
             """ applying a decent model to find a new ( and better)
                 input variable """
-            X[ii+1] = gradient_method(X[ii], delta_forcing, delta_x,grad_scale)
+            X[ii+1] = gradient_method(X[:ii+1],J[:ii+1],grad_scale)
             X[ii+1] = barrier_hard_enforcement(X[ii+1],constrains)
             
             
