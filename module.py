@@ -23,10 +23,12 @@ def runge_kutta(d0,d1_weights,time_step,time_step_size):
     
     return d0, time_step
 
+
 def verify_stabel_soloution_of_time_evol():
     """ i will require some criteria to check if solution is sufficiently stable
         to break time_evolution early (safe comp. time) or to exclude because its unstable """
     pass
+
 
 def run_time_evo(method,T,dt,d0,d1_weights_model,
                  d1_weights=None,weights_model_constants=None):
@@ -70,9 +72,11 @@ def careful_reshape(x):
               'Hence, is no valid input for normalisation scheme')
         return -1
 
-def add_pertubation(x,pert_scale=0.00001):
+
+def add_pertubation(x,pert_scale=0.00001,seed=137):
     "adds a small pertubation to input (1D-)array"
     
+    np.random.seed(seed)
     delta_x = np.random.rand(len(x))*pert_scale
     print('Added random pertubation')
     
@@ -104,6 +108,7 @@ def fill_free_param(x_sub,x_orig):
     x = np.reshape(x,(n,n))
     
     return x
+
 
 def filter_free_param(x):
     x_sub = [(ii,val) for ii, val in enumerate(x) if
@@ -175,42 +180,68 @@ def init_variable_space_for_adjoint(x,y,max_iter):
     return x,F,J
 
 ### Gradiant Decent Methods
-def SGD_basic(X,J,grad_scale):
+
+def local_gradient(X,y,fit_model,constrains,mu=0.01):
+    """ calculates the gradient in the local area
+        around the last parameter set (X).
+        Local meaning with the same step size
+        as in the previous step. """
+    
+    X_diff = X[-1]-X[-2]
+    n_x = len(X_diff)
+    
+    X_center = X[-1]
+    F_center = fit_model(X_center)
+    J_center = cost_function(F_center,y)
+    
+    X_local = np.full( (n_x,n_x), X_center)
+    F_local = np.zeros((n_x,n_x))
+    J_local = np.zeros(n_x)
+    
+    for ii in np.arange(n_x):
+        X_local[ii,ii] += X_diff[ii]
+    
+    for ii in np.arange(n_x):
+        F_local[ii] = fit_model(X_local[ii])
+        J_local[ii] = cost_function(F_local[ii],y)
+        J_local[ii] += barrier_function(X[-1],constrains,mu)
+    
+    J_diff = J_local - J_center
+    gradient = J_diff/X_diff
+    
+    return gradient
+
+
+def SGD_basic(X,gradient,grad_scale):
         """ construct the gradient of the cost function  
         to minimize it with an 'SGD' approach """
         
-        delta_forcing = J[-1] - J[-2]
-        delta_x = X[-1]-X[-2]
-        gradient = delta_forcing/delta_x
-
         x_next = X[-1] - grad_scale*gradient
         
         return x_next
 
-def SGD_momentum(X,J,grad_scale):
+def SGD_momentum(X,gradient,grad_scale):
         """ construct the gradient of the cost function  
             to minimize it with an 'SGD-momentum' approach """
         
-        delta_forcing = J[-1] - J[-2]
-        delta_x = X[-1]-X[-2]
         if len(X) >= 3:
             previous_delta_x = X[-2]-X[-3]
         else:
             previous_delta_x = 0
-        gradient = delta_forcing/delta_x
-        alpha = 1
 
-        x_next = X[-1] - grad_scale*gradient + 1e-1*previous_delta_x
+        alpha = 1e-1 # fix function to accept alpha as an input
+        x_next = X[-1] - grad_scale*gradient + alpha*previous_delta_x
         
         return x_next
 
 def cost_function(F,y):
+    """ normalized squared distance between F&y """
     J = (1/len(F))*np.sum( (F - y)**2 )
     return J
 
 ### applying Gradiant Decent
 
-def barrier_function(x,constrains,mu=1):
+def barrier_function(x,constrains=np.array([None]),mu=1):
     """ constructs the additional cost that is created close
         to constrains.
 
@@ -219,6 +250,16 @@ def barrier_function(x,constrains,mu=1):
         mu: multiplier that controls the softness of the edge
         must be positive, the larger the softer """
     
+
+    if (constrains == None).all():
+        constrains = np.zeros((len(x),2))
+        constrains[:,0] = -np.inf
+        constrains[:,1] = +np.inf
+
+    if len(constrains) != len(x):
+        raise ValueError('List of constrains must have the same length as x')
+
+
     if mu <= 0:
         raise ValueError('mu must be a postive value.')
 
@@ -244,10 +285,20 @@ def barrier_function(x,constrains,mu=1):
     
     return J_barrier
 
-def barrier_hard_enforcement(x,constrains,pert_scale=1e-4):
+def barrier_hard_enforcement(x,constrains=None,pert_scale=1e-4,seed=137):
     """ if outisde the search space we enforce a 'in-constrain'
         search space by ignoring the recommendet step and
         moving it back into the search space """
+    np.random.seed(seed)
+
+    if (constrains == None).all():
+        constrains = np.zeros((len(x),2))
+        constrains[:,0] = -np.inf
+        constrains[:,1] = +np.inf
+
+    if len(constrains) != len(x):
+        raise ValueError('List of constrains must have the same length as x')
+
     for ii,[left,right] in enumerate(constrains):
         if (x[ii] <= left):
             x[ii] = left + np.random.rand()*pert_scale
@@ -265,21 +316,13 @@ def barrier_hard_enforcement(x,constrains,pert_scale=1e-4):
 
 def gradient_decent(fit_model,gradient_method,x,y,
                     constrains=np.array([None]),
-                    max_iter=5,mu=1,pert_scale=0.01,grad_scale=0.01):
+                    max_iter=5,mu=1,pert_scale=0.01,grad_scale=0.01,
+                    seed = 137):
     """ framework for applying a gradient decent approach to a 
         a model, applying a certain method 
         
         x: initial guess for the parameter set
-        y: expected outcome of the model F(x)"""
-    
-    if (constrains == None).all():
-        constrains = np.zeros((len(x),2))
-        constrains[:,0] = -np.inf
-        constrains[:,1] = +np.inf
-
-    if len(constrains) != len(x):
-        raise ValueError('List of constrains must have the same length as x')
-    
+        y: expected outcome of the model F(x)"""    
     
     X,F,J = init_variable_space_for_adjoint(x,y,max_iter)
     
@@ -288,10 +331,11 @@ def gradient_decent(fit_model,gradient_method,x,y,
             """ At the beginning of the iteration the cost function space 
                 is completely unexpored. To get started we do a random move """
 
-            F[ii] = fit_model(X[ii]) 
+            F[ii] = fit_model(X[ii])
             J[ii] = cost_function(F[ii],y)
-            J[ii] += barrier_function(x,constrains,mu)
-            X[ii+1] = add_pertubation(X[ii],pert_scale)
+            J[ii] += barrier_function(X[ii],constrains,mu)
+            X[ii+1] = add_pertubation(X[ii],pert_scale,seed)
+
         else:
             """ constructing the cost function (J)
                 we call the cost function at a single point 'forcing' """
@@ -300,16 +344,16 @@ def gradient_decent(fit_model,gradient_method,x,y,
             """ evaluate change in field caused by last step """
             F[ii] = fit_model(X[ii]) 
             J[ii] = cost_function(F[ii],y)
-            J[ii] += barrier_function(x,constrains,mu)
-            delta_forcing = J[ii] - J[ii-1]
-            delta_x = X[ii]-X[ii-1]
+            J[ii] += barrier_function(X[ii],constrains,mu)
             #print('forcing:\t\t{}'.format(delta_forcing))
             #print('x_diff:\t\t\t{}'.format(delta_x))
             #print('gradient:\t\t{}'.format(delta_forcing/delta_x))
 
             """ applying a decent model to find a new ( and better)
                 input variable """
-            X[ii+1] = gradient_method(X[:ii+1],J[:ii+1],grad_scale)
+            
+            gradient = local_gradient(X[:ii+1],y,fit_model, constrains, mu)
+            X[ii+1] = gradient_method(X[:ii+1],gradient,grad_scale)
             X[ii+1] = barrier_hard_enforcement(X[ii+1],constrains)
             
             

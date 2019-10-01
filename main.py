@@ -24,12 +24,12 @@ y = np.array([1, 1, 1, 1]) # i want the totel flow be zero
 constrains = np.array([None])
 
 X, F, L = gradient_decent(NPZD_model,SGD_basic,x,y,
-                             constrains,max_iter=200,mu=0.0001,
+                             constrains,max_iter=4,mu=0.0001,
                              pert_scale=0.0001,grad_scale=1e-1)
 
-print(X)
-print(F)
-print(L)
+#print(X)
+#print(F)
+#print(L)
 
 '''
 def test_model(x):
