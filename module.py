@@ -2,258 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import warnings
 
-## integration schemes
 
-def euler_forward(d0,d1_weights,time_step,time_step_size):
-    """ develops the carbon mass and carbon mass flux 
-        based on a euler forward method """
-    
-    #print(d0,d1_weights)
-    d0 = d0 + np.matmul(d1_weights,d0)*time_step_size
-    
-    return d0
+# Gradiant Decent
 
-def runge_kutta(d0,d1_weights,time_step,time_step_size):
-    """ develops the carbon mass and carbon mass flux 
-        based on a euler forward method """
-    
-    d0_half = d0 + time_step_size/2*np.matmul(d1_weights,d0)
-    d0 = d0_half + np.matmul(d1_weights,d0_half)*time_step_size
-    time_step += 1
-    
-    return d0, time_step
-
-
-def monte_carlo_sample_generator(constrains):
-    """ constructs a set of homogenously distributed random values 
-        in the value range provided by 'constrains'
-        returns an array of the length of 'constrains' 
-        Carefull: samples the FULL float search space if an inf value is provided! """
-
-    """ returns min/max posible value if a +/- infinite value is pressent """
-    constrains[constrains==np.inf] = np.finfo(float).max
-    constrains[constrains==-np.inf] = np.finfo(float).min
-
-    constrains_width = constrains[:,1] - constrains[:,0]
-    sample_set = constrains_width*np.random.rand(len(constrains))+constrains[:,0]
-
-    return sample_set
-
-
-def verify_stability_time_evolution(F, tolerance=1e-9, N=10):
-    """ checks if the current solution is stable by 
-        comparing the relative fluctuations in the 
-        last N model outputs to a tolerance value
-        returns true if stable """
-
-    F_tail = F[-N-1:-1]
-
-    average = np.average(F_tail,axis=0)
-    spread = np.max(F_tail,axis=0) -np.min(F_tail,axis=0)
-    rel_spread = spread/average
-    is_stable = (rel_spread <= tolerance).all()
-
-    return is_stable
-
-
-def verify_stabel_soloution_of_time_evol():
-    """ i will require some criteria to check if solution is sufficiently stable
-        to break time_evolution early (safe comp. time) or to exclude because its unstable """
-    pass
-
-
-def run_time_evo(method,T,dt,d0,d1_weights_model,
-                 d1_weights=None,weights_model_constants=None):
-    """ integrates first order ODE
-
-        integration scheme
-        method: {euler,runge_kutta}
-
-        T: postive float, time span that is integrated
-        dt: postive float, time step that is integrated
-
-        d0: 1D-numpy.array, set of initial values
-        d1_weights: 2D-square-numpy.array with ODE coefficients """
-
-    # calculate all time constants
-    n_obs = len(d0)
-    n_steps = int(T/dt)
-    
-    # initialize data arrays
-    d0_log = np.zeros( (n_steps,n_obs) )
-    d0_log[0] = d0
-
-    # calculate the time evolution
-    time_step = 0
-    for ii in np.arange(1,n_steps):
-        d1_weights = d1_weights_model(d0_log[ii],d1_weights,weights_model_constants)
-        d0_log[ii] = method(d0_log[ii-1],d1_weights,time_step,dt)
-    
-    return d0_log
-
-
-def careful_reshape(x):
-    n_obs = len(x)
-    size_of_square = int(np.sqrt(n_obs))
-
-    try:
-        x = np.reshape(x, (size_of_square,size_of_square))
-        return x
-    except ValueError:
-        print('Parameter input (x) does not fit into a square matrix.\n'+
-              'Hence, is no valid input for normalisation scheme')
-        return -1
-
-
-def add_pertubation(x,pert_scale=0.00001,seed=137):
-    "adds a small pertubation to input (1D-)array"
-    
-    delta_x = np.random.rand(len(x))*pert_scale
-    
-    return x+delta_x
-
-
-def division_scalar_vector_w_zeros(a,b):
-    """ inverts vector (1/x) while catching divisions by zero
-        and sets them to zero """
-    x = np.divide(a, b, out=np.zeros_like(b), where=b!=0)
-    
-    return x
-
-
-def fill_free_param(x_sub,x_orig):
-    """ brings the reduces parameter set back into
-        its orig square matrix form 
-        
-        x_sub:  reduced set of original matrix
-                (all non-zero/non-one)
-        x_orig: the original square matrix which is filled
-                with a new set of values """
-
-    n = len(x_orig)
-    idx_x = filter_free_param(x_orig.flatten())[:,0]
-    x = x_orig.flatten()
-    for ii,val in zip(idx_x,x_sub):
-        x[int(ii)] = val
-    x = np.reshape(x,(n,n))
-    
-    return x
-
-
-def filter_free_param(x):
-    x_sub = [(ii,val) for ii, val in enumerate(x) if
-             ((val != 0) & ( val != -1) & ( val != 1))]
-    return np.array(x_sub)
-
-
-## model specific functions
-
-def normalize_columns(x):
-    """ enforces that all columns of x are normalized to 1
-        otherwise an carbon mass transport amplification would occur """
-    
-    overshoot = np.sum(x,axis=0)
-    
-    for ii,truth_val in enumerate(abs(overshoot) > 1e-16):
-        if truth_val : 
-            if x[ii,ii] == overshoot[ii]:
-                # only the diagnoal entry is filled
-                # hence, its the dump. 
-                pass 
-            else: 
-                # the following assumed that only diagonal values can be negative
-                buffer = x[ii,ii]
-                x[:,ii] -= x[:,ii]/(overshoot[ii]-buffer)*overshoot[ii]
-                x[ii,ii] = buffer
-
-    return x
-
-
-def interaction_matrix_modifier():
-    """ this function is inteded to modify the interactino matrices (d1_/d2_weights)
-        to find appropriate solutions to the system. """
-    
-    """ we have 53 non-zero, non-negative-one values.
-        len(d2_weights[((d2_weights != -1) & (d2_weights != 0)) == True])
-        
-        assuming we constrain our precision to a resolution of 5% 
-        we have a parameter searchspace of 20**53
-        which gives us convenient search time of 3e61 years
-        wow, such convenience """
-
-
-## Gradiant Decent
-
-### initialization routines 
-
-def init_variable_space_for_adjoint(x,y,max_iter):
-    """ Initializes the arrays needed for the iteration process 
-        Has no other function then to unclutter the code """
-    
-    # number of model input/output variables
-    
-    n_x = len(x.flatten())
-    n_y = len(y.flatten())
-    
-    # shape of map
-    #map_shape = (n_x,n_y)
-    
-    # init variable space
-    x_init = x.copy()
-    x = np.zeros( (max_iter,n_x) )
-    x[0] = x_init
-    F = np.zeros( (max_iter,n_y) )
-    J = np.zeros( max_iter )
-    #A = np.zeros( (max_iter,)+map_shape)
-    
-    
-    return x,F,J
-
-### Gradiant Decent Methods
-
-def prediction_and_costfunction(X,y,fit_model,
-                                         constrains=np.array([None]),mu=1):
-    """ calculates the (stable) solution of the time evolution (F)
-        and the resulting costfunction (J) while applying a
-        barrier_function() """
-
-    F = fit_model(X)
-    J = cost_function(F,y)
-    J += barrier_function(X,constrains,mu)
-    
-    return F,J
-
-def local_gradient(X,y,fit_model,constrains,mu=0.01):
-    """ calculates the gradient in the local area
-        around the last parameter set (X).
-        Local meaning with the same step size
-        as in the previous step. """
-    
-    X_diff = X[-1]-X[-2]
-    n_x = len(X_diff)
-    
-    X_center = X[-1]
-    J_center = prediction_and_costfunction(X_center,y,fit_model,constrains,mu)[1]
-    
-    X_local = np.full( (n_x,n_x), X_center)
-    J_local = np.zeros(n_x)
-    
-    for ii in np.arange(n_x):
-        X_local[ii,ii] += X_diff[ii]
-        # i expcet that to be a bad implementation performance wise
-        X_local[ii,ii] = barrier_hard_enforcement(np.array([X_local[ii,ii]]),ii,
-                                                  np.array([constrains[ii]]))[0]
-        J_local[ii] = prediction_and_costfunction(X_local[ii],y,fit_model,constrains,mu)[1]
-
-    J_diff = J_local - J_center
-    """ The following line prevents a division by zero if 
-        by chance a point does not move in between iterations.
-        This is more a work around then a feature """
-    gradient = division_scalar_vector_w_zeros(J_diff,X_diff)
-
-    return gradient
-
-
+## Gradient Decent Methods
 def SGD_basic(X,gradient,grad_scale):
         """ construct the gradient of the cost function  
         to minimize it with an 'SGD' approach """
@@ -261,6 +13,7 @@ def SGD_basic(X,gradient,grad_scale):
         x_next = X[-1] - grad_scale*gradient
         
         return x_next
+
 
 def SGD_momentum(X,gradient,grad_scale):
         """ construct the gradient of the cost function  
@@ -276,12 +29,13 @@ def SGD_momentum(X,gradient,grad_scale):
         
         return x_next
 
+
+## Cost function related Methods
 def cost_function(F,y):
     """ normalized squared distance between F&y """
     J = (1/len(y))*np.sum( (F - y)**2 )
     return J
 
-### applying Gradiant Decent
 
 def barrier_function(x,constrains=np.array([None]),mu=1):
     """ constructs the additional cost that is created close
@@ -376,6 +130,7 @@ def barrier_hard_enforcement(x,jj,constrains=None,pert_scale=1e-2,seed=137):
     return x
 
 
+# Top level Routine
 def gradient_decent(fit_model,gradient_method,x,y,
                     constrains=np.array([None]),
                     max_iter=5,mu=1,pert_scale=1e-2,grad_scale=1e-2,
@@ -412,7 +167,241 @@ def gradient_decent(fit_model,gradient_method,x,y,
     return X, F, J
 
 
-## plotting
+# Time Evolution
+
+## Integration Schemes
+def euler_forward(d0,d1_weights,time_step,time_step_size):
+    """ develops the carbon mass and carbon mass flux 
+        based on a euler forward method """
+    
+    #print(d0,d1_weights)
+    d0 = d0 + np.matmul(d1_weights,d0)*time_step_size
+    
+    return d0
+
+def runge_kutta(d0,d1_weights,time_step,time_step_size):
+    """ develops the carbon mass and carbon mass flux 
+        based on a euler forward method """
+    
+    d0_half = d0 + time_step_size/2*np.matmul(d1_weights,d0)
+    d0 = d0_half + np.matmul(d1_weights,d0_half)*time_step_size
+    time_step += 1
+    
+    return d0, time_step
+
+
+## Stability
+def verify_stability_time_evolution(F, tolerance=1e-9, N=10):
+    """ checks if the current solution is stable by 
+        comparing the relative fluctuations in the 
+        last N model outputs to a tolerance value
+        returns true if stable """
+
+    F_tail = F[-N-1:-1]
+
+    average = np.average(F_tail,axis=0)
+    spread = np.max(F_tail,axis=0) -np.min(F_tail,axis=0)
+    rel_spread = spread/average
+    is_stable = (rel_spread <= tolerance).all()
+
+    return is_stable
+
+
+## Integrating Time Evolutoin
+def run_time_evo(method,T,dt,d0,d1_weights_model,
+                 d1_weights=None,weights_model_constants=None):
+    """ integrates first order ODE
+
+        integration scheme
+        method: {euler,runge_kutta}
+
+        T: postive float, time span that is integrated
+        dt: postive float, time step that is integrated
+
+        d0: 1D-numpy.array, set of initial values
+        d1_weights: 2D-square-numpy.array with ODE coefficients """
+
+    # calculate all time constants
+    n_obs = len(d0)
+    n_steps = int(T/dt)
+    
+    # initialize data arrays
+    d0_log = np.zeros( (n_steps,n_obs) )
+    d0_log[0] = d0
+
+    # calculate the time evolution
+    time_step = 0
+    for ii in np.arange(1,n_steps):
+        d1_weights = d1_weights_model(d0_log[ii],d1_weights,weights_model_constants)
+        d0_log[ii] = method(d0_log[ii-1],d1_weights,time_step,dt)
+    
+    return d0_log
+
+
+# Helper Functions
+
+## General Helper Function
+def division_scalar_vector_w_zeros(a,b):
+    """ inverts vector (1/x) while catching divisions by zero
+        and sets them to zero """
+    x = np.divide(a, b, out=np.zeros_like(b), where=b!=0)
+    
+    return x
+
+
+def prediction_and_costfunction(X,y,fit_model,
+                                         constrains=np.array([None]),mu=1):
+    """ calculates the (stable) solution of the time evolution (F)
+        and the resulting costfunction (J) while applying a
+        barrier_function() """
+
+    F = fit_model(X)
+    J = cost_function(F,y)
+    J += barrier_function(X,constrains,mu)
+    
+    return F,J
+
+
+## PDE-weights related Helper Functions
+def fill_free_param(x_sub,x_orig):
+    """ brings the reduces parameter set back into
+        its orig square matrix form 
+        
+        x_sub:  reduced set of original matrix
+                (all non-zero/non-one)
+        x_orig: the original square matrix which is filled
+                with a new set of values """
+
+    n = len(x_orig)
+    idx_x = filter_free_param(x_orig.flatten())[:,0]
+    x = x_orig.flatten()
+    for ii,val in zip(idx_x,x_sub):
+        x[int(ii)] = val
+    x = np.reshape(x,(n,n))
+    
+    return x
+
+
+def filter_free_param(x):
+    x_sub = [(ii,val) for ii, val in enumerate(x) if
+             ((val != 0) & ( val != -1) & ( val != 1))]
+    return np.array(x_sub)
+
+
+def careful_reshape(x):
+    n_obs = len(x)
+    size_of_square = int(np.sqrt(n_obs))
+
+    try:
+        x = np.reshape(x, (size_of_square,size_of_square))
+        return x
+    except ValueError:
+        print('Parameter input (x) does not fit into a square matrix.\n'+
+              'Hence, is no valid input for normalisation scheme')
+        return -1
+
+
+def normalize_columns(x):
+    """ enforces that all columns of x are normalized to 1
+        otherwise an carbon mass transport amplification would occur """
+    
+    overshoot = np.sum(x,axis=0)    
+    for ii,truth_val in enumerate(abs(overshoot) > 1e-16):
+        if truth_val : 
+            if x[ii,ii] == overshoot[ii]:
+                # only the diagnoal entry is filled
+                # hence, its the dump. 
+                pass 
+            else: 
+                # the following assumed that only diagonal values can be negative
+                buffer = x[ii,ii]
+                x[:,ii] -= x[:,ii]/(overshoot[ii]-buffer)*overshoot[ii]
+                x[ii,ii] = buffer
+
+    return x
+
+
+## Gradient Decent related Helper Functions
+def init_variable_space_for_adjoint(x,y,max_iter):
+    """ Initializes the arrays needed for the iteration process 
+        Has no other function then to unclutter the code """
+    
+    # number of model input/output variables
+    
+    n_x = len(x.flatten())
+    n_y = len(y.flatten())
+    
+    # shape of map
+    #map_shape = (n_x,n_y)
+    
+    # init variable space
+    x_init = x.copy()
+    x = np.zeros( (max_iter,n_x) )
+    x[0] = x_init
+    F = np.zeros( (max_iter,n_y) )
+    J = np.zeros( max_iter )
+    #A = np.zeros( (max_iter,)+map_shape)
+    
+    
+    return x,F,J
+
+
+def add_pertubation(x,pert_scale=0.00001,seed=137):
+    "adds a small pertubation to input (1D-)array"
+    
+    delta_x = np.random.rand(len(x))*pert_scale
+    
+    return x+delta_x
+
+
+def monte_carlo_sample_generator(constrains):
+    """ constructs a set of homogenously distributed random values 
+        in the value range provided by 'constrains'
+        returns an array of the length of 'constrains' 
+        Carefull: samples the FULL float search space if an inf value is provided! """
+
+    """ returns min/max posible value if a +/- infinite value is pressent """
+    constrains[constrains==np.inf] = np.finfo(float).max
+    constrains[constrains==-np.inf] = np.finfo(float).min
+
+    constrains_width = constrains[:,1] - constrains[:,0]
+    sample_set = constrains_width*np.random.rand(len(constrains))+constrains[:,0]
+
+    return sample_set
+
+
+def local_gradient(X,y,fit_model,constrains,mu=0.01):
+    """ calculates the gradient in the local area
+        around the last parameter set (X).
+        Local meaning with the same step size
+        as in the previous step. """
+    
+    X_diff = X[-1]-X[-2]
+    n_x = len(X_diff)
+    
+    X_center = X[-1]
+    J_center = prediction_and_costfunction(X_center,y,fit_model,constrains,mu)[1]
+    
+    X_local = np.full( (n_x,n_x), X_center)
+    J_local = np.zeros(n_x)
+    
+    for ii in np.arange(n_x):
+        X_local[ii,ii] += X_diff[ii]
+        # i expcet that to be a bad implementation performance wise
+        X_local[ii,ii] = barrier_hard_enforcement(np.array([X_local[ii,ii]]),ii,
+                                                  np.array([constrains[ii]]))[0]
+        J_local[ii] = prediction_and_costfunction(X_local[ii],y,fit_model,constrains,mu)[1]
+
+    J_diff = J_local - J_center
+    """ The following line prevents a division by zero if 
+        by chance a point does not move in between iterations.
+        This is more a work around then a feature """
+    gradient = division_scalar_vector_w_zeros(J_diff,X_diff)
+
+    return gradient
+
+
+# plotting routines
 
 def plotting_coupling_matrix(d2_weights,d1_weights,names):
     plt.figure(figsize=(12,6))
