@@ -24,6 +24,38 @@ def runge_kutta(d0,d1_weights,time_step,time_step_size):
     return d0, time_step
 
 
+def monte_carlo_sample_generator(constrains):
+    """ constructs a set of homogenously distributed random values 
+        in the value range provided by 'constrains'
+        returns an array of the length of 'constrains' 
+        Carefull: samples the FULL float search space if an inf value is provided! """
+
+    """ returns min/max posible value if a +/- infinite value is pressent """
+    constrains[constrains==np.inf] = np.finfo(float).max
+    constrains[constrains==-np.inf] = np.finfo(float).min
+
+    constrains_width = constrains[:,1] - constrains[:,0]
+    sample_set = constrains_width*np.random.rand(len(constrains))+constrains[:,0]
+
+    return sample_set
+
+
+def verify_stability_time_evolution(F, tolerance=1e-9, N=10):
+    """ checks if the current solution is stable by 
+        comparing the relative fluctuations in the 
+        last N model outputs to a tolerance value
+        returns true if stable """
+
+    F_tail = F[-N-1:-1]
+
+    average = np.average(F_tail,axis=0)
+    spread = np.max(F_tail,axis=0) -np.min(F_tail,axis=0)
+    rel_spread = spread/average
+    is_stable = (rel_spread <= tolerance).all()
+
+    return is_stable
+
+
 def verify_stabel_soloution_of_time_evol():
     """ i will require some criteria to check if solution is sufficiently stable
         to break time_evolution early (safe comp. time) or to exclude because its unstable """
