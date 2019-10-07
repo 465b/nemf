@@ -76,9 +76,7 @@ def careful_reshape(x):
 def add_pertubation(x,pert_scale=0.00001,seed=137):
     "adds a small pertubation to input (1D-)array"
     
-    np.random.seed(seed)
     delta_x = np.random.rand(len(x))*pert_scale
-    print('Added random pertubation')
     
     return x+delta_x
 
@@ -112,7 +110,7 @@ def fill_free_param(x_sub,x_orig):
 
 def filter_free_param(x):
     x_sub = [(ii,val) for ii, val in enumerate(x) if
-             ((val != 0) & ( val != -1) & ( val != -1))]
+             ((val != 0) & ( val != -1) & ( val != 1))]
     return np.array(x_sub)
 
 
@@ -181,6 +179,18 @@ def init_variable_space_for_adjoint(x,y,max_iter):
 
 ### Gradiant Decent Methods
 
+def prediction_and_costfunction(X,y,fit_model,
+                                         constrains=np.array([None]),mu=1):
+    """ calculates the (stable) solution of the time evolution (F)
+        and the resulting costfunction (J) while applying a
+        barrier_function() """
+
+    F = fit_model(X)
+    J = cost_function(F,y)
+    J += barrier_function(X,constrains,mu)
+    
+    return F,J
+
 def local_gradient(X,y,fit_model,constrains,mu=0.01):
     """ calculates the gradient in the local area
         around the last parameter set (X).
@@ -191,24 +201,24 @@ def local_gradient(X,y,fit_model,constrains,mu=0.01):
     n_x = len(X_diff)
     
     X_center = X[-1]
-    F_center = fit_model(X_center)
-    J_center = cost_function(F_center,y)
+    J_center = prediction_and_costfunction(X_center,y,fit_model,constrains,mu)[1]
     
     X_local = np.full( (n_x,n_x), X_center)
-    F_local = np.zeros((n_x,n_x))
     J_local = np.zeros(n_x)
     
     for ii in np.arange(n_x):
         X_local[ii,ii] += X_diff[ii]
-    
-    for ii in np.arange(n_x):
-        F_local[ii] = fit_model(X_local[ii])
-        J_local[ii] = cost_function(F_local[ii],y)
-        J_local[ii] += barrier_function(X[-1],constrains,mu)
-    
+        # i expcet that to be a bad implementation performance wise
+        X_local[ii,ii] = barrier_hard_enforcement(np.array([X_local[ii,ii]]),ii,
+                                                  np.array([constrains[ii]]))[0]
+        J_local[ii] = prediction_and_costfunction(X_local[ii],y,fit_model,constrains,mu)[1]
+
     J_diff = J_local - J_center
-    gradient = J_diff/X_diff
-    
+    """ The following line prevents a division by zero if 
+        by chance a point does not move in between iterations.
+        This is more a work around then a feature """
+    gradient = division_scalar_vector_w_zeros(J_diff,X_diff)
+
     return gradient
 
 
@@ -236,7 +246,7 @@ def SGD_momentum(X,gradient,grad_scale):
 
 def cost_function(F,y):
     """ normalized squared distance between F&y """
-    J = (1/len(F))*np.sum( (F - y)**2 )
+    J = (1/len(y))*np.sum( (F - y)**2 )
     return J
 
 ### applying Gradiant Decent
@@ -272,24 +282,25 @@ def barrier_function(x,constrains=np.array([None]),mu=1):
         if (left == -np.inf):
             J_barrier_left[ii] = 0
         else:
-            J_barrier_left[ii] = -np.log(left+x[ii])
+            J_barrier_left[ii] = -np.log(x[ii]-left)
 
         # right constrain
         if (right == np.inf):
             J_barrier_right[ii] = 0
         else:
-            J_barrier_right[ii] = -np.log(right-x[ii])
+            J_barrier_right[ii] = -np.log(-x[ii]+right)
 
-        J_barrier = J_barrier_left + J_barrier_right
-        J_barrier = np.sum(J_barrier)*mu
+    J_barrier = J_barrier_left + J_barrier_right
+    J_barrier = np.sum(J_barrier)*mu
     
     return J_barrier
 
-def barrier_hard_enforcement(x,constrains=None,pert_scale=1e-4,seed=137):
+
+def barrier_hard_enforcement(x,jj,constrains=None,pert_scale=1e-2,seed=137):
     """ if outisde the search space we enforce a 'in-constrain'
         search space by ignoring the recommendet step and
         moving it back into the search space """
-    np.random.seed(seed)
+    #np.random.seed(seed)
 
     if (constrains == None).all():
         constrains = np.zeros((len(x),2))
@@ -302,59 +313,68 @@ def barrier_hard_enforcement(x,constrains=None,pert_scale=1e-4,seed=137):
     for ii,[left,right] in enumerate(constrains):
         if (x[ii] <= left):
             x[ii] = left + np.random.rand()*pert_scale
-            warnings.warn('A hard (left) barrier enforcment was necessary. '+
-                          'Consider adjusting your input parameter', Warning)
+            if jj == 0:
+                x[ii] = right - np.random.rand()*pert_scale
+                warn_string = ('The initial values are not inside the search space! '+
+                                'A hard (left) barrier enforcment was necessary '+
+                               'at step {}. '.format(jj)+
+                               'Consider adjusting your input parameter')
+                warnings.warn(warn_string, Warning)
+            else:
+                warn_string = ('A hard (left) barrier enforcment was necessary '+
+                            'at step {}. '.format(jj)+
+                            'Consider adjusting your input parameter')
+                warnings.warn(warn_string, Warning)
             # we add a small pertubation to avoid
             # that the we remain on the boarder
         if (x[ii] >= right):
-            x[ii] = right - np.random.rand()*pert_scale
-            warnings.warn('A hard (right) barrier enforcment was necessary. '+
-                          'Consider adjusting your input parameter', Warning)
-
+            if jj == 0:
+                x[ii] = right - np.random.rand()*pert_scale
+                warn_string = ('The initial values are not inside the search space! '+
+                                'A hard (right) barrier enforcment was necessary '+
+                               'at step {}. '.format(jj)+
+                               'Consider adjusting your input parameter')
+                warnings.warn(warn_string, Warning)
+            else:
+                x[ii] = right - np.random.rand()*pert_scale
+                warn_string = ('A hard (right) barrier enforcment was necessary '+
+                            'at step {}. '.format(jj)+
+                            'Consider adjusting your input parameter')
+                warnings.warn(warn_string, Warning)
     return x
 
 
 def gradient_decent(fit_model,gradient_method,x,y,
                     constrains=np.array([None]),
-                    max_iter=5,mu=1,pert_scale=0.01,grad_scale=0.01,
+                    max_iter=5,mu=1,pert_scale=1e-2,grad_scale=1e-2,
                     seed = 137):
     """ framework for applying a gradient decent approach to a 
         a model, applying a certain method 
         
         x: initial guess for the parameter set
         y: expected outcome of the model F(x)"""    
+
+    np.random.seed(seed)
     
     X,F,J = init_variable_space_for_adjoint(x,y,max_iter)
     
     for ii in np.arange(0,max_iter-1):
-        if ii == 0:
-            """ At the beginning of the iteration the cost function space 
-                is completely unexpored. To get started we do a random move """
-
-            F[ii] = fit_model(X[ii])
-            J[ii] = cost_function(F[ii],y)
-            J[ii] += barrier_function(X[ii],constrains,mu)
-            X[ii+1] = add_pertubation(X[ii],pert_scale,seed)
-
-        else:
-            """ constructing the cost function (J)
-                we call the cost function at a single point 'forcing' """
+            if ii == 0:
+                X[ii] = barrier_hard_enforcement(X[ii],ii,constrains,pert_scale)
+                F[ii],J[ii] = prediction_and_costfunction(X[ii],y,fit_model,constrains,mu)
+                X[ii+1] = add_pertubation(X[ii],pert_scale)
             
-            
-            """ evaluate change in field caused by last step """
-            F[ii] = fit_model(X[ii]) 
-            J[ii] = cost_function(F[ii],y)
-            J[ii] += barrier_function(X[ii],constrains,mu)
-            #print('forcing:\t\t{}'.format(delta_forcing))
-            #print('x_diff:\t\t\t{}'.format(delta_x))
-            #print('gradient:\t\t{}'.format(delta_forcing/delta_x))
+            else:
+                """ evaluate the system by iterating until a stable solution (F) is found
+                    and constructing the cost function (J) """
+                X[ii] = barrier_hard_enforcement(X[ii],ii,constrains,pert_scale)
+                F[ii],J[ii] = prediction_and_costfunction(X[ii],y,fit_model,constrains,mu)
 
-            """ applying a decent model to find a new ( and better)
-                input variable """
-            
-            gradient = local_gradient(X[:ii+1],y,fit_model, constrains, mu)
-            X[ii+1] = gradient_method(X[:ii+1],gradient,grad_scale)
-            X[ii+1] = barrier_hard_enforcement(X[ii+1],constrains)
+                """ applying a decent model to find a new ( and better)
+                    input variable """
+                
+                gradient = local_gradient(X[:ii+1],y,fit_model, constrains, mu)
+                X[ii+1] = gradient_method(X[:ii+1],gradient,grad_scale)
             
             
     return X, F, J
