@@ -134,6 +134,7 @@ def barrier_hard_enforcement(x,jj,constrains=None,pert_scale=1e-2,seed=137):
 def gradient_decent(fit_model,gradient_method,x,y,
                     constrains=np.array([None]),
                     max_iter=5,mu=1,pert_scale=1e-2,grad_scale=1e-2,
+                    tolerance=1e-9,tail_length_stability_check=10,
                     seed = 137):
     """ framework for applying a gradient decent approach to a 
         a model, applying a certain method 
@@ -148,18 +149,17 @@ def gradient_decent(fit_model,gradient_method,x,y,
     for ii in np.arange(0,max_iter-1):
             if ii == 0:
                 X[ii] = barrier_hard_enforcement(X[ii],ii,constrains,pert_scale)
-                F[ii],J[ii] = prediction_and_costfunction(X[ii],y,fit_model,constrains,mu)
+                F[ii],J[ii],is_stable = prediction_and_costfunction(X[ii],y,fit_model,constrains,mu)
                 X[ii+1] = add_pertubation(X[ii],pert_scale)
             
             else:
                 """ evaluate the system by iterating until a stable solution (F) is found
                     and constructing the cost function (J) """
                 X[ii] = barrier_hard_enforcement(X[ii],ii,constrains,pert_scale)
-                F[ii],J[ii] = prediction_and_costfunction(X[ii],y,fit_model,constrains,mu)
+                F[ii],J[ii],is_stable = prediction_and_costfunction(X[ii],y,fit_model,constrains,mu)
 
                 """ applying a decent model to find a new ( and better)
                     input variable """
-                
                 gradient = local_gradient(X[:ii+1],y,fit_model, constrains, mu)
                 X[ii+1] = gradient_method(X[:ii+1],gradient,grad_scale)
             
@@ -250,16 +250,17 @@ def division_scalar_vector_w_zeros(a,b):
 
 
 def prediction_and_costfunction(X,y,fit_model,
-                                         constrains=np.array([None]),mu=1):
+                                constrains=np.array([None]),
+                                tail_length_stability_check=10, mu=1):
     """ calculates the (stable) solution of the time evolution (F)
         and the resulting costfunction (J) while applying a
         barrier_function() """
 
-    F = fit_model(X)
+    F,is_stable = fit_model(X,tail_length_stability_check)
     J = cost_function(F,y)
     J += barrier_function(X,constrains,mu)
     
-    return F,J
+    return F,J,is_stable
 
 
 ## PDE-weights related Helper Functions
@@ -308,13 +309,19 @@ def normalize_columns(x):
     overshoot = np.sum(x,axis=0)    
     for ii,truth_val in enumerate(abs(overshoot) > 1e-16):
         if truth_val : 
-            if x[ii,ii] == overshoot[ii]:
+            buffer = x[ii,ii]
+            if buffer == overshoot[ii]:
                 # only the diagnoal entry is filled
-                # hence, its the dump. 
-                pass 
-            else: 
-                # the following assumed that only diagonal values can be negative
-                buffer = x[ii,ii]
+                # hence, its the dump.
+                pass
+            elif (buffer == 0): 
+                overshoot[ii] -= 1
+                if (abs(overshoot[ii]) > 1e-16):
+                    print((overshoot[ii]-buffer)*overshoot[ii])
+                    print(overshoot[ii],buffer)
+                    x[:,ii] -= x[:,ii]/(overshoot[ii]+1)*overshoot[ii]
+                    x[ii,ii] = buffer
+            else:
                 x[:,ii] -= x[:,ii]/(overshoot[ii]-buffer)*overshoot[ii]
                 x[ii,ii] = buffer
 
