@@ -82,6 +82,7 @@ def barrier_function(x,constrains=np.array([None]),mu=1):
     return J_barrier
 
 
+
 def barrier_hard_enforcement(x,jj,constrains=None,pert_scale=1e-2,seed=137):
     """ if outisde the search space we enforce a 'in-constrain'
         search space by ignoring the recommendet step and
@@ -100,33 +101,31 @@ def barrier_hard_enforcement(x,jj,constrains=None,pert_scale=1e-2,seed=137):
         if (x[ii] <= left):
             x[ii] = left + np.random.rand()*pert_scale
             if jj == 0:
-                x[ii] = right - np.random.rand()*pert_scale
                 warn_string = ('The initial values are not inside the search space! '+
                                 'A hard (left) barrier enforcment was necessary '+
-                               'at step {}. '.format(jj)+
-                               'Consider adjusting your input parameter')
-                warnings.warn(warn_string, Warning)
+                                #'at step {}. '.format(jj)+
+                                'Consider adjusting your input parameter')
+                warnings.warn(warn_string)
             else:
                 warn_string = ('A hard (left) barrier enforcment was necessary '+
-                            'at step {}. '.format(jj)+
+                            #'at step {}. '.format(jj)+
                             'Consider adjusting your input parameter')
-                warnings.warn(warn_string, Warning)
+                warnings.warn(warn_string)
             # we add a small pertubation to avoid
             # that the we remain on the boarder
         if (x[ii] >= right):
+            x[ii] = right - np.random.rand()*pert_scale
             if jj == 0:
-                x[ii] = right - np.random.rand()*pert_scale
                 warn_string = ('The initial values are not inside the search space! '+
                                 'A hard (right) barrier enforcment was necessary '+
-                               'at step {}. '.format(jj)+
+                               #'at step {}. '.format(jj)+
                                'Consider adjusting your input parameter')
-                warnings.warn(warn_string, Warning)
+                warnings.warn(warn_string)
             else:
-                x[ii] = right - np.random.rand()*pert_scale
                 warn_string = ('A hard (right) barrier enforcment was necessary '+
-                            'at step {}. '.format(jj)+
+                            #'at step {}. '.format(jj)+
                             'Consider adjusting your input parameter')
-                warnings.warn(warn_string, Warning)
+                warnings.warn(warn_string)
     return x
 
 
@@ -317,8 +316,6 @@ def normalize_columns(x):
             elif (buffer == 0): 
                 overshoot[ii] -= 1
                 if (abs(overshoot[ii]) > 1e-16):
-                    print((overshoot[ii]-buffer)*overshoot[ii])
-                    print(overshoot[ii],buffer)
                     x[:,ii] -= x[:,ii]/(overshoot[ii]+1)*overshoot[ii]
                     x[ii,ii] = buffer
             else:
