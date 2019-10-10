@@ -173,7 +173,8 @@ def gradient_decent(fit_model,gradient_method,x,y,
             else:
                 """ applying a decent model to find a new ( and better)
                     input variable """
-                gradient = local_gradient(X[:ii+1],y,fit_model, constrains, mu)
+                gradient = local_gradient(X[:ii+1],y,fit_model, constrains, mu,
+                                          tail_length_stability_check,tolerance)
                 X[ii+1] = gradient_method(X[:ii+1],gradient,grad_scale)
                 ii += 1
         jj += 1
@@ -218,7 +219,9 @@ def verify_stability_time_evolution(F, tolerance=1e-6, N=10):
     spread = np.max(F_tail,axis=0) -np.min(F_tail,axis=0)
     rel_spread = spread/average
     is_stable = (rel_spread <= tolerance).all()
-    if is_stable: print(rel_spread)
+    if is_stable: 
+        print(tolerance)
+        print(rel_spread)
     
     return is_stable
 
