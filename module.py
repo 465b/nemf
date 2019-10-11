@@ -178,7 +178,8 @@ def gradient_decent(fit_model,gradient_method,x,y,
                 X[ii+1] = gradient_method(X[:ii+1],gradient,grad_scale)
                 ii += 1
         jj += 1
-    print(ii,jj)
+    #print(ii,jj)
+    # log this!
             
     return X, F, J
 
@@ -219,9 +220,6 @@ def verify_stability_time_evolution(F, tolerance=1e-6, N=10):
     spread = np.max(F_tail,axis=0) -np.min(F_tail,axis=0)
     rel_spread = spread/average
     is_stable = (rel_spread <= tolerance).all()
-    if is_stable: 
-        print(tolerance)
-        print(rel_spread)
     
     return is_stable
 
@@ -461,8 +459,9 @@ def plotting_coupling_matrix(d2_weights,d1_weights,names):
     plt.show()
 
 
-def plotting_standard(d0_log,d1_log,time_step_size,names):
-    """ plotting_standard(d0_log=d0_log,d1_log=d1_log,time_step_size=time_step_size,names=names) """
+def plotting_time_evolution(d0_log,d1_log,time_step_size,names):
+    """ plotting_time_evolution(d0_log=d0_log,d1_log=d1_log,
+        time_step_size=time_step_size,names=names) """
     # plotting
     time = np.arange(np.shape(d0_log)[0]) * time_step_size 
 
@@ -504,3 +503,32 @@ def plotting_standard(d0_log,d1_log,time_step_size,names):
     plt.tight_layout()
     plt.savefig('total_flux_mass.svg')
     plt.show()
+
+
+def plot_XFL(X=None,F=None,L=None,context='talk'):
+    
+    sns.set_context(context)
+    
+    if (X != None).all():
+        plt.figure()
+        plt.title('Free Input Parameter')
+        plt.plot(X[:-1])
+        plt.ylabel('Input value (arb. u.)')
+        plt.ylabel('Iteration Step')
+        plt.show()
+
+    if (F != None).all():
+        plt.figure()
+        plt.title('Time Evolution Output')
+        plt.plot(F[:-1])
+        plt.ylabel('Output value (arb. u.)')
+        plt.xlabel('Iteration Step')
+        plt.show()
+    
+    if (L != None).all():
+        plt.figure()
+        plt.title('Loss function over time')
+        plt.plot(L[:-1])
+        plt.ylabel('Loss function')
+        plt.xlabel('Iteration Step')
+        plt.show()
