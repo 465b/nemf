@@ -3,6 +3,71 @@ from NPZD_lib import *
 
 flag = 'd5'
 
+if flag == 'd5_monte_carlo':
+    def d5_model(x,y,z):
+        return y
+    
+    def test_model(x,
+                   tail_length_stability_check=10,tolerance=1e-6):
+
+        d1 = np.genfromtxt("d1_D5_init.tsv")
+        d0 = d1
+        T = 300
+        dt = 1/5
+
+        x = fill_free_param(x,d2_init)
+        x = normalize_columns(x)
+        method = euler_forward
+
+        F_ij,is_stable = run_time_evo(method, T,dt,d0,d5_model,d1_weights=x,
+                                tolerance=tolerance, tail_length_stability_check=tail_length_stability_check)
+        
+        F_i = F_ij[-1]
+        F = np.array(np.sum(F_i) - 2*F_i[-1])
+
+        return F,is_stable
+    
+    d2_init = np.genfromtxt("d2_D5_init.tsv",skip_header=1)[:,1:]
+    x = d2_init.copy().flatten()
+    x = filter_free_param(x)[:,1]
+    print(x)
+    y = np.array([0]) # i want the totel flow be zero 
+
+    constrains = np.zeros((len(x),2))
+    constrains[:,0] = 0
+    constrains[:,1] = 1
+    #constrains = np.array([None])
+
+    max_iter = 300
+    
+    X,F,L = init_variable_space_for_adjoint(x,y,max_iter)
+    sample_sets = 100
+    
+    X_stack = np.zeros((sample_sets,) + np.shape(X))
+    F_stack = np.zeros((sample_sets,) + np.shape(F))
+    L_stack = np.zeros((sample_sets,) + np.shape(L))
+
+    for ii in np.arange(0,sample_sets):
+        np.random.seed()
+        x = monte_carlo_sample_generator(constrains)
+        print(x)
+    
+        #constrains = np.array([None])
+
+        X, F, L = gradient_decent(test_model,SGD_basic,x,y,
+                                     constrains,max_iter,mu=1e-6,
+                                     pert_scale=1e-4,grad_scale=1e-5,
+                                     tolerance=1e-5,tail_length_stability_check=10,
+                                     seed=137)
+        
+        X_stack[ii] = X
+        F_stack[ii] = F
+        L_stack[ii] = L
+        
+    stable_ratio = np.shape(X_stack[X_stack > 0])[0]/(
+                    np.shape(X_stack)[0] * np.shape(X_stack)[1] * np.shape(X_stack)[2])
+    print(stable_ratio)
+
 if flag == 'd5':
     def d5_model(x,y,z):
         return y
@@ -12,7 +77,7 @@ if flag == 'd5':
 
         d1 = np.genfromtxt("d1_D5_init.tsv")
         d0 = d1
-        T = 100
+        T = 200
         dt = 1/5
 
         x = fill_free_param(x,d2_init)
@@ -42,8 +107,10 @@ if flag == 'd5':
     X, F, L = gradient_decent(test_model,SGD_basic,x,y,
                                  constrains,max_iter=200,mu=1e-2,
                                  pert_scale=1e-3,grad_scale=1e-11,
-                                 tolerance=1e-7,tail_length_stability_check=10,
+                                 tolerance=1e-6,tail_length_stability_check=10,
                                  seed=137)
+
+    print(X)
 
 
 

@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
+import seaborn as sns
 
 
 # Gradiant Decent
@@ -524,7 +525,7 @@ def plot_XFL(X=None,F=None,L=None,context='talk'):
         plt.ylabel('Output value (arb. u.)')
         plt.xlabel('Iteration Step')
         plt.show()
-    
+
     if (L != None).all():
         plt.figure()
         plt.title('Loss function over time')
