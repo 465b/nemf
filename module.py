@@ -436,10 +436,10 @@ def init_variable_space_for_adjoint(x,y,max_iter):
     return x,F,J
 
 
-def add_pertubation(x,pert_scale=0.00001,seed=137):
+def add_pertubation(x,pert_scale=1e-4,seed=137):
     "adds a small pertubation to input (1D-)array"
     
-    delta_x = np.random.rand(len(x))*pert_scale
+    delta_x = (np.random.rand(len(x)) - 0.5)*pert_scale
     
     return x+delta_x
 
