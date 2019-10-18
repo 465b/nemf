@@ -22,7 +22,6 @@ def logging_deco(func):
         list_args = [str(ii) for ii in args]
         list_kwargs = [(k, v) for k, v in kwargs.items()]
         commented_results = [list_args+list_kwargs, result]
-        print(commented_results)
         
         pickling_on = open("_".join((date,func.__name__))+".pickle","wb")
         pickle.dump(commented_results,pickling_on)
@@ -648,7 +647,7 @@ def dn_monte_carlo(path_d0_init,path_d1_init,y,
     return X_stack,F_stack
 
 
-#@logging_deco
+@logging_deco
 def NPZD_monte_carlo(path_d0_init,path_d1_init,y,
                     fit_model = direct_fit_model,
                     gradient_method = SGD_basic,
