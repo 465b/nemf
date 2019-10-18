@@ -476,7 +476,7 @@ def local_gradient(X,y,fit_model,integration_scheme,
     
     
 
-    # the following line is already computed. optimaztion possibility
+    # the following 2 lines is already computed. optimaztion possibility
     d0,d1 = fill_X_into_d0_d1(X_center,d0,d1,d0_indexes,d1_indexes)
     J_center = prediction_and_costfunction(
                         X_center,d0, d1, d0_indexes,d1_indexes,d1_weights_model,y,fit_model,
@@ -492,10 +492,12 @@ def local_gradient(X,y,fit_model,integration_scheme,
         X_local[ii,ii] = barrier_hard_enforcement(np.array([X_local[ii,ii]]),ii,
                                                   np.array([constrains[ii]]))[0]
         d0,d1 = fill_X_into_d0_d1(X_local[ii],d0,d1,d0_indexes,d1_indexes)
-        J_local[ii] = prediction_and_costfunction(
+        J_local[ii],is_stable = prediction_and_costfunction(
                         X_local[ii],d0, d1, d0_indexes,d1_indexes,d1_weights_model,y,fit_model,
                         integration_scheme, T, dt,constrains,mu,
-                        tolerance,tail_length_stability_check, start_stability_check)[1]
+                        tolerance,tail_length_stability_check, start_stability_check)[1:]
+        if is_stable is False:
+            return None,is_stable
 
     J_diff = J_local - J_center
 
@@ -504,7 +506,7 @@ def local_gradient(X,y,fit_model,integration_scheme,
         This is more of a work around then a feature """
     gradient = division_scalar_vector_w_zeros(J_diff,X_diff)
 
-    return gradient
+    return gradient,is_stable
 
 
 # Top level Routine
@@ -568,14 +570,17 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
             else:
                 """ applying a decent model to find a new ( and better)
                     input variable """
-                gradient = local_gradient(X[:ii+1],y,fit_model,integration_scheme,
+                gradient,is_stable = local_gradient(X[:ii+1],y,fit_model,integration_scheme,
                                           d0,d1,d0_indexes,d1_indexes,
                                           d1_weights_model,constrains,mu,
                                           time_evo_max, dt_time_evo,
                                           tolerance=1e-6,tail_length_stability_check=10,
                                           start_stability_check=100)
-                X[ii+1] = gradient_method(X[:ii+1],gradient,grad_scale)
-                ii += 1
+                if not is_stable:
+                    X[ii] = add_pertubation(X[ii],pert_scale)
+                else:
+                    X[ii+1] = gradient_method(X[:ii+1],gradient,grad_scale)
+                    ii += 1
         jj += 1
 
             
