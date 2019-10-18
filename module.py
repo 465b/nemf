@@ -3,6 +3,33 @@ import matplotlib.pyplot as plt
 import warnings
 import seaborn as sns
 from NPZD_lib import *
+import pickle
+import datetime
+
+# decorators 
+def logging_deco(func):
+    def wrapper(*args,**kwargs):
+        
+        date = datetime.datetime.now()
+        date = "_".join( ("-".join( (str(date.year),
+                                   str(date.month).zfill(2),
+                                   str(date.day).zfill(2)) ),
+                         str(date.hour).zfill(2)+
+                         str(date.minute).zfill(2)) )
+        
+        result = func(*args,**kwargs)
+        
+        list_args = [str(ii) for ii in args]
+        list_kwargs = [(k, v) for k, v in kwargs.items()]
+        commented_results = [list_args+list_kwargs, result]
+        print(commented_results)
+        
+        pickling_on = open("_".join((date,func.__name__))+".pickle","wb")
+        pickle.dump(commented_results,pickling_on)
+        pickling_on.close()
+        
+        return result
+    return wrapper
 
 
 # Gradiant Decent
@@ -84,7 +111,6 @@ def barrier_function(x,constrains=np.array([None]),mu=1):
     return J_barrier
 
 
-
 def barrier_hard_enforcement(x,jj,constrains=None,pert_scale=1e-2,seed=137):
     """ if outisde the search space we enforce a 'in-constrain'
         search space by ignoring the recommendet step and
@@ -129,74 +155,6 @@ def barrier_hard_enforcement(x,jj,constrains=None,pert_scale=1e-2,seed=137):
                             'Consider adjusting your input parameter')
                 warnings.warn(warn_string)
     return x
-
-
-# Top level Routine
-def gradient_decent(fit_model,gradient_method,integration_scheme,
-                    d0,d1, d1_weights_model, y,
-                    d0_indexes = None, d1_indexes = None,
-                    constrains=np.array([None]), mu=1e-2,
-                    gd_max_iter=100,time_evo_max=100,dt_time_evo=0.2, 
-                    pert_scale=1e-5,grad_scale=1e-9,
-                    tolerance=1e-9,tail_length_stability_check=10, 
-                    start_stability_check = 100,seed = 137):
-    """ framework for applying a gradient decent approach to a 
-        a model, applying a certain method 
-        
-        x: initial guess for the parameter set
-        y: expected outcome of the model F(x)"""    
-
-    np.random.seed(seed)
-    
-    x = construct_X_from_d0_d1(d0,d1,d0_indexes,d1_indexes)
-    X,F,J = init_variable_space_for_adjoint(x,y,gd_max_iter)
-    
-    # ii keeps track of the position in the output array
-    # jj keeps track to not exceed max iterations
-    ii = 0; jj = 0
-    
-    while jj < gd_max_iter-1:
-        if ii == 0:
-            X[ii] = barrier_hard_enforcement(X[ii],ii,constrains,pert_scale)
-            d0,d1 = fill_X_into_d0_d1(X[ii],d0,d1,d0_indexes,d1_indexes)
-            F[ii],J[ii],is_stable = prediction_and_costfunction(
-                        X[ii],d0, d1, d0_indexes,d1_indexes,d1_weights_model,y,fit_model,
-                        integration_scheme, time_evo_max, dt_time_evo,constrains,mu,
-                        tolerance,tail_length_stability_check, start_stability_check)
-            if not is_stable:
-                warnings.warn(('Initial conditions do not result in a stable model output!'+
-                                'Consider readjusting the initial conditions. '))
-                X[ii] = add_pertubation(X[ii],pert_scale)
-            else:
-                X[ii+1] = add_pertubation(X[ii],pert_scale)
-                ii += 1
-        
-        else:
-            """ evaluate the system by iterating until a stable solution (F) is found
-                and constructing the cost function (J) """
-            X[ii] = barrier_hard_enforcement(X[ii],ii,constrains,pert_scale)
-            d0,d1 = fill_X_into_d0_d1(X[ii],d0,d1,d0_indexes,d1_indexes)
-            F[ii],J[ii],is_stable = prediction_and_costfunction(
-                        X[ii],d0, d1, d0_indexes,d1_indexes,d1_weights_model,y,fit_model,
-                        integration_scheme, time_evo_max, dt_time_evo,constrains,mu,
-                        tolerance,tail_length_stability_check, start_stability_check)
-            if not is_stable:
-                X[ii] = add_pertubation(X[ii],pert_scale)
-            else:
-                """ applying a decent model to find a new ( and better)
-                    input variable """
-                gradient = local_gradient(X[:ii+1],y,fit_model,integration_scheme,
-                                          d0,d1,d0_indexes,d1_indexes,
-                                          d1_weights_model,constrains,mu,
-                                          time_evo_max, dt_time_evo,
-                                          tolerance=1e-6,tail_length_stability_check=10,
-                                          start_stability_check=100)
-                X[ii+1] = gradient_method(X[:ii+1],gradient,grad_scale)
-                ii += 1
-        jj += 1
-
-            
-    return X, F, J
 
 
 # Time Evolution
@@ -248,22 +206,22 @@ def verify_stability_time_evolution(F, tolerance=1e-6, N=10):
     (i dont know if thats very elegant, but saves an uneccessary )"""
 
 
-def standard_weights_model(d1):
+def standard_weights_model(d0,d1):
     return d1
 
 
 ### Fit models
-def heinle_2013_fit_model(integration_scheme, T, dt, d0, d1_weights_model,d1_weights=None,
-                 tolerance=1e-5,tail_length_stability_check=10, start_stability_check=100):
+def direct_fit_model(integration_scheme, T, dt, d0, d1_weights=None, 
+                       d1_weights_model=standard_weights_model,
+                       tolerance=1e-5,tail_length_stability_check=10, start_stability_check=100):
     """ NPZD model """
     
-    if d1_weights_model == LLM_model:
-        constants = heinle_2013()
-    
-    F_i = run_time_evo(integration_scheme, T,dt,d0,d1_weights_model,d1_weights,
-                       tolerance,tail_length_stability_check,start_stability_check)[-1]
+    F_ij,is_stable = run_time_evo(integration_scheme, T,dt,d0,d1_weights_model,d1_weights,
+                tolerance,tail_length_stability_check,start_stability_check)
+    F_i = F_ij[-1]
 
-    return F_i
+    return F_i,is_stable
+
 
 def standard_fit_model(integration_scheme, T, dt, d0, d1_weights=None, 
                        d1_weights_model=standard_weights_model,
@@ -310,8 +268,9 @@ def run_time_evo(integration_scheme, T, dt, d0, d1_weights_model,
 
     # calculate the time evolution
     time_step = 0
+    is_stable = False
     for ii in np.arange(1,n_steps):
-        d1_weights = d1_weights_model(d0_log[ii])
+        d1_weights = d1_weights_model(d0_log[ii],d1_weights)
         d0_log[ii] = integration_scheme(d0_log[ii-1],d1_weights,time_step,dt)
 
         if ((ii >= start_stability_check) & (ii%tail_length_stability_check == 0) &
@@ -475,7 +434,6 @@ def init_variable_space_for_adjoint(x,y,max_iter):
     J = np.zeros( max_iter )
     #A = np.zeros( (max_iter,)+map_shape)
     
-    
     return x,F,J
 
 
@@ -523,7 +481,7 @@ def local_gradient(X,y,fit_model,integration_scheme,
     d0,d1 = fill_X_into_d0_d1(X_center,d0,d1,d0_indexes,d1_indexes)
     J_center = prediction_and_costfunction(
                         X_center,d0, d1, d0_indexes,d1_indexes,d1_weights_model,y,fit_model,
-                        integration_scheme, time_evo_max, dt_time_evo,constrains,mu,
+                        integration_scheme, T, dt,constrains,mu,
                         tolerance,tail_length_stability_check, start_stability_check)[1]
 
     X_local = np.full( (n_x,n_x), X_center)
@@ -537,7 +495,7 @@ def local_gradient(X,y,fit_model,integration_scheme,
         d0,d1 = fill_X_into_d0_d1(X_local[ii],d0,d1,d0_indexes,d1_indexes)
         J_local[ii] = prediction_and_costfunction(
                         X_local[ii],d0, d1, d0_indexes,d1_indexes,d1_weights_model,y,fit_model,
-                        integration_scheme, time_evo_max, dt_time_evo,constrains,mu,
+                        integration_scheme, T, dt,constrains,mu,
                         tolerance,tail_length_stability_check, start_stability_check)[1]
 
     J_diff = J_local - J_center
@@ -548,6 +506,211 @@ def local_gradient(X,y,fit_model,integration_scheme,
     gradient = division_scalar_vector_w_zeros(J_diff,X_diff)
 
     return gradient
+
+
+# Top level Routine
+
+def gradient_decent(fit_model,gradient_method,integration_scheme,
+                    d0,d1, d1_weights_model, y,
+                    d0_indexes = None, d1_indexes = None,
+                    constrains=np.array([None]), mu=1e-2,
+                    gd_max_iter=100,time_evo_max=100,dt_time_evo=0.2, 
+                    pert_scale=1e-5,grad_scale=1e-9,
+                    tolerance=1e-9,tail_length_stability_check=10, 
+                    start_stability_check = 100,seed = 137):
+    """ framework for applying a gradient decent approach to a 
+        a model, applying a certain method 
+        
+        x: initial guess for the parameter set
+        y: expected outcome of the model F(x)"""    
+
+    np.random.seed(seed)
+    
+    x = construct_X_from_d0_d1(d0,d1,d0_indexes,d1_indexes)
+    X,F,J = init_variable_space_for_adjoint(x,y,gd_max_iter)
+    
+    # ii keeps track of the position in the output array
+    # jj keeps track to not exceed max iterations
+    ii = 0; jj = 0
+    
+    while jj < gd_max_iter-1:
+        if ii == 0:
+            X[ii] = barrier_hard_enforcement(X[ii],ii,constrains,pert_scale)
+            d0,d1 = fill_X_into_d0_d1(X[ii],d0,d1,d0_indexes,d1_indexes)
+            d1 = normalize_columns(d1)
+            X[ii] = construct_X_from_d0_d1(d0,d1,d0_indexes,d1_indexes)
+
+            F[ii],J[ii],is_stable = prediction_and_costfunction(
+                        X[ii],d0, d1, d0_indexes,d1_indexes,d1_weights_model,y,fit_model,
+                        integration_scheme, time_evo_max, dt_time_evo,constrains,mu,
+                        tolerance,tail_length_stability_check, start_stability_check)
+            if not is_stable:
+                warnings.warn(('Initial conditions do not result in a stable model output!'+
+                                'Consider readjusting the initial conditions. '))
+                X[ii] = add_pertubation(X[ii],pert_scale)
+            else:
+                X[ii+1] = add_pertubation(X[ii],pert_scale)
+                ii += 1
+        
+        else:
+            """ evaluate the system by iterating until a stable solution (F) is found
+                and constructing the cost function (J) """
+            X[ii] = barrier_hard_enforcement(X[ii],ii,constrains,pert_scale)
+            d0,d1 = fill_X_into_d0_d1(X[ii],d0,d1,d0_indexes,d1_indexes)
+            d1 = normalize_columns(d1)
+            X[ii] = construct_X_from_d0_d1(d0,d1,d0_indexes,d1_indexes)
+            
+            F[ii],J[ii],is_stable = prediction_and_costfunction(
+                        X[ii],d0, d1, d0_indexes,d1_indexes,d1_weights_model,y,fit_model,
+                        integration_scheme, time_evo_max, dt_time_evo,constrains,mu,
+                        tolerance,tail_length_stability_check, start_stability_check)
+            if not is_stable:
+                X[ii] = add_pertubation(X[ii],pert_scale)
+            else:
+                """ applying a decent model to find a new ( and better)
+                    input variable """
+                gradient = local_gradient(X[:ii+1],y,fit_model,integration_scheme,
+                                          d0,d1,d0_indexes,d1_indexes,
+                                          d1_weights_model,constrains,mu,
+                                          time_evo_max, dt_time_evo,
+                                          tolerance=1e-6,tail_length_stability_check=10,
+                                          start_stability_check=100)
+                X[ii+1] = gradient_method(X[:ii+1],gradient,grad_scale)
+                ii += 1
+        jj += 1
+
+            
+    return X, F, J
+
+
+## monte carlo methods
+
+@logging_deco
+def dn_monte_carlo(path_d0_init,path_d1_init,y,
+                    fit_model = standard_fit_model,
+                    gradient_method = SGD_basic,
+                    integration_method = euler_forward,
+                    d1_weights_model = standard_weights_model,
+                    mu=1e-6,
+                    sample_sets = 5,
+                    gd_max_iter=100,
+                    time_evo_max=300,
+                    dt_time_evo=1/5,
+                    pert_scale=1e-4,
+                    grad_scale=1e-12,
+                    tolerance=1e-5,
+                    tail_length_stability_check=10,
+                    start_stability_check=100,
+                    seed=137):
+
+    d0 = np.genfromtxt(path_d0_init)
+    d0_indexes = None
+    d2_init = np.genfromtxt(path_d1_init,skip_header=1)[:,1:]
+    d1_index = np.where( (d2_init != 0) & (d2_init != -1) & (d2_init != 1) )
+    d1 = d2_init
+    x = construct_X_from_d0_d1(d1=d1,d1_indexes=d1_index)
+    
+    constrains = np.zeros((len(x),2))
+    constrains[:,0] = 0
+    constrains[:,1] = 1    
+    
+    X,F,L = init_variable_space_for_adjoint(x,y,gd_max_iter)
+    X_stack = np.zeros((sample_sets,) + np.shape(X))
+    F_stack = np.zeros((sample_sets,) + np.shape(F))
+    #L_stack = np.zeros((sample_sets,) + np.shape(L))
+
+    if sample_sets == 0 :
+        X, F, L = gradient_decent(fit_model,gradient_method,integration_method,
+                                d0,d1,d1_weights_model, y,
+                                d0_indexes, d1_index,constrains,mu,
+                                gd_max_iter,time_evo_max,dt_time_evo,
+                                pert_scale,grad_scale,
+                                tolerance,tail_length_stability_check,
+                                start_stability_check,
+                                seed)
+
+    else:
+        for ii in np.arange(0,sample_sets):
+            np.random.seed()
+            x = monte_carlo_sample_generator(constrains)
+            X, F, L = gradient_decent(fit_model,gradient_method,integration_method,
+                                        d0,d1,d1_weights_model, y,
+                                        d0_indexes, d1_index,constrains,mu,
+                                        gd_max_iter,time_evo_max,dt_time_evo,
+                                        pert_scale,grad_scale,
+                                        tolerance,tail_length_stability_check,
+                                        start_stability_check,
+                                        seed)
+            
+            X_stack[ii] = X
+            F_stack[ii] = F
+        
+    return X_stack,F_stack
+
+
+#@logging_deco
+def NPZD_monte_carlo(path_d0_init,path_d1_init,y,
+                    fit_model = direct_fit_model,
+                    gradient_method = SGD_basic,
+                    integration_method = euler_forward,
+                    d1_weights_model = LLM_model,
+                    mu=1e-6,
+                    sample_sets = 5,
+                    gd_max_iter=100,
+                    time_evo_max=300,
+                    dt_time_evo=1/5,
+                    pert_scale=1e-4,
+                    grad_scale=1e-12,
+                    tolerance=1e-5,
+                    tail_length_stability_check=10,
+                    start_stability_check=100,
+                    seed=137):
+
+    d0 = np.genfromtxt(path_d0_init)
+    d0_indexes = np.where(d0 == d0)
+    d1 = LLM_model(d0,None)
+    d1_index = None
+    
+    x = construct_X_from_d0_d1(d0=d0,d0_indexes=d0_indexes)
+    
+    constrains = np.zeros((len(x),2))
+    constrains[:,0] = 0
+    constrains[:,1] = 1    
+    
+    X,F,L = init_variable_space_for_adjoint(x,y,gd_max_iter)
+    X_stack = np.zeros((sample_sets,) + np.shape(X))
+    F_stack = np.zeros((sample_sets,) + np.shape(F))
+    #L_stack = np.zeros((sample_sets,) + np.shape(L))
+
+    if sample_sets == 0 :
+        X, F, L = gradient_decent(fit_model,gradient_method,integration_method,
+                                d0,d1,d1_weights_model, y,
+                                d0_indexes, d1_index,constrains,mu,
+                                gd_max_iter,time_evo_max,dt_time_evo,
+                                pert_scale,grad_scale,
+                                tolerance,tail_length_stability_check,
+                                start_stability_check,
+                                seed)
+        
+        return X,F,L
+
+    else:
+        for ii in np.arange(0,sample_sets):
+            np.random.seed()
+            x = monte_carlo_sample_generator(constrains)
+            X, F, L = gradient_decent(fit_model,gradient_method,integration_method,
+                                        d0,d1,d1_weights_model, y,
+                                        d0_indexes, d1_index,constrains,mu,
+                                        gd_max_iter,time_evo_max,dt_time_evo,
+                                        pert_scale,grad_scale,
+                                        tolerance,tail_length_stability_check,
+                                        start_stability_check,
+                                        seed)
+            
+            X_stack[ii] = X
+            F_stack[ii] = F
+        
+    return X_stack,F_stack
 
 
 # plotting routines

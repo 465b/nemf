@@ -25,8 +25,11 @@ def Grazomg_typeIII(epsilon,g,P):
     return G_val
 
 
-def LLM_model(d0,d1,constants):
+def LLM_model(d0,d1):
     """ See doi.org/10.1016/j.ecolmodel.2013.01.012 """
+
+    constants = heinle_2013()
+    
     [mort_P,mort_Z,mort_F,
      mort_P_square,mort_Z_square,mort_F_square,
      exc_P,exc_Z,exc_F,    
@@ -59,8 +62,11 @@ def LLM_model(d0,d1,constants):
     return d1_weights
 
 
-def LQM_model(x,constants):
+def LQM_model(d0,d1):
     """ See doi.org/10.1016/j.ecolmodel.2013.01.012 """
+
+    constants = heinle_2013()
+    
     [mort_P,mort_Z,mort_F,
      mort_P_square,mort_Z_square,mort_F_square,
      exc_P,exc_Z,exc_F,    
@@ -69,9 +75,9 @@ def LQM_model(x,constants):
      grazenc_Z, grazenc_F,
      k_I,k_N,k_P,k_Z,
      mu_max,gamma] = constants
-
-    N,P,Z = x[0],x[1],x[2]
     
+    N,P,Z = d0[0],d0[1],d0[2]
+
     J_val = J(N,k_N,mu_max)
     G_val = Grazomg_typeIII(grazenc_Z,grazmax_Z,P)
 
@@ -93,8 +99,11 @@ def LQM_model(x,constants):
     return d1_weights
 
 
-def QQM_model(x,constants):
+def QQM_model(d0,d1):
     """ See doi.org/10.1016/j.ecolmodel.2013.01.012 """
+
+    constants = heinle_2013()
+    
     [mort_P,mort_Z,mort_F,
      mort_P_square,mort_Z_square,mort_F_square,
      exc_P,exc_Z,exc_F,    
@@ -103,8 +112,8 @@ def QQM_model(x,constants):
      grazenc_Z, grazenc_F,
      k_I,k_N,k_P,k_Z,
      mu_max,gamma] = constants
-
-    N,P,Z = x[0],x[1],x[2]
+    
+    N,P,Z = d0[0],d0[1],d0[2]
 
     d1_weights = np.zeros((4,4))
     
@@ -127,7 +136,9 @@ def QQM_model(x,constants):
     return d1_weights
 
 
-def student_model_A(N,P,Z,constants):
+def student_model_A(d0,d1):
+
+    constants = student_model_A_constants()
     
     [mort_P,mort_Z,mort_F,
      mort_P_square,mort_Z_square,mort_F_square,
@@ -137,6 +148,54 @@ def student_model_A(N,P,Z,constants):
      grazenc_Z, grazenc_F,
      k_I,k_N,k_P,k_Z,
      mu_max,gamma] = constants
+    
+    N,P,Z = d0[0],d0[1],d0[2]
+        
+    J_val = J(N,k_N,mu_max)
+    G_val_Z = Grazing_typeII(grazmax_Z,k_P,P)
+    G_val_F= Grazing_typeII(grazmax_F,k_Z,Z)
+
+    d1_weights = np.zeros((4,4))
+    
+    # N
+    d1_weights[0,1] = -J_val + exc_P
+    d1_weights[0,2] = exc_Z
+    d1_weights[0,3] = exc_F
+    d1_weights[0,4] = gamma
+    
+    # P
+    d1_weights[1,1] = J_val - exc_P - mort_P
+    d1_weights[1,2] = - G_val_Z
+
+    # Z
+    d1_weights[2,2] = beta_Z*G_val_Z - mort_Z - exc_Z
+    d1_weights[2,3] = -G_val_F
+    
+    # F
+    d1_weights[3,3] = beta_F*G_val_F - mort_F - exc_F
+
+    d1_weights[4,1] = mort_P
+    d1_weights[4,2] = mort_Z + (1-beta_Z)*G_val_Z
+    d1_weights[4,3] = mort_F + (1-beta_F)*G_val_F
+    d1_weights[4,4] = -gamma
+    
+    return d1_weights
+
+
+def student_model_B(d0,d1):
+
+    constants = student_model_B_constants()
+    
+    [mort_P,mort_Z,mort_F,
+     mort_P_square,mort_Z_square,mort_F_square,
+     exc_P,exc_Z,exc_F,    
+     beta_Z,beta_F,
+     grazmax_Z,grazmax_F,
+     grazenc_Z, grazenc_F,
+     k_I,k_N,k_P,k_Z,
+     mu_max,gamma] = constants
+    
+    N,P,Z = d0[0],d0[1],d0[2]
         
     J_val = J(N,k_N,mu_max)
     G_val_Z = Grazing_typeII(grazmax_Z,k_P,P)
