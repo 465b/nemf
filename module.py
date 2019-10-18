@@ -488,10 +488,14 @@ def local_gradient(X,y,fit_model,integration_scheme,
     
     for ii in np.arange(n_x):
         X_local[ii,ii] += X_diff[ii]
-        # i expcet that to be a bad implementation performance wise
+        
+        # the following block is a terribly bad implementation performance wise
         X_local[ii,ii] = barrier_hard_enforcement(np.array([X_local[ii,ii]]),ii,
                                                   np.array([constrains[ii]]))[0]
         d0,d1 = fill_X_into_d0_d1(X_local[ii],d0,d1,d0_indexes,d1_indexes)
+        d1 = normalize_columns(d1)
+        X_local[ii] = construct_X_from_d0_d1(d0,d1,d0_indexes,d1_indexes)
+        
         J_local[ii],is_stable = prediction_and_costfunction(
                         X_local[ii],d0, d1, d0_indexes,d1_indexes,d1_weights_model,y,fit_model,
                         integration_scheme, T, dt,constrains,mu,
