@@ -6,6 +6,10 @@ from NPZD_lib import *
 import pickle
 import datetime
 
+import logging
+logging.basicConfig(filename='carbonflux_inverse_model.log',level=logging.DEBUG)
+
+
 # decorators 
 def logging_deco(func):
     def wrapper(*args,**kwargs):
@@ -125,34 +129,27 @@ def barrier_hard_enforcement(x,jj,constrains=None,pert_scale=1e-2,seed=137):
         raise ValueError('List of constrains must have the same length as x')
 
     for ii,[left,right] in enumerate(constrains):
+        
+        # we add a small pertubation to avoid
+        # that the we remain on the boarder
         if (x[ii] <= left):
+
+            new_x = left + np.random.rand()*pert_scale
+            warn_string = ( 'Left  barrier enforcement'+
+                            'at step {:4d} {:4d}. '.format(jj,ii)+
+                            'Value shifted from {:+8.2E} to {:+8.2E}'.format(x[ii],new_x))
+            logging.debug(warn_string)
             x[ii] = left + np.random.rand()*pert_scale
-            if jj == 0:
-                warn_string = ('The initial values are not inside the search space! '+
-                                'A hard (left) barrier enforcment was necessary '+
-                                #'at step {}. '.format(jj)+
-                                'Consider adjusting your input parameter')
-                warnings.warn(warn_string)
-            else:
-                warn_string = ('A hard (left) barrier enforcment was necessary '+
-                            #'at step {}. '.format(jj)+
-                            'Consider adjusting your input parameter')
-                warnings.warn(warn_string)
-            # we add a small pertubation to avoid
-            # that the we remain on the boarder
+            
+
         if (x[ii] >= right):
-            x[ii] = right - np.random.rand()*pert_scale
-            if jj == 0:
-                warn_string = ('The initial values are not inside the search space! '+
-                                'A hard (right) barrier enforcment was necessary '+
-                               #'at step {}. '.format(jj)+
-                               'Consider adjusting your input parameter')
-                warnings.warn(warn_string)
-            else:
-                warn_string = ('A hard (right) barrier enforcment was necessary '+
-                            #'at step {}. '.format(jj)+
-                            'Consider adjusting your input parameter')
-                warnings.warn(warn_string)
+            new_x = right - np.random.rand()*pert_scale
+            warn_string = ( 'Right barrier enforcement'+
+                            'at step {:4d} {:4d}. '.format(jj,ii)+
+                            'Value shifted from {:+8.2E} to {:+8.2E}'.format(x[ii],new_x))
+            logging.debug(warn_string)
+            x[ii] = left + np.random.rand()*pert_scale
+            
     return x
 
 
@@ -488,7 +485,7 @@ def local_gradient(X,y,fit_model,integration_scheme,
     
     for ii in np.arange(n_x):
         X_local[ii,ii] += X_diff[ii]
-        
+
         # the following block is a terribly bad implementation performance wise
         X_local[ii,ii] = barrier_hard_enforcement(np.array([X_local[ii,ii]]),ii,
                                                   np.array([constrains[ii]]))[0]
@@ -549,9 +546,9 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
                         X[ii],d0, d1, d0_indexes,d1_indexes,d1_weights_model,y,fit_model,
                         integration_scheme, time_evo_max, dt_time_evo,constrains,mu,
                         tolerance,tail_length_stability_check, start_stability_check)
-            if not is_stable:
-                warnings.warn(('Initial conditions do not result in a stable model output!'+
-                                'Consider readjusting the initial conditions. '))
+            if ((not is_stable) & (jj == 0)):
+                warn_string = ('Initial conditions do not result in a stable model output. \n'.format(x))
+                logging.debug(warn_string)
                 X[ii] = add_pertubation(X[ii],pert_scale)
             else:
                 X[ii+1] = add_pertubation(X[ii],pert_scale)
