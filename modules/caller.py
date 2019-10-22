@@ -158,9 +158,10 @@ def dn_monte_carlo(path_d0_init,path_d1_init,y,
 
     d0 = np.genfromtxt(path_d0_init)
     d0_indexes = None
-    d2_init = np.genfromtxt(path_d1_init,skip_header=1)[:,1:]
-    d1_index = np.where( (d2_init != 0) & (d2_init != -1) & (d2_init != 1) )
-    d1 = d2_init
+    d1 = np.genfromtxt(path_d1_init)
+    d1_index = np.where( (d1 != 0) & (d1 != -1) & (d1 != 1) )
+
+
     x = worker.construct_X_from_d0_d1(d1=d1,d1_indexes=d1_index)
     
     constrains = np.zeros((len(x),2))
