@@ -5,56 +5,56 @@ from . import caller
 # Time Evolution
 
 ## Integration Schemes
-def euler_forward(d0,d1_weights,time_step,time_step_size):
+def euler_forward(ODE_state,ODE_coeff,time_step,time_step_size):
     """ develops the carbon mass and carbon mass flux 
         based on a euler forward method """
     
-    #print(d0,d1_weights)
-    d0 = d0 + np.matmul(d1_weights,d0)*time_step_size
+    #print(ODE_state,ODE_coeff)
+    ODE_state = ODE_state + np.matmul(ODE_coeff,ODE_state)*time_step_size
     
-    return d0
+    return ODE_state
 
-def runge_kutta(d0,d1_weights,time_step,time_step_size):
+def runge_kutta(ODE_state,ODE_coeff,time_step,time_step_size):
     """ develops the carbon mass and carbon mass flux 
         based on a euler forward method """
     
-    d0_half = d0 + time_step_size/2*np.matmul(d1_weights,d0)
-    d0 = d0_half + np.matmul(d1_weights,d0_half)*time_step_size
+    ODE_state_half = ODE_state + time_step_size/2*np.matmul(ODE_coeff,ODE_state)
+    ODE_state = ODE_state_half + np.matmul(ODE_coeff,ODE_state_half)*time_step_size
     time_step += 1
     
-    return d0, time_step
+    return ODE_state, time_step
 
 
 ## ODE coefficient models
-""" all weights model have the form: model(d1).
-    no d0 dependence (so far neccessary) and all required
+""" all weights model have the form: model(ODE_coeff).
+    no ODE_state dependence (so far neccessary) and all required
     constants should be called in the model through a function 
     (i dont know if thats very elegant, but saves an uneccessary )"""
 
 
-def standard_weights_model(d0,d1):
-    return d1
+def standard_weights_model(ODE_state,ODE_coeff):
+    return ODE_coeff
 
 
 ## Fit models
-def direct_fit_model(integration_scheme, T, dt, d0, d1_weights=None, 
-                       d1_weights_model=standard_weights_model,
-                       tolerance=1e-5,tail_length_stability_check=10, start_stability_check=100):
+def direct_fit_model(integration_scheme, time_evo_max, dt_time_evo, ODE_state, ODE_coeff=None, 
+                       ODE_coeff_model=standard_weights_model,
+                       stability_rel_tolerance=1e-5,tail_length_stability_check=10, start_stability_check=100):
     """ NPZD model """
     
-    F_ij,is_stable = caller.run_time_evo(integration_scheme, T,dt,d0,d1_weights_model,d1_weights,
-                tolerance,tail_length_stability_check,start_stability_check)
+    F_ij,is_stable = caller.run_time_evo(integration_scheme, time_evo_max,dt_time_evo,ODE_state,ODE_coeff_model,ODE_coeff,
+                stability_rel_tolerance,tail_length_stability_check,start_stability_check)
     F_i = F_ij[-1]
 
     return F_i,is_stable
 
 
-def standard_fit_model(integration_scheme, T, dt, d0, d1_weights=None, 
-                       d1_weights_model=standard_weights_model,
-                       tolerance=1e-5,tail_length_stability_check=10, start_stability_check=100):
+def standard_fit_model(integration_scheme, time_evo_max, dt_time_evo, ODE_state, ODE_coeff=None, 
+                       ODE_coeff_model=standard_weights_model,
+                       stability_rel_tolerance=1e-5,tail_length_stability_check=10, start_stability_check=100):
 
-    F_ij, is_stable = caller.run_time_evo(integration_scheme, T,dt,d0,d1_weights_model,d1_weights,
-                tolerance,tail_length_stability_check,start_stability_check)
+    F_ij, is_stable = caller.run_time_evo(integration_scheme, time_evo_max,dt_time_evo,ODE_state,ODE_coeff_model,ODE_coeff,
+                stability_rel_tolerance,tail_length_stability_check,start_stability_check)
     F_i = F_ij[-1]
     F = np.array(np.sum(F_i) - 2*F_i[-1])
 
@@ -65,28 +65,28 @@ def standard_fit_model(integration_scheme, T, dt, d0, d1_weights=None,
 
 ## Gradient Decent Methods
 
-def SGD_basic(X,gradient,grad_scale):
-        """ construct the gradient of the cost function  
-        to minimize it with an 'SGD' approach """
-        
-        x_next = X[-1] - grad_scale*gradient
-        
-        return x_next
+def SGD_basic(free_param,gradient,grad_scale):
+    """ construct the gradient of the cost function  
+    to minimize it with an 'SGD' approach """
+    
+    free_param_next = free_param[-1] - grad_scale*gradient
+    
+    return free_param_next
 
 
-def SGD_momentum(X,gradient,grad_scale):
-        """ construct the gradient of the cost function  
-            to minimize it with an 'SGD-momentum' approach """
-        
-        if len(X) >= 3:
-            previous_delta_x = X[-2]-X[-3]
-        else:
-            previous_delta_x = 0
+def SGD_momentum(free_param,gradient,grad_scale):
+    """ construct the gradient of the cost function  
+        to minimize it with an 'SGD-momentum' approach """
+    
+    if len(free_param) >= 3:
+        previous_delta = free_param[-2]-free_param[-3]
+    else:
+        previous_delta = 0
 
-        alpha = 1e-1 # fix function to accept alpha as an input
-        x_next = X[-1] - grad_scale*gradient + alpha*previous_delta_x
-        
-        return x_next
+    alpha = 1e-1 # fix function to accept alpha as an input
+    free_param_next = free_param[-1] - grad_scale*gradient + alpha*previous_delta
+    
+    return free_param_next
 
 
 # NPZD model functions
@@ -102,8 +102,8 @@ def J(N,k_N,mu_m):
 
     f_N = N/(k_N+N)
     f_I = 1 #I/(k_I+I)
-    J_val = mu_m*f_N*f_I
-    return J_val
+    cost_val = mu_m*f_N*f_I
+    return cost_val
 
 
 def Grazing_typeII(g,k_P,P):
@@ -120,7 +120,7 @@ def Grazomg_typeIII(epsilon,g,P):
 
 # NPZD models
 
-def LLM_model(d0,d1):
+def LLM_model(ODE_state,ODE_coeff):
     """ See doi.org/10.1016/j.ecolmodel.2013.01.012 """
 
     constants = heinle_2013()
@@ -134,30 +134,30 @@ def LLM_model(d0,d1):
      k_I,k_N,k_P,k_Z,
      mu_max,gamma] = constants
     
-    N,P,Z = d0[0],d0[1],d0[2]
+    N,P,Z = ODE_state[0],ODE_state[1],ODE_state[2]
 
-    J_val = J(N,k_N,mu_max)
+    cost_val = J(N,k_N,mu_max)
     G_val = Grazomg_typeIII(grazenc_Z,grazmax_Z,P)
 
-    d1_weights = np.zeros((4,4))
+    ODE_coeff = np.zeros((4,4))
 
-    d1_weights[0,1] = -J_val
-    d1_weights[0,2] = mort_Z
-    d1_weights[0,3] = gamma
+    ODE_coeff[0,1] = -cost_val
+    ODE_coeff[0,2] = mort_Z
+    ODE_coeff[0,3] = gamma
 
-    d1_weights[1,1] = J_val - mort_P
-    d1_weights[1,2] = -G_val
+    ODE_coeff[1,1] = cost_val - mort_P
+    ODE_coeff[1,2] = -G_val
 
-    d1_weights[2,2] = beta_Z*G_val - mort_Z
+    ODE_coeff[2,2] = beta_Z*G_val - mort_Z
 
-    d1_weights[3,1] = mort_P
-    d1_weights[3,2] = (1-beta_Z)*G_val
-    d1_weights[3,3] = -gamma
+    ODE_coeff[3,1] = mort_P
+    ODE_coeff[3,2] = (1-beta_Z)*G_val
+    ODE_coeff[3,3] = -gamma
     
-    return d1_weights
+    return ODE_coeff
 
 
-def LQM_model(d0,d1):
+def LQM_model(ODE_state,ODE_coeff):
     """ See doi.org/10.1016/j.ecolmodel.2013.01.012 """
 
     constants = heinle_2013()
@@ -171,30 +171,30 @@ def LQM_model(d0,d1):
      k_I,k_N,k_P,k_Z,
      mu_max,gamma] = constants
     
-    N,P,Z = d0[0],d0[1],d0[2]
+    N,P,Z = ODE_state[0],ODE_state[1],ODE_state[2]
 
-    J_val = J(N,k_N,mu_max)
+    cost_val = J(N,k_N,mu_max)
     G_val = Grazomg_typeIII(grazenc_Z,grazmax_Z,P)
 
-    d1_weights = np.zeros((4,4))
+    ODE_coeff = np.zeros((4,4))
 
-    d1_weights[0,1] = -J_val
-    d1_weights[0,2] = mort_Z
-    d1_weights[0,3] = gamma
+    ODE_coeff[0,1] = -cost_val
+    ODE_coeff[0,2] = mort_Z
+    ODE_coeff[0,3] = gamma
 
-    d1_weights[1,1] = J_val - mort_P
-    d1_weights[1,2] = -G_val
+    ODE_coeff[1,1] = cost_val - mort_P
+    ODE_coeff[1,2] = -G_val
 
-    d1_weights[2,2] = beta_Z*G_val - mort_Z - mort_Z_square*Z
+    ODE_coeff[2,2] = beta_Z*G_val - mort_Z - mort_Z_square*Z
 
-    d1_weights[3,1] = mort_P
-    d1_weights[3,2] = (1-beta_Z)*G_val + mort_Z_square*Z
-    d1_weights[3,3] = -gamma
+    ODE_coeff[3,1] = mort_P
+    ODE_coeff[3,2] = (1-beta_Z)*G_val + mort_Z_square*Z
+    ODE_coeff[3,3] = -gamma
     
-    return d1_weights
+    return ODE_coeff
 
 
-def QQM_model(d0,d1):
+def QQM_model(ODE_state,ODE_coeff):
     """ See doi.org/10.1016/j.ecolmodel.2013.01.012 """
 
     constants = heinle_2013()
@@ -208,31 +208,31 @@ def QQM_model(d0,d1):
      k_I,k_N,k_P,k_Z,
      mu_max,gamma] = constants
     
-    N,P,Z = d0[0],d0[1],d0[2]
+    N,P,Z = ODE_state[0],ODE_state[1],ODE_state[2]
 
-    d1_weights = np.zeros((4,4))
+    ODE_coeff = np.zeros((4,4))
     
-    J_val = J(N,k_N,mu_max)
+    cost_val = J(N,k_N,mu_max)
     G_val = Grazomg_typeIII(grazenc_Z,grazmax_Z,P)
 
-    d1_weights[0,1] = -J_val + mort_P
-    d1_weights[0,2] = mort_Z
-    d1_weights[0,3] = gamma
+    ODE_coeff[0,1] = -cost_val + mort_P
+    ODE_coeff[0,2] = mort_Z
+    ODE_coeff[0,3] = gamma
 
-    d1_weights[1,1] = J_val - mort_P - mort_P_square*P
-    d1_weights[1,2] = -G_val
+    ODE_coeff[1,1] = cost_val - mort_P - mort_P_square*P
+    ODE_coeff[1,2] = -G_val
 
-    d1_weights[2,2] = beta_Z*G_val - mort_Z - mort_Z_square*Z
+    ODE_coeff[2,2] = beta_Z*G_val - mort_Z - mort_Z_square*Z
 
-    d1_weights[3,1] = mort_P*P
-    d1_weights[3,2] = (1-beta_Z)*G_val + mort_Z_square*Z
-    d1_weights[3,3] = -gamma
+    ODE_coeff[3,1] = mort_P*P
+    ODE_coeff[3,2] = (1-beta_Z)*G_val + mort_Z_square*Z
+    ODE_coeff[3,3] = -gamma
     
-    return d1_weights
+    return ODE_coeff
 
 
 # NPZFD models
-def NPZFD_model(d0,d1):
+def NPZFD_model(ODE_state,ODE_coeff):
     """ basic extended NPZD model with a set of stable
         constants (found by hand by a student) """
 
@@ -247,37 +247,37 @@ def NPZFD_model(d0,d1):
      k_I,k_N,k_P,k_Z,
      mu_max,gamma] = constants
     
-    N,P,Z = d0[0],d0[1],d0[2]
+    N,P,Z = ODE_state[0],ODE_state[1],ODE_state[2]
         
-    J_val = J(N,k_N,mu_max)
+    cost_val = J(N,k_N,mu_max)
     G_val_Z = Grazing_typeII(grazmax_Z,k_P,P)
     G_val_F= Grazing_typeII(grazmax_F,k_Z,Z)
 
-    d1_weights = np.zeros((4,4))
+    ODE_coeff = np.zeros((4,4))
     
     # N
-    d1_weights[0,1] = -J_val + exc_P
-    d1_weights[0,2] = exc_Z
-    d1_weights[0,3] = exc_F
-    d1_weights[0,4] = gamma
+    ODE_coeff[0,1] = -cost_val + exc_P
+    ODE_coeff[0,2] = exc_Z
+    ODE_coeff[0,3] = exc_F
+    ODE_coeff[0,4] = gamma
     
     # P
-    d1_weights[1,1] = J_val - exc_P - mort_P
-    d1_weights[1,2] = - G_val_Z
+    ODE_coeff[1,1] = cost_val - exc_P - mort_P
+    ODE_coeff[1,2] = - G_val_Z
 
     # Z
-    d1_weights[2,2] = beta_Z*G_val_Z - mort_Z - exc_Z
-    d1_weights[2,3] = -G_val_F
+    ODE_coeff[2,2] = beta_Z*G_val_Z - mort_Z - exc_Z
+    ODE_coeff[2,3] = -G_val_F
     
     # F
-    d1_weights[3,3] = beta_F*G_val_F - mort_F - exc_F
+    ODE_coeff[3,3] = beta_F*G_val_F - mort_F - exc_F
 
-    d1_weights[4,1] = mort_P
-    d1_weights[4,2] = mort_Z + (1-beta_Z)*G_val_Z
-    d1_weights[4,3] = mort_F + (1-beta_F)*G_val_F
-    d1_weights[4,4] = -gamma
+    ODE_coeff[4,1] = mort_P
+    ODE_coeff[4,2] = mort_Z + (1-beta_Z)*G_val_Z
+    ODE_coeff[4,3] = mort_F + (1-beta_F)*G_val_F
+    ODE_coeff[4,4] = -gamma
     
-    return d1_weights
+    return ODE_coeff
 
 
 def NPZFD_constants():
