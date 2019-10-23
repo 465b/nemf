@@ -56,9 +56,9 @@ def standard_fit_model(integration_scheme, time_evo_max, dt_time_evo, ODE_state,
     F_ij, is_stable = caller.run_time_evo(integration_scheme, time_evo_max,dt_time_evo,ODE_state,ODE_coeff_model,ODE_coeff,
                 stability_rel_tolerance,tail_length_stability_check,start_stability_check)
     F_i = F_ij[-1]
-    F = np.array(np.sum(F_i) - 2*F_i[-1])
+    prediction = np.array(np.sum(F_i) - 2*F_i[-1])
 
-    return F, is_stable
+    return prediction, is_stable
 
 
 # Gradiant Decent
@@ -269,7 +269,7 @@ def NPZFD_model(ODE_state,ODE_coeff):
     ODE_coeff[2,2] = beta_Z*G_val_Z - mort_Z - exc_Z
     ODE_coeff[2,3] = -G_val_F
     
-    # F
+    # prediction
     ODE_coeff[3,3] = beta_F*G_val_F - mort_F - exc_F
 
     ODE_coeff[4,1] = mort_P

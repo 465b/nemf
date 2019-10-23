@@ -11,7 +11,7 @@ y = np.array([0])
 
 sample_sets = 1
 
-free_param, F = modules.caller.dn_monte_carlo(
+free_param, prediction = modules.caller.dn_monte_carlo(
                     path_ODE_state_init,path_ODE_coeff_init,y,
                     fit_model = modules.models.standard_fit_model,
                     gradient_method = modules.models.SGD_basic,
@@ -30,7 +30,7 @@ free_param, F = modules.caller.dn_monte_carlo(
                     seed=137)
 
 for ii in np.arange(sample_sets):
-    modules.plot.XFL(free_param[ii],F[ii])
+    modules.plot.XFL(free_param[ii],prediction[ii])
 
 
 # Example NPZD Model
@@ -45,7 +45,7 @@ path_ODE_state_init = 'initial_values/ODE_state_NPZD_heinle.tsv'
 path_ODE_coeff_init = 'initial_values/d2_D05_init.tsv'
 y = np.array([1,1,1,1])
 
-free_param,F = modules.caller.NPZD_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
+free_param,prediction = modules.caller.NPZD_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
                     fit_model = modules.models.direct_fit_model,
                     gradient_method = modules.models.SGD_basic,
                     integration_method = modules.models.euler_forward,
@@ -62,5 +62,5 @@ free_param,F = modules.caller.NPZD_monte_carlo(path_ODE_state_init,path_ODE_coef
                     start_stability_check=100,
                     seed=137)
                     
-modules.plot.XFL(free_param[0],F[0])
+modules.plot.XFL(free_param[0],prediction[0])
 """

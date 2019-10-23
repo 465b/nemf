@@ -70,7 +70,7 @@ def time_evolution(ODE_state_log,ODE_coeff_log,time_step_size,names):
     plt.show()
 
 
-def XFL(free_param=None,F=None,cost=None,context='talk'):
+def XFL(free_param=None,prediction=None,cost=None,context='talk'):
     
     sns.set_context(context)
     
@@ -82,10 +82,10 @@ def XFL(free_param=None,F=None,cost=None,context='talk'):
         plt.ylabel('Iteration Step')
         plt.show()
 
-    if F is not None:
+    if prediction is not None:
         plt.figure()
         plt.title('Time Evolution Output')
-        plt.plot(F[:-1])
+        plt.plot(prediction[:-1])
         plt.ylabel('Output value (arb. u.)')
         plt.xlabel('Iteration Step')
         plt.show()

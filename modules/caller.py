@@ -75,7 +75,7 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
     np.random.seed(seed)
     
     free_param = worker.filter_free_param(ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
-    free_param,F,cost = worker.init_variable_space(free_param,y,gd_max_iter)
+    free_param,prediction,cost = worker.init_variable_space(free_param,y,gd_max_iter)
     
     # ii keeps track of the position in the output array
     # jj keeps track to not exceed max iterations
@@ -91,9 +91,9 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
         free_param[ii] = worker.filter_free_param(ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
         
 
-        """ evaluate the system by iterating the time evolution until a stable solution (F) is found
+        """ evaluate the system by iterating the time evolution until a stable solution (prediction) is found
             and constructing the cost function (cost) """
-        F[ii],cost[ii],is_stable = worker.prediction_and_costfunction(
+        prediction[ii],cost[ii],is_stable = worker.prediction_and_costfunction(
                     free_param[ii],ODE_state, ODE_coeff, ODE_coeff_model,y,fit_model,
                     integration_scheme, time_evo_max, dt_time_evo,constrains,barrier_slope,
                     stability_rel_tolerance,tail_length_stability_check, start_stability_check)
@@ -123,7 +123,7 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
         jj += 1
 
             
-    return free_param, F, cost
+    return free_param, prediction, cost
 
 
 ## monte carlo methods
@@ -158,13 +158,13 @@ def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
     constrains[:,0] = 0
     constrains[:,1] = 1    
     
-    free_param,F,cost = worker.init_variable_space(free_param,y,gd_max_iter)
+    free_param,prediction,cost = worker.init_variable_space(free_param,y,gd_max_iter)
     optim_free_param = np.zeros((sample_sets,) + np.shape(free_param))
-    F_stack = np.zeros((sample_sets,) + np.shape(F))
+    F_stack = np.zeros((sample_sets,) + np.shape(prediction))
     #L_stack = np.zeros((sample_sets,) + np.shape(cost))
 
     if sample_sets == 0 :
-        free_param, F, cost = gradient_decent(fit_model,gradient_method,integration_method,
+        free_param, prediction, cost = gradient_decent(fit_model,gradient_method,integration_method,
                                 ODE_state,ODE_coeff,ODE_coeff_model, y,
                                 ODE_state_indexes, ODE_coeff_index,constrains,barrier_slope,
                                 gd_max_iter,time_evo_max,dt_time_evo,
@@ -177,7 +177,7 @@ def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
         for ii in np.arange(0,sample_sets):
             np.random.seed()
             free_param = worker.monte_carlo_sample_generator(constrains)
-            free_param, F, cost = gradient_decent(fit_model,gradient_method,integration_method,
+            free_param, prediction, cost = gradient_decent(fit_model,gradient_method,integration_method,
                                         ODE_state,ODE_coeff,ODE_coeff_model, y,
                                         ODE_state_indexes, ODE_coeff_index,constrains,barrier_slope,
                                         gd_max_iter,time_evo_max,dt_time_evo,
@@ -187,7 +187,7 @@ def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
                                         seed)
             
             optim_free_param[ii] = free_param
-            F_stack[ii] = F
+            F_stack[ii] = prediction
         
     return optim_free_param,F_stack
 
@@ -221,13 +221,13 @@ def NPZD_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
     constrains[:,0] = 0
     constrains[:,1] = 1    
     
-    free_param,F,cost = worker.init_variable_space(free_param,y,gd_max_iter)
+    free_param,prediction,cost = worker.init_variable_space(free_param,y,gd_max_iter)
     optim_free_param = np.zeros((sample_sets,) + np.shape(free_param))
-    F_stack = np.zeros((sample_sets,) + np.shape(F))
+    F_stack = np.zeros((sample_sets,) + np.shape(prediction))
     #L_stack = np.zeros((sample_sets,) + np.shape(cost))
 
     if sample_sets == 0 :
-        free_param, F, cost = gradient_decent(fit_model,gradient_method,integration_method,
+        free_param, prediction, cost = gradient_decent(fit_model,gradient_method,integration_method,
                                 ODE_state,ODE_coeff,ODE_coeff_model, y,
                                 ODE_state_indexes, ODE_coeff_index,constrains,barrier_slope,
                                 gd_max_iter,time_evo_max,dt_time_evo,
@@ -236,13 +236,13 @@ def NPZD_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
                                 start_stability_check,
                                 seed)
         
-        return free_param,F,cost
+        return free_param,prediction,cost
 
     else:
         for ii in np.arange(0,sample_sets):
             np.random.seed()
             free_param = worker.monte_carlo_sample_generator(constrains)
-            free_param, F, cost = gradient_decent(fit_model,gradient_method,integration_method,
+            free_param, prediction, cost = gradient_decent(fit_model,gradient_method,integration_method,
                                         ODE_state,ODE_coeff,ODE_coeff_model, y,
                                         ODE_state_indexes, ODE_coeff_index,constrains,barrier_slope,
                                         gd_max_iter,time_evo_max,dt_time_evo,
@@ -252,6 +252,6 @@ def NPZD_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
                                         seed)
             
             optim_free_param[ii] = free_param
-            F_stack[ii] = F
+            F_stack[ii] = prediction
         
     return optim_free_param,F_stack

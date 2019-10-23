@@ -8,9 +8,9 @@ logging.basicConfig(filename='carbonflux_inverse_model.log',level=logging.DEBUG)
 
 
 ## Cost function related Methods
-def cost_function(F,y):
-    """ normalized squared distance between F&y """
-    cost = (1/len(y))*np.sum( (F - y)**2 )
+def cost_function(prediction,y):
+    """ normalized squared distance between prediction&y """
+    cost = (1/len(y))*np.sum( (prediction - y)**2 )
     return cost
 
 
@@ -99,13 +99,13 @@ def barrier_hard_enforcement(free_param,jj,constrains=None,pert_scale=1e-2,seed=
 
 ## Stability
 
-def verify_stability_time_evolution(F, stability_rel_tolerance=1e-6, N=10):
+def verify_stability_time_evolution(prediction, stability_rel_tolerance=1e-6, N=10):
     """ checks if the current solution is stable by 
         comparing the relative fluctuations in the 
         last N model outputs to a stability_rel_tolerance value
         returns true if stable """
 
-    F_tail = F[-N-1:-1]
+    F_tail = prediction[-N-1:-1]
 
     average = np.average(F_tail,axis=0)
     spread = np.max(F_tail,axis=0) -np.min(F_tail,axis=0)
@@ -167,17 +167,17 @@ def prediction_and_costfunction(free_param, ODE_state, ODE_coeff, ODE_coeff_mode
             integration_scheme, time_evo_max, dt_time_evo, 
             constrains=np.array([None]),barrier_slope=1,
             stability_rel_tolerance=1e-5,tail_length_stability_check=10, start_stability_check=100):
-    """ calculates the (stable) solution of the time evolution (F)
+    """ calculates the (stable) solution of the time evolution (prediction)
         and the resulting costfunction (cost) while applying a
         barrier_function() """
 
-    F,is_stable = fit_model(integration_scheme, time_evo_max, dt_time_evo, ODE_state, ODE_coeff, ODE_coeff_model,
+    prediction,is_stable = fit_model(integration_scheme, time_evo_max, dt_time_evo, ODE_state, ODE_coeff, ODE_coeff_model,
                             stability_rel_tolerance, tail_length_stability_check, start_stability_check)
 
-    cost = cost_function(F,y)
+    cost = cost_function(prediction,y)
     cost += barrier_function(free_param,constrains,barrier_slope)
     
-    return F,cost,is_stable
+    return prediction,cost,is_stable
 
 
 ## PDE-weights related Helper Functions
@@ -254,11 +254,11 @@ def init_variable_space(free_param,y,max_iter):
     x_init = free_param.copy()
     free_param = np.zeros( (max_iter,n_x) )
     free_param[0] = x_init
-    F = np.zeros( (max_iter,n_y) )
+    prediction = np.zeros( (max_iter,n_y) )
     cost = np.zeros( max_iter )
     #A = np.zeros( (max_iter,)+map_shape)
     
-    return free_param,F,cost
+    return free_param,prediction,cost
 
 
 def perturb(x,pert_scale=1e-4,seed=137):
