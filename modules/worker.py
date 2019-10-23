@@ -297,6 +297,7 @@ def monte_carlo_sample_generator(constrains):
 def local_gradient(X,y,fit_model,integration_scheme,
                    d0,d1,d0_indexes,d1_indexes,
                    d1_weights_model,constrains=np.array([None]),mu=0.01,
+                   pert_scale = 1e-6,
                    T=100, dt=1/5,tolerance=1e-6, tail_length_stability_check=10,
                    start_stability_check=100):
     """ calculates the gradient in the local area
@@ -304,7 +305,11 @@ def local_gradient(X,y,fit_model,integration_scheme,
         Local meaning with the same step size
         as in the previous step. """
     
-    X_diff = X[-1]-X[-2]
+    if len(X) == 1:
+        X_diff = X[-1] - add_pertubation(X[-1],pert_scale)
+    else:
+        X_diff = X[-1]-X[-2]
+
     n_x = len(X_diff)    
     X_center = X[-1]
 

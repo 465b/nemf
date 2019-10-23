@@ -11,7 +11,7 @@ logging.basicConfig(filename='carbonflux_inverse_model.log',level=logging.DEBUG)
 def run_time_evo(integration_scheme, T, dt, d0, d1_weights_model, 
                  d1_weights=None,
                  tolerance=1e-5,tail_length_stability_check=10, start_stability_check=100):
-                 
+    
     """ integrates first order ODE
 
         integration_scheme: {euler,runge_kutta}
@@ -74,6 +74,7 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
         x: initial guess for the parameter set
         y: expected outcome of the model F(x)"""    
 
+
     np.random.seed(seed)
     
     x = worker.construct_X_from_d0_d1(d0,d1,d0_indexes,d1_indexes)
@@ -84,52 +85,44 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
     ii = 0; jj = 0
     
     while jj < gd_max_iter-1:
-        if ii == 0:
-            X[ii] = worker.barrier_hard_enforcement(X[ii],ii,constrains,pert_scale)
-            d0,d1 = worker.fill_X_into_d0_d1(X[ii],d0,d1,d0_indexes,d1_indexes)
-            d1 = worker.normalize_columns(d1)
-            X[ii] = worker.construct_X_from_d0_d1(d0,d1,d0_indexes,d1_indexes)
 
-            F[ii],J[ii],is_stable = worker.prediction_and_costfunction(
-                        X[ii],d0, d1, d0_indexes,d1_indexes,d1_weights_model,y,fit_model,
-                        integration_scheme, time_evo_max, dt_time_evo,constrains,mu,
-                        tolerance,tail_length_stability_check, start_stability_check)
-            if ((not is_stable) & (jj == 0)):
-                warn_string = ('Initial conditions do not result in a stable model output. X: {}'.format(x))
-                logging.debug(warn_string)
-                X[ii] = worker.add_pertubation(X[ii],pert_scale)
-            else:
-                X[ii+1] = worker.add_pertubation(X[ii],pert_scale)
-                ii += 1
+        """ makes sure that all points in the parameter set are inside of the search space
+            and if not moves them back into it """
+        X[ii] = worker.barrier_hard_enforcement(X[ii],ii,constrains,pert_scale)
+        d0,d1 = worker.fill_X_into_d0_d1(X[ii],d0,d1,d0_indexes,d1_indexes)
+        d1 = worker.normalize_columns(d1)
+        X[ii] = worker.construct_X_from_d0_d1(d0,d1,d0_indexes,d1_indexes)
         
+
+        """ evaluate the system by iterating the time evolution until a stable solution (F) is found
+            and constructing the cost function (J) """
+        F[ii],J[ii],is_stable = worker.prediction_and_costfunction(
+                    X[ii],d0, d1, d0_indexes,d1_indexes,d1_weights_model,y,fit_model,
+                    integration_scheme, time_evo_max, dt_time_evo,constrains,mu,
+                    tolerance,tail_length_stability_check, start_stability_check)
+        if not is_stable:
+            """ moves the parameter set randomly in the hope to find a stable solution """
+            X[ii] = worker.add_pertubation(X[ii],pert_scale)
         else:
-            """ evaluate the system by iterating until a stable solution (F) is found
-                and constructing the cost function (J) """
-            X[ii] = worker.barrier_hard_enforcement(X[ii],ii,constrains,pert_scale)
-            d0,d1 = worker.fill_X_into_d0_d1(X[ii],d0,d1,d0_indexes,d1_indexes)
-            d1 = worker.normalize_columns(d1)
-            X[ii] = worker.construct_X_from_d0_d1(d0,d1,d0_indexes,d1_indexes)
-            
-            F[ii],J[ii],is_stable = worker.prediction_and_costfunction(
-                        X[ii],d0, d1, d0_indexes,d1_indexes,d1_weights_model,y,fit_model,
-                        integration_scheme, time_evo_max, dt_time_evo,constrains,mu,
-                        tolerance,tail_length_stability_check, start_stability_check)
+            """ calculates the local gradient by evaluation the time evolution at surrounding
+                free parameters set points """
+            gradient,is_stable = worker.local_gradient(X[:ii+1],y,fit_model,integration_scheme,
+                                        d0,d1,d0_indexes,d1_indexes,
+                                        d1_weights_model,constrains,mu,
+                                        pert_scale,
+                                        time_evo_max, dt_time_evo,
+                                        tolerance,tail_length_stability_check,
+                                        start_stability_check)
             if not is_stable:
+                """ moves the originial set of free parameters in case that any(!)
+                    of the surrounding points used in the calculation of the
+                    local gradient is unstable """
                 X[ii] = worker.add_pertubation(X[ii],pert_scale)
             else:
-                """ applying a decent model to find a new ( and better)
-                    input variable """
-                gradient,is_stable = worker.local_gradient(X[:ii+1],y,fit_model,integration_scheme,
-                                          d0,d1,d0_indexes,d1_indexes,
-                                          d1_weights_model,constrains,mu,
-                                          time_evo_max, dt_time_evo,
-                                          tolerance=1e-6,tail_length_stability_check=10,
-                                          start_stability_check=100)
-                if not is_stable:
-                    X[ii] = worker.add_pertubation(X[ii],pert_scale)
-                else:
-                    X[ii+1] = gradient_method(X[:ii+1],gradient,grad_scale)
-                    ii += 1
+                """ applying a decent model to find a new and hopefully
+                    better set of free parameters """
+                X[ii+1] = gradient_method(X[:ii+1],gradient,grad_scale)
+                ii += 1
         jj += 1
 
             
