@@ -75,25 +75,22 @@ def barrier_hard_enforcement(free_param,jj,constrains=None,pert_scale=1e-2,seed=
 
     for ii,[left,right] in enumerate(constrains):
         
-        # we add a small pertubation to avoid
-        # that the we remain on the boarder
+        """ we add a small pertubation to avoid that the we remain on the boarder """
         if (free_param[ii] <= left):
-
-            new_x = left + np.random.rand()*pert_scale
+            buffer = left + np.random.rand()*pert_scale
             warn_string = ( 'Left  barrier enforcement'+
                             'at step {:4d} {:4d}. '.format(jj,ii)+
-                            'Value shifted from {:+8.2E} to {:+8.2E}'.format(free_param[ii],new_x))
+                            'Value shifted from {:+8.2E} to {:+8.2E}'.format(free_param[ii],buffer))
             logging.debug(warn_string)
-            free_param[ii] = left + np.random.rand()*pert_scale
-            
+            free_param[ii] = buffer
 
         if (free_param[ii] >= right):
-            new_x = right - np.random.rand()*pert_scale
+            buffer = right - np.random.rand()*pert_scale
             warn_string = ( 'Right barrier enforcement'+
                             'at step {:4d} {:4d}. '.format(jj,ii)+
-                            'Value shifted from {:+8.2E} to {:+8.2E}'.format(free_param[ii],new_x))
+                            'Value shifted from {:+8.2E} to {:+8.2E}'.format(free_param[ii],buffer))
             logging.debug(warn_string)
-            free_param[ii] = left + np.random.rand()*pert_scale
+            free_param[ii] = buffer
             
     return free_param
 
