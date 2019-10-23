@@ -6,4 +6,5 @@
 *.json
 *.png
 *.pickle
+*.log
 archived_routines
