@@ -4,33 +4,53 @@ from . import models
 from . import decorators
 
 import logging
-logging.basicConfig(filename='carbonflux_inverse_model.log',level=logging.DEBUG)
+logging.basicConfig(filename='carbonflux_inverse_model.log',
+                    level=logging.DEBUG)
 
 
 
-def run_time_evo(integration_scheme, time_evo_max, dt_time_evo, ODE_state, ODE_coeff_model, 
-                 ODE_coeff=None,
-                 stability_rel_tolerance=1e-5,tail_length_stability_check=10, start_stability_check=100):
+def run_time_evo(integration_scheme, time_evo_max, dt_time_evo, ODE_state,
+                 ODE_coeff_model, ODE_coeff=None, stability_rel_tolerance=1e-5,
+                 tail_length_stability_check=10, start_stability_check=100):
     
-    """ integrates first order ODE
+    """ integrates first-order coupled ordinary-differential-equations (ODEs)
 
-        integration_scheme: {euler,runge_kutta}
+    Parameters
+    ----------
 
-        time_evo_max: postive float, time span that is integrated
-        dt_time_evo: postive float, time step that is integrated
+    integration_scheme : function
+        {euler,runge_kutta}
+    time_evo_max : postive float
+        time span that is integrated
+    dt_time_evo : postive float
+        time step that is integrated
+    ODE_state : numpy.array
+        one dimensional set of initial values
+    ODE_coeff_model : function
+        updates ODE coupling coefficients
+        necessaray becaus coupling coefficient are allowed 
+        to be 'time' dependent, i.e the coupling is dependent
+        on the last ODE_state values (i.e. NPZD)
+    ODE_coeff : numpy.array
+        2D-square-matrix with ODE coefficients 
+    stability_rel_tolerance : positive float
+        max allowed fluctuation
+        to decide if time evolution is stable 
+    tail_length_stability_check : postive integer
+        number of entries used from the tail ODE_state from
+        which the stablity is checked
+    start_stability_check : positive integer
+        amount of steps before stability is checked 
 
-        ODE_state: 1D-numpy.array, set of initial values
-        ODE_coeff_model: function, updates ODE_coeff (ODE coupling coefficients).
-                          necessaray becaus coupling coefficient are allowed 
-                          to be 'time' dependent, i.e the coupling is dependent
-                          on the last ODE_state values (i.e. NPZD)
-        ODE_coeff: 2D-square-numpy.array with ODE coefficients 
-        
-        stability_rel_tolerance: positive float, max allowed fluctuation to decide if 
-                   time evolution is stable 
-        tail_length_stability_check: postive integer, number of entries used from the tail ODE_state
-                                     from which the stablity is checked
-        start_stability_check: positive integer, amount of steps before stability is checked """
+    Returns
+    -------
+    ODE_state_log : numpy.array
+        two dimensional array containing the results of the 
+        time integration for each iteration step
+    is_stable : bool
+        True if time integration was stable
+        False else
+    """
 
     # initialize data arrays
     n_obs = len(ODE_state)
@@ -43,9 +63,12 @@ def run_time_evo(integration_scheme, time_evo_max, dt_time_evo, ODE_state, ODE_c
     time_step = 0
     is_stable = False
     for ii in np.arange(1,n_steps):
+        # updates ODE coefficients
         ODE_coeff = ODE_coeff_model(ODE_state_log[ii],ODE_coeff)
+        # calcu
         ODE_state_log[ii] = integration_scheme(ODE_state_log[ii-1],ODE_coeff,time_step,dt_time_evo)
 
+        # repeatedly checks if the solution is stable, if so returns, if not continous
         if ((ii >= start_stability_check) & (ii%tail_length_stability_check == 0) &
             (stability_rel_tolerance != 0)):
             is_stable = worker.verify_stability_time_evolution(ODE_state_log[:ii+1],
@@ -68,14 +91,98 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
                     pert_scale=1e-5,grad_scale=1e-9,
                     stability_rel_tolerance=1e-9,tail_length_stability_check=10, 
                     start_stability_check = 100,seed = 137):
+
     """ framework for applying a gradient decent approach to a 
-        a model, applying a certain method """
+        a model, applying a certain method 
         
+    Parameters
+    ----------
+    fit_model : function
+        {standard_fit_model, direct_fit_model}
+        defines how the output of the time evolution get accounted for.
+        i.e. the sum of the output is returned or all its elements
+    gradient_method : function
+        {SGD_basic,SGD_momentum}
+        Selects the method used during the gradient descent.
+        They differ in their robustness and convergence speed
+    integration_scheme: function
+        {euler_forward, runge_kutta}
+        Selects which method is used in the integration of the time evolution.
+        Euler is of first order, Runge-Kutta of second
+    ODE_state : numpy.array
+        1D array containing the initial state of the oberserved quantities
+        in the ODE. Often also referred to as initial conditions.
+    ODE_coeff : numpy.array
+        2d-square-matrix containing the coefficients of the ODE
+    ODE_coeff_model : function
+        selects the function used for the calculation of the ODE
+        coefficients. I.e. if dependencies of the current state are present.
+        If no dependency is present use 'standard_weights_model'
+    y : numpy array
+        1D-array containing the desired output of the model in the form
+        defined by the fit-model
+    ODE_state_indexes : numpy.array
+        1D-array containing sets of indices used to select which elements
+        of the ODE_state array are optimized. 'None' if none are optimized.
+    ODE_coeff_indexes : numpy.array
+        1D-array containing sets of indices used to select which elements  
+        of the ODE_coeff array are optimized. 'None' if none are optimized.
+    constrains : numpy.array
+        2D-array containing the upper and lower limit of every free input
+        parameter in the shape (len(free_param),2).
+    barrier_slope : positive-float
+        Defines the slope of the barrier used for the soft constrain.
+        Lower numbers, steeper slope. Typically between (0-1].
+    gd_max_iter : positive integer
+        Maximal amount of iterations alowed in the gradient descent
+        algorithm.
+    time_evo_max
+        Maximal amount of iterations alowed in the time evolution.
+        Has the same unit as the one used in the initial ODE_state
+    dt_time_evo
+        Size of time step used in the time evolutoin.
+        Has the same unit as the one used in the initial ODE_state
+    pert_scale : positive float
+        Maximal value which the system can be perturbed if necessary
+        (i.e. if instabillity is found). Actual pertubation ranges
+        from [0-pert_scal) uniformly distributed.
+    grad_scale : positive float
+        Scales the step size in the gradiation descent. Often also
+        referred to as learning rate. Necessary to compensate for the
+        "roughness" of the objective function field.
+    stability_rel_tolerance : positive float
+        Defines the maximal allowed relative flucuation range in the tail
+        of the time evolutoin. If below, system is called stable.
+    tail_length_stability_check : postive integer
+        Defines the length of the tail used for the stability calculation.
+        Tail means the amount of elements counted from the back of the
+        array.
+    start_stability_check : positive integer
+        Defines the element from which on we repeatably check if the
+        time evolution is stable. If stable, iteration stops and last
+        value is returned
+    seed : positive integer
+        Initializes the random number generator. Used to recreate the
+        same set of pseudo-random numbers. Helpfull when debugging.
+
+    Returns
+    -------
+    free_param : numpy.array
+        2D-array containing the set of optimized free parameter,
+        stacked along the first axis.
+    prediction : numpy.array
+        2D-array containing the output of the time evolution,
+        stacked along the first axis.
+    cost
+        1D-array containing the corresponding values of the cost
+        function calculated based on the free_param at the same
+        first-axis index.
+    """
 
     np.random.seed(seed)
     
-    free_param = worker.filter_free_param(ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
-    free_param,prediction,cost = worker.init_variable_space(free_param,y,gd_max_iter)
+    free_param_init = worker.filter_free_param(ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
+    free_param,prediction,cost = worker.init_variable_space(free_param_init,y,gd_max_iter)
     
     # ii keeps track of the position in the output array
     # jj keeps track to not exceed max iterations
@@ -145,6 +252,90 @@ def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
                     tail_length_stability_check=10,
                     start_stability_check=100,
                     seed=137):
+    
+    """ Optimizes a set of randomly generated free parameters and returns
+        their optimized values and the corresponding fit-model and cost-
+        function output
+
+
+    Parameters
+    ----------
+    path_ODE_state_init : string
+        Path to a file containing the initial values for the time evolution
+        Expects them to be in tab-seperated-format.
+    path_ODE_coeff_init : string
+        Path to a file containing the coupling coefficients used in 
+        the time evolution. Expects them to be in tab-seperated-format.
+    y : numpy array
+        1D-array containing the desired output of the model in the form
+        defined by the fit-model
+    fit_model : function
+        {standard_fit_model, direct_fit_model}
+        defines how the output of the time evolution get accounted for.
+        i.e. the sum of the output is returned or all its elements
+    gradient_method : function
+        {SGD_basic,SGD_momentum}
+        Selects the method used during the gradient descent.
+        They differ in their robustness and convergence speed
+    integration_scheme: function
+        {euler_forward, runge_kutta}
+        Selects which method is used in the integration of the time evolution.
+        Euler is of first order, Runge-Kutta of second
+    ODE_coeff_model : function
+        selects the function used for the calculation of the ODE
+        coefficients. I.e. if dependencies of the current state are present.
+        If no dependency is present use 'standard_weights_model'
+    barrier_slope : positive-float
+        Defines the slope of the barrier used for the soft constrain.
+        Lower numbers, steeper slope. Typically between (0-1].
+    sample_sets : positive integer
+        Amount of randomly generated sample sets used as initial free
+        parameters
+    gd_max_iter : positive integer
+        Maximal amount of iterations alowed in the gradient descent
+        algorithm.
+    time_evo_max
+        Maximal amount of iterations alowed in the time evolution.
+        Has the same unit as the one used in the initial ODE_state
+    dt_time_evo
+        Size of time step used in the time evolutoin.
+        Has the same unit as the one used in the initial ODE_state
+    pert_scale : positive float
+        Maximal value which the system can be perturbed if necessary
+        (i.e. if instabillity is found). Actual pertubation ranges
+        from [0-pert_scal) uniformly distributed.
+    grad_scale : positive float
+        Scales the step size in the gradiation descent. Often also
+        referred to as learning rate. Necessary to compensate for the
+        "roughness" of the objective function field.
+    stability_rel_tolerance : positive float
+        Defines the maximal allowed relative flucuation range in the tail
+        of the time evolutoin. If below, system is called stable.
+    tail_length_stability_check : postive integer
+        Defines the length of the tail used for the stability calculation.
+        Tail means the amount of elements counted from the back of the
+        array.
+    start_stability_check : positive integer
+        Defines the element from which on we repeatably check if the
+        time evolution is stable. If stable, iteration stops and last
+        value is returned
+    seed : positive integer
+        Initializes the random number generator. Used to recreate the
+        same set of pseudo-random numbers. Helpfull when debugging.
+
+    Returns
+    -------
+    free_param : numpy.array
+        2D-array containing the set of optimized free parameter,
+        stacked along the first axis.
+    prediction : numpy.array
+        2D-array containing the output of the time evolution,
+        stacked along the first axis.
+    cost
+        1D-array containing the corresponding values of the cost
+        function calculated based on the free_param at the same
+        first-axis index.
+    """
 
     ODE_state = np.genfromtxt(path_ODE_state_init)
     ODE_state_indexes = None
