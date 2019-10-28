@@ -5,7 +5,7 @@ from . import caller
 # Time Evolution
 
 ## Integration Schemes
-def euler_forward(ODE_state,ODE_coeff,time_step,time_step_size):
+def euler_forward(ODE_state,ODE_coeff,time_step_size):
     """ develops the carbon mass and carbon mass flux 
         based on a euler forward method """
     
@@ -14,15 +14,14 @@ def euler_forward(ODE_state,ODE_coeff,time_step,time_step_size):
     
     return ODE_state
 
-def runge_kutta(ODE_state,ODE_coeff,time_step,time_step_size):
+def runge_kutta(ODE_state,ODE_coeff,time_step_size):
     """ develops the carbon mass and carbon mass flux 
         based on a euler forward method """
     
     ODE_state_half = ODE_state + time_step_size/2*np.matmul(ODE_coeff,ODE_state)
     ODE_state = ODE_state_half + np.matmul(ODE_coeff,ODE_state_half)*time_step_size
-    time_step += 1
     
-    return ODE_state, time_step
+    return ODE_state
 
 
 ## ODE coefficient models
@@ -207,7 +206,7 @@ def QQM_model(ODE_state,ODE_coeff):
      grazenc_Z, grazenc_F,
      k_I,k_N,k_P,k_Z,
      mu_max,gamma] = constants
-    
+
     N,P,Z = ODE_state[0],ODE_state[1],ODE_state[2]
 
     ODE_coeff = np.zeros((4,4))

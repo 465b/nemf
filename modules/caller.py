@@ -60,13 +60,12 @@ def run_time_evo(integration_scheme, time_evo_max, dt_time_evo, ODE_state,
     ODE_state_log[0] = ODE_state
 
     # calculate the time evolution
-    time_step = 0
     is_stable = False
     for ii in np.arange(1,n_steps):
         # updates ODE coefficients
         ODE_coeff = ODE_coeff_model(ODE_state_log[ii],ODE_coeff)
         # calcu
-        ODE_state_log[ii] = integration_scheme(ODE_state_log[ii-1],ODE_coeff,time_step,dt_time_evo)
+        ODE_state_log[ii] = integration_scheme(ODE_state_log[ii-1],ODE_coeff,dt_time_evo)
 
         # repeatedly checks if the solution is stable, if so returns, if not continous
         if ((ii >= start_stability_check) & (ii%tail_length_stability_check == 0) &
