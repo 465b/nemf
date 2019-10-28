@@ -99,16 +99,16 @@ def barrier_hard_enforcement(free_param,jj,constrains=None,pert_scale=1e-2,seed=
 
 ## Stability
 
-def verify_stability_time_evolution(prediction, stability_rel_tolerance=1e-6, N=10):
+def verify_stability_time_evolution(prediction, stability_rel_tolerance=1e-6, tail_length=10):
     """ checks if the current solution is stable by 
         comparing the relative fluctuations in the 
-        last N model outputs to a stability_rel_tolerance value
+        last tail_length model outputs to a stability_rel_tolerance value
         returns true if stable """
 
-    F_tail = prediction[-N-1:-1]
+    prediction_tail = prediction[-tail_length-1:-1]
 
-    average = np.average(F_tail,axis=0)
-    spread = np.max(F_tail,axis=0) -np.min(F_tail,axis=0)
+    average = np.average(prediction_tail,axis=0)
+    spread = np.max(prediction_tail,axis=0) -np.min(prediction_tail,axis=0)
     rel_spread = spread/average
     is_stable = (rel_spread <= stability_rel_tolerance).all()
     
