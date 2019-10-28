@@ -213,28 +213,28 @@ def careful_reshape(free_param):
         return -1
 
 
-def normalize_columns(free_param):
-    """ enforces that all columns of free_param are normalized to 1
+def normalize_columns(A):
+    """ enforces that all columns of A are normalized to 1
         otherwise an carbon mass transport amplification would occur """
     
-    overshoot = np.sum(free_param,axis=0)    
+    overshoot = np.sum(A,axis=0)    
     for ii,truth_val in enumerate(abs(overshoot) > 1e-16):
         if truth_val : 
-            buffer = free_param[ii,ii]
-            if buffer == overshoot[ii]:
+            diag_val = A[ii,ii]
+            if diag_val == overshoot[ii]:
                 # only the diagnoal entry is filled
                 # hence, its the dump.
                 pass
-            elif (buffer == 0): 
+            elif (diag_val == 0): 
                 overshoot[ii] -= 1
                 if (abs(overshoot[ii]) > 1e-16):
-                    free_param[:,ii] -= free_param[:,ii]/(overshoot[ii]+1)*overshoot[ii]
-                    free_param[ii,ii] = buffer
+                    A[:,ii] -= A[:,ii]/(overshoot[ii]+1)*overshoot[ii]
+                    A[ii,ii] = diag_val
             else:
-                free_param[:,ii] -= free_param[:,ii]/(overshoot[ii]-buffer)*overshoot[ii]
-                free_param[ii,ii] = buffer
+                A[:,ii] -= A[:,ii]/(overshoot[ii]-diag_val)*overshoot[ii]
+                A[ii,ii] = diag_val
 
-    return free_param
+    return A
 
 
 ## Gradient Decent related Helper Functions
