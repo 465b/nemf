@@ -20,15 +20,15 @@ def run_time_evo(integration_scheme, time_evo_max, dt_time_evo, ODE_state,
 
     integration_scheme : function
         {euler,runge_kutta}
-    time_evo_max : postive float
+    time_evo_max : positive float
         time span that is integrated
-    dt_time_evo : postive float
+    dt_time_evo : positive float
         time step that is integrated
     ODE_state : numpy.array
         one dimensional set of initial values
     ODE_coeff_model : function
         updates ODE coupling coefficients
-        necessaray becaus coupling coefficient are allowed 
+        necessary because coupling coefficient are allowed 
         to be 'time' dependent, i.e the coupling is dependent
         on the last ODE_state values (i.e. NPZD)
     ODE_coeff : numpy.array
@@ -36,9 +36,9 @@ def run_time_evo(integration_scheme, time_evo_max, dt_time_evo, ODE_state,
     stability_rel_tolerance : positive float
         max allowed fluctuation
         to decide if time evolution is stable 
-    tail_length_stability_check : postive integer
+    tail_length_stability_check : positive integer
         number of entries used from the tail ODE_state from
-        which the stablity is checked
+        which the stability is checked
     start_stability_check : positive integer
         amount of steps before stability is checked 
 
@@ -109,7 +109,7 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
         Selects which method is used in the integration of the time evolution.
         Euler is of first order, Runge-Kutta of second
     ODE_state : numpy.array
-        1D array containing the initial state of the oberserved quantities
+        1D array containing the initial state of the observed quantities
         in the ODE. Often also referred to as initial conditions.
     ODE_coeff : numpy.array
         2d-square-matrix containing the coefficients of the ODE
@@ -133,26 +133,26 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
         Defines the slope of the barrier used for the soft constrain.
         Lower numbers, steeper slope. Typically between (0-1].
     gd_max_iter : positive integer
-        Maximal amount of iterations alowed in the gradient descent
+        Maximal amount of iterations allowed in the gradient descent
         algorithm.
     time_evo_max
-        Maximal amount of iterations alowed in the time evolution.
+        Maximal amount of iterations allowed in the time evolution.
         Has the same unit as the one used in the initial ODE_state
     dt_time_evo
-        Size of time step used in the time evolutoin.
+        Size of time step used in the time evolution.
         Has the same unit as the one used in the initial ODE_state
     pert_scale : positive float
         Maximal value which the system can be perturbed if necessary
-        (i.e. if instabillity is found). Actual pertubation ranges
+        (i.e. if instability is found). Actual perturbation ranges
         from [0-pert_scal) uniformly distributed.
     grad_scale : positive float
-        Scales the step size in the gradiation descent. Often also
+        Scales the step size in the gradient descent. Often also
         referred to as learning rate. Necessary to compensate for the
         "roughness" of the objective function field.
     stability_rel_tolerance : positive float
-        Defines the maximal allowed relative flucuation range in the tail
-        of the time evolutoin. If below, system is called stable.
-    tail_length_stability_check : postive integer
+        Defines the maximal allowed relative fluctuation range in the tail
+        of the time evolution. If below, system is called stable.
+    tail_length_stability_check : positive integer
         Defines the length of the tail used for the stability calculation.
         Tail means the amount of elements counted from the back of the
         array.
@@ -175,8 +175,7 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
     cost
         1D-array containing the corresponding values of the cost
         function calculated based on the free_param at the same
-        first-axis index.
-    """
+        first-axis index.   """
 
     np.random.seed(seed)
     
@@ -217,7 +216,7 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
                                         stability_rel_tolerance,tail_length_stability_check,
                                         start_stability_check)
             if not is_stable:
-                """ moves the originial set of free parameters in case that any(!)
+                """ moves the original set of free parameters in case that any(!)
                     of the surrounding points used in the calculation of the
                     local gradient is unstable """
                 free_param[ii] = worker.perturb(free_param[ii],pert_scale)
@@ -291,26 +290,26 @@ def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
         Amount of randomly generated sample sets used as initial free
         parameters
     gd_max_iter : positive integer
-        Maximal amount of iterations alowed in the gradient descent
+        Maximal amount of iterations allowed in the gradient descent
         algorithm.
     time_evo_max
-        Maximal amount of iterations alowed in the time evolution.
+        Maximal amount of iterations allowed in the time evolution.
         Has the same unit as the one used in the initial ODE_state
     dt_time_evo
-        Size of time step used in the time evolutoin.
+        Size of time step used in the time evolution.
         Has the same unit as the one used in the initial ODE_state
     pert_scale : positive float
         Maximal value which the system can be perturbed if necessary
-        (i.e. if instabillity is found). Actual pertubation ranges
+        (i.e. if instability is found). Actual perturbation ranges
         from [0-pert_scal) uniformly distributed.
     grad_scale : positive float
-        Scales the step size in the gradiation descent. Often also
+        Scales the step size in the gradient descent. Often also
         referred to as learning rate. Necessary to compensate for the
         "roughness" of the objective function field.
     stability_rel_tolerance : positive float
-        Defines the maximal allowed relative flucuation range in the tail
-        of the time evolutoin. If below, system is called stable.
-    tail_length_stability_check : postive integer
+        Defines the maximal allowed relative fluctuation range in the tail
+        of the time evolution. If below, system is called stable.
+    tail_length_stability_check : positive integer
         Defines the length of the tail used for the stability calculation.
         Tail means the amount of elements counted from the back of the
         array.
