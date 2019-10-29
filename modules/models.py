@@ -5,68 +5,246 @@ from . import caller
 # Time Evolution
 
 ## Integration Schemes
-def euler_forward(ODE_state,ODE_coeff,time_step_size):
-    """ develops the carbon mass and carbon mass flux 
-        based on a euler forward method """
+def euler_forward(ODE_state,ODE_coeff,dt_time_evo):
+    """ integration scheme for the time evolution 
+        based on a euler forward method
+        
+    Parameters:
+    -----------
+    ODE_state : numpy.array
+        1D array containing the state of the observed quantities
+        in the ODE
+    ODE_coeff : numpy.array
+        2d-square-matrix containing the coefficients of the ODE
+    dt_time_evo
+        Size of time step used in the time evolution.
+        Has the same unit as the one used in the initial ODE_state
     
-    #print(ODE_state,ODE_coeff)
-    ODE_state = ODE_state + np.matmul(ODE_coeff,ODE_state)*time_step_size
+    Returns:
+    --------
+    ODE_state : numpy.array
+        1D array containing the state of the observed quantities
+        in the ODE. Now at the next iteration step  """
+    
+    ODE_state = ODE_state + np.matmul(ODE_coeff,ODE_state)*dt_time_evo 
     
     return ODE_state
 
-def runge_kutta(ODE_state,ODE_coeff,time_step_size):
-    """ develops the carbon mass and carbon mass flux 
-        based on a euler forward method """
+def runge_kutta(ODE_state,ODE_coeff,dt_time_evo):
+    """ integration scheme for the time evolution 
+        based on a euler forward method 
+        
+    Parameters:
+    -----------
+    ODE_state : numpy.array
+        1D array containing the state of the observed quantities
+        in the ODE
+    ODE_coeff : numpy.array
+        2d-square-matrix containing the coefficients of the ODE
+    dt_time_evo
+        Size of time step used in the time evolution.
+        Has the same unit as the one used in the initial ODE_state
     
-    ODE_state_half = ODE_state + time_step_size/2*np.matmul(ODE_coeff,ODE_state)
-    ODE_state = ODE_state_half + np.matmul(ODE_coeff,ODE_state_half)*time_step_size
+    Returns:
+    --------
+    ODE_state : numpy.array
+        1D array containing the state of the observed quantities
+        in the ODE. Now at the next iteration step  """
+    
+    ODE_state_half = ODE_state + dt_time_evo/2*np.matmul(ODE_coeff,ODE_state)
+    ODE_state = ODE_state_half + np.matmul(ODE_coeff,ODE_state_half)*dt_time_evo
     
     return ODE_state
 
 
 ## ODE coefficient models
-""" all weights model have the form: model(ODE_coeff).
-    no ODE_state dependence (so far neccessary) and all required
+""" all weights model have the form: model(ODE_state,ODE_coeff).
+    no ODE_state dependence (so far necessary) and all required
     constants should be called in the model through a function 
-    (i dont know if thats very elegant, but saves an uneccessary )"""
+    (i don't know if thats very elegant, but saves an unnecessary)"""
 
 
 def standard_weights_model(ODE_state,ODE_coeff):
+    """ Models if no implicit time dependency is present.
+        Hence, ODE_coeff is constant and gets returned unchanged.
+        
+    Parameters:
+    -----------
+    ODE_state : numpy.array
+        1D array containing the state of the observed quantities
+        in the ODE
+    ODE_coeff : numpy.array
+        2d-square-matrix containing the coefficients of the ODE
+        
+    Returns:
+    --------
+    ODE_state : numpy.array
+        1D array containing the state of the observed quantities
+        in the ODE  """
+
     return ODE_coeff
 
 
 ## Fit models
-def direct_fit_model(integration_scheme, time_evo_max, dt_time_evo, ODE_state, ODE_coeff=None, 
-                       ODE_coeff_model=standard_weights_model,
-                       stability_rel_tolerance=1e-5,tail_length_stability_check=10, start_stability_check=100):
-    """ NPZD model """
+""" Fit models define how the output of the time evolution (if stable) is used
+    for further processing. Then, the optimization routine uses this processed
+    time evolution output to fit the model to. Hence, the name fit_model. """
     
-    F_ij,is_stable = caller.run_time_evo(integration_scheme, time_evo_max,dt_time_evo,ODE_state,ODE_coeff_model,ODE_coeff,
-                stability_rel_tolerance,tail_length_stability_check,start_stability_check)
+def direct_fit_model(integration_scheme, time_evo_max, dt_time_evo,
+                     ODE_state, ODE_coeff=None, 
+                     ODE_coeff_model=standard_weights_model,
+                     stability_rel_tolerance=1e-5,tail_length_stability_check=10,
+                     start_stability_check=100):
+    """ Returns the last step in the time evolution. Hence, it uses the values
+        of the time evolution *directly*, without any further processing 
+    
+    Parameters:
+    -----------
+    integration_scheme: function
+        {euler_forward, runge_kutta}
+        Selects which method is used in the integration of the time evolution.
+        Euler is of first order, Runge-Kutta of second
+    time_evo_max
+        Maximal amount of iterations allowed in the time evolution.
+        Has the same unit as the one used in the initial ODE_state
+    dt_time_evo
+        Size of time step used in the time evolution.
+        Has the same unit as the one used in the initial ODE_state
+    ODE_state : numpy.array
+        1D array containing the initial state of the oberserved quantities
+        in the ODE. Often also referred to as initial conditions.
+    ODE_coeff : numpy.array
+        2d-square-matrix containing the coefficients of the ODE
+    ODE_coeff_model : function
+        selects the function used for the calculation of the ODE
+        coefficients. I.e. if dependencies of the current state are present.
+        If no dependency is present use 'standard_weights_model'
+    stability_rel_tolerance : positive float
+        Defines the maximal allowed relative flucuation range in the tail
+        of the time evolutoin. If below, system is called stable.
+    tail_length_stability_check : postive integer
+        Defines the length of the tail used for the stability calculation.
+        Tail means the amount of elements counted from the back of the
+        array.
+    start_stability_check : positive integer
+        Defines the element from which on we repeatably check if the
+        time evolution is stable. If stable, iteration stops and last
+        value is returned
+
+    Returns:
+    --------
+    F_i : numpy.array
+        2D-array containing the output of the time evolution
+        after the fit_model has been applied, stacked along the first axis.
+    is_stable : bool
+        true if stability conditions are met. 
+        See verify_stability_time_evolution() for more details. """
+    
+    F_ij, is_stable = caller.run_time_evo(integration_scheme, time_evo_max,
+                                          dt_time_evo,ODE_state,
+                                          ODE_coeff_model,ODE_coeff,
+                                          stability_rel_tolerance,
+                                          tail_length_stability_check,
+                                          start_stability_check)
     F_i = F_ij[-1]
 
     return F_i,is_stable
 
 
-def standard_fit_model(integration_scheme, time_evo_max, dt_time_evo, ODE_state, ODE_coeff=None, 
+def standard_fit_model(integration_scheme, time_evo_max, dt_time_evo,
+                       ODE_state, ODE_coeff=None, 
                        ODE_coeff_model=standard_weights_model,
-                       stability_rel_tolerance=1e-5,tail_length_stability_check=10, start_stability_check=100):
+                       stability_rel_tolerance=1e-5,
+                       tail_length_stability_check=10,
+                       start_stability_check=100):
 
-    F_ij, is_stable = caller.run_time_evo(integration_scheme, time_evo_max,dt_time_evo,ODE_state,ODE_coeff_model,ODE_coeff,
-                stability_rel_tolerance,tail_length_stability_check,start_stability_check)
+    """ Takes the last step in the time evolution and calculates the sum
+        of its entries. Counts the last entry negatively.
+        This is done to represent a 'dump' through which the positive
+        net-flux of the system is compensated.
+        
+    Parameters:
+    -----------
+    integration_scheme: function
+        {euler_forward, runge_kutta}
+        Selects which method is used in the integration of the time evolution.
+        Euler is of first order, Runge-Kutta of second
+    time_evo_max
+        Maximal amount of iterations allowed in the time evolution.
+        Has the same unit as the one used in the initial ODE_state
+    dt_time_evo
+        Size of time step used in the time evolution.
+        Has the same unit as the one used in the initial ODE_state
+    ODE_state : numpy.array
+        1D array containing the initial state of the oberserved quantities
+        in the ODE. Often also referred to as initial conditions.
+    ODE_coeff : numpy.array
+        2d-square-matrix containing the coefficients of the ODE
+    ODE_coeff_model : function
+        selects the function used for the calculation of the ODE
+        coefficients. I.e. if dependencies of the current state are present.
+        If no dependency is present use 'standard_weights_model'
+    stability_rel_tolerance : positive float
+        Defines the maximal allowed relative flucuation range in the tail
+        of the time evolutoin. If below, system is called stable.
+    tail_length_stability_check : postive integer
+        Defines the length of the tail used for the stability calculation.
+        Tail means the amount of elements counted from the back of the
+        array.
+    start_stability_check : positive integer
+        Defines the element from which on we repeatably check if the
+        time evolution is stable. If stable, iteration stops and last
+        value is returned
+
+    Returns:
+    --------
+    F_i : numpy.array
+        2D-array containing the output of the time evolution
+        after the fit_model has been applied, stacked along the first axis.
+    is_stable : bool
+        true if stability conditions are met. 
+        See verify_stability_time_evolution() for more details. """
+    
+    F_ij, is_stable = caller.run_time_evo(integration_scheme, time_evo_max,
+                                          dt_time_evo,ODE_state,
+                                          ODE_coeff_model,ODE_coeff,
+                                          stability_rel_tolerance,
+                                          tail_length_stability_check,
+                                          start_stability_check)
     F_i = F_ij[-1]
     prediction = np.array(np.sum(F_i) - 2*F_i[-1])
 
     return prediction, is_stable
 
 
-# Gradiant Decent
+# Gradient Decent
 
 ## Gradient Decent Methods
 
 def SGD_basic(free_param,gradient,grad_scale):
-    """ construct the gradient of the cost function  
-    to minimize it with an 'SGD' approach """
+    """ Stochastic Gradient Descent (SGD) implementation to minimize
+        the cost function 
+        
+    Parameters:
+    -----------
+    free_param : numpy.array
+        2D-array containing the set of optimized free parameter,
+        stacked along the first axis.
+    gradient : numpy.array
+        Gradient at the center point calculated by the randomly chosen 
+        local environment. The gradient always points in the direction
+        of steepest ascent.
+    grad_scale : positive float
+        Scales the step size in the gradient descent. Often also
+        referred to as learning rate. Necessary to compensate for the
+        "roughness" of the objective function field.
+
+    Returns:
+    -------
+    free_param_next : numpy.array
+        1D-array containing the set of optimized free parameter
+        for the next iteration step. """
+    
     
     free_param_next = free_param[-1] - grad_scale*gradient
     
@@ -74,8 +252,28 @@ def SGD_basic(free_param,gradient,grad_scale):
 
 
 def SGD_momentum(free_param,gradient,grad_scale):
-    """ construct the gradient of the cost function  
-        to minimize it with an 'SGD-momentum' approach """
+    """ Stochastic Gradient Descent (SGD) implementation plus and additional
+        momentum term to minimize the cost function.
+    
+    Parameters:
+    -----------
+    free_param : numpy.array
+        2D-array containing the set of optimized free parameter,
+        stacked along the first axis.
+    gradient : numpy.array
+        Gradient at the center point calculated by the randomly chosen 
+        local environment. The gradient always points in the direction
+        of steepest ascent.
+    grad_scale : positive float
+        Scales the step size in the gradient descent. Often also
+        referred to as learning rate. Necessary to compensate for the
+        "roughness" of the objective function field.
+
+    Returns:
+    -------
+    free_param_next : numpy.array
+        1D-array containing the set of optimized free parameter
+        for the next iteration step. """
     
     if len(free_param) >= 3:
         previous_delta = free_param[-2]-free_param[-3]
@@ -95,8 +293,8 @@ def SGD_momentum(free_param,gradient,grad_scale):
 def J(N,k_N,mu_m):
     """ Nutrition saturation model"""
 
-    """ we are currenly assuming constant, perfect 
-        and homogenious illumination. Hence, the 
+    """ we are currently assuming constant, perfect 
+        and homogeneous illumination. Hence, the 
         f_I factor is currently set to 1 """
 
     f_N = N/(k_N+N)
