@@ -97,7 +97,7 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
     Parameters
     ----------
     fit_model : function
-        {standard_fit_model, direct_fit_model}
+        {net_flux_fit_model, direct_fit_model}
         defines how the output of the time evolution get accounted for.
         i.e. the sum of the output is returned or all its elements
     gradient_method : function
@@ -235,7 +235,7 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
 
 @decorators.log_input_output
 def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
-                    fit_model = models.standard_fit_model,
+                    fit_model = models.net_flux_fit_model,
                     gradient_method = models.SGD_basic,
                     integration_method = models.euler_forward,
                     ODE_coeff_model = models.standard_weights_model,
@@ -268,7 +268,7 @@ def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
         1D-array containing the desired output of the model in the form
         defined by the fit-model
     fit_model : function
-        {standard_fit_model, direct_fit_model}
+        {net_flux_fit_model, direct_fit_model}
         defines how the output of the time evolution get accounted for.
         i.e. the sum of the output is returned or all its elements
     gradient_method : function

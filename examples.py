@@ -13,7 +13,7 @@ sample_sets = 1
 
 free_param, prediction = modules.caller.dn_monte_carlo(
                     path_ODE_state_init,path_ODE_coeff_init,y,
-                    fit_model = modules.models.standard_fit_model,
+                    fit_model = modules.models.net_flux_fit_model,
                     gradient_method = modules.models.SGD_basic,
                     integration_method = modules.models.euler_forward,
                     ODE_coeff_model = modules.models.standard_weights_model,

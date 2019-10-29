@@ -325,7 +325,7 @@ def prediction_and_costfunction(free_param, ODE_state, ODE_coeff,
         1D-array containing the desired output of the model in the form
         defined by the fit-model
     fit_model : function
-        {standard_fit_model, direct_fit_model}
+        {net_flux_fit_model, direct_fit_model}
         defines how the output of the time evolution get accounted for.
         i.e. the sum of the output is returned or all its elements
     integration_scheme: function
@@ -495,7 +495,7 @@ def local_gradient(free_param,y,fit_model,integration_scheme,
     Parameters
     ----------
     fit_model : function
-        {standard_fit_model, direct_fit_model}
+        {net_flux_fit_model, direct_fit_model}
         defines how the output of the time evolution get accounted for.
         i.e. the sum of the output is returned or all its elements
     integration_scheme: function

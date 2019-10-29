@@ -151,7 +151,7 @@ def direct_fit_model(integration_scheme, time_evo_max, dt_time_evo,
     return F_i,is_stable
 
 
-def standard_fit_model(integration_scheme, time_evo_max, dt_time_evo,
+def net_flux_fit_model(integration_scheme, time_evo_max, dt_time_evo,
                        ODE_state, ODE_coeff=None, 
                        ODE_coeff_model=standard_weights_model,
                        stability_rel_tolerance=1e-5,
