@@ -349,7 +349,7 @@ def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
     
     free_param,prediction,cost = worker.init_variable_space(free_param,y,gd_max_iter)
     optim_free_param = np.zeros((sample_sets,) + np.shape(free_param))
-    F_stack = np.zeros((sample_sets,) + np.shape(prediction))
+    prediction_stack = np.zeros((sample_sets,) + np.shape(prediction))
     #L_stack = np.zeros((sample_sets,) + np.shape(cost))
 
     if sample_sets == 0 :
@@ -376,9 +376,9 @@ def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
                                         seed)
             
             optim_free_param[ii] = free_param
-            F_stack[ii] = prediction
+            prediction_stack[ii] = prediction
         
-    return optim_free_param,F_stack
+    return optim_free_param,prediction_stack
 
 
 @decorators.log_input_output
@@ -412,7 +412,7 @@ def NPZD_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
     
     free_param,prediction,cost = worker.init_variable_space(free_param,y,gd_max_iter)
     optim_free_param = np.zeros((sample_sets,) + np.shape(free_param))
-    F_stack = np.zeros((sample_sets,) + np.shape(prediction))
+    prediction_stack = np.zeros((sample_sets,) + np.shape(prediction))
     #L_stack = np.zeros((sample_sets,) + np.shape(cost))
 
     if sample_sets == 0 :
@@ -441,6 +441,6 @@ def NPZD_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
                                         seed)
             
             optim_free_param[ii] = free_param
-            F_stack[ii] = prediction
+            prediction_stack[ii] = prediction
         
-    return optim_free_param,F_stack
+    return optim_free_param,prediction_stack
