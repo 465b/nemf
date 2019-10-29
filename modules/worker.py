@@ -97,7 +97,7 @@ def barrier_function(free_param,constrains=np.array([None]),barrier_slope=1):
 
 def barrier_hard_enforcement(free_param,jj,constrains=None,
                              pert_scale=1e-2,seed=137):
-    """ if outisde the search space we enforce a 'in-constrain'
+    """ if outside the search space we enforce a 'in-constrain'
         search space by ignoring the recommended step and
         moving it back into the search space
 
@@ -105,7 +105,7 @@ def barrier_hard_enforcement(free_param,jj,constrains=None,
     ----------
     free_param : numpy.array
         1D-array containing the set of optimized free parameter.
-    jj : postive integer
+    jj : positive integer
         Index of the iteration step in which the function is called.
         This is logged for debugging purposes.
     constrains : numpy.array
@@ -534,9 +534,9 @@ def local_gradient(free_param,y,fit_model,integration_scheme,
         Size of time step used in the time evolution.
         Has the same unit as the one used in the initial ODE_state
     stability_rel_tolerance : positive float
-        Defines the maximal allowed relative flucuation range in the tail
-        of the time evolutoin. If below, system is called stable.
-    tail_length_stability_check : postive integer
+        Defines the maximal allowed relative fluctuation range in the tail
+        of the time evolution. If below, system is called stable.
+    tail_length_stability_check : posi  tive integer
         Defines the length of the tail used for the stability calculation.
         Tail means the amount of elements counted from the back of the
         array.
