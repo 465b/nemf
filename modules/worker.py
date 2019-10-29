@@ -359,8 +359,8 @@ def prediction_and_costfunction(free_param, ODE_state, ODE_coeff,
     Returns
     -------
     prediction : numpy.array
-        2D-array containing the output of the time evolution,
-        stacked along the first axis.
+        2D-array containing the output of the time evolution
+        after the fit_model has been applied, stacked along the first axis.
     cost
         1D-array containing the corresponding values of the cost
         function calculated based on the free_param at the same
