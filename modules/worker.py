@@ -557,35 +557,35 @@ def local_gradient(free_param,y,fit_model,integration_scheme,
     """
     
     if len(free_param) == 1:
-        X_diff = free_param[-1] - perturb(free_param[-1],pert_scale)
+        free_param_diff = free_param[-1] - perturb(free_param[-1],pert_scale)
     else:
-        X_diff = free_param[-1]-free_param[-2]
+        free_param_diff = free_param[-1]-free_param[-2]
 
-    n_x = len(X_diff)    
-    X_center = free_param[-1]
+    n_x = len(free_param_diff)    
+    free_param_center = free_param[-1]
 
     # the following 2 lines is already computed. optimization possibility
-    ODE_state,ODE_coeff = fill_free_param(X_center,ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
+    ODE_state,ODE_coeff = fill_free_param(free_param_center,ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
     cost_center = prediction_and_costfunction(
-                        X_center,ODE_state, ODE_coeff, ODE_coeff_model,y,fit_model,
+                        free_param_center,ODE_state, ODE_coeff, ODE_coeff_model,y,fit_model,
                         integration_scheme, time_evo_max, dt_time_evo,constrains,barrier_slope,
                         stability_rel_tolerance,tail_length_stability_check, start_stability_check)[1]
 
-    X_local = np.full( (n_x,n_x), X_center)
+    free_param_local = np.full( (n_x,n_x), free_param_center)
     cost_local = np.zeros(n_x)
     
     for ii in np.arange(n_x):
-        X_local[ii,ii] += X_diff[ii]
+        free_param_local[ii,ii] += free_param_diff[ii]
 
         # the following block is a terribly bad implementation performance wise
-        X_local[ii,ii] = barrier_hard_enforcement(np.array([X_local[ii,ii]]),ii,
+        free_param_local[ii,ii] = barrier_hard_enforcement(np.array([free_param_local[ii,ii]]),ii,
                                                   np.array([constrains[ii]]))[0]
-        ODE_state,ODE_coeff = fill_free_param(X_local[ii],ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
+        ODE_state,ODE_coeff = fill_free_param(free_param_local[ii],ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
         ODE_coeff = normalize_columns(ODE_coeff)
-        X_local[ii] = filter_free_param(ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
+        free_param_local[ii] = filter_free_param(ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
         
         cost_local[ii],is_stable = prediction_and_costfunction(
-                        X_local[ii],ODE_state, ODE_coeff, ODE_coeff_model,y,fit_model,
+                        free_param_local[ii],ODE_state, ODE_coeff, ODE_coeff_model,y,fit_model,
                         integration_scheme, time_evo_max, dt_time_evo,constrains,barrier_slope,
                         stability_rel_tolerance,tail_length_stability_check, start_stability_check)[1:]
         if is_stable is False:
@@ -596,6 +596,6 @@ def local_gradient(free_param,y,fit_model,integration_scheme,
     """ The following line prevents a division by zero if 
         by chance a point does not move in between iterations.
         This is more of a work around then a feature """
-    gradient = division_scalar_vector_w_zeros(cost_diff,X_diff)
+    gradient = division_scalar_vector_w_zeros(cost_diff,free_param_diff)
 
     return gradient,is_stable
