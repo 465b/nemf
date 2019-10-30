@@ -3,7 +3,7 @@ import logging
 logging.basicConfig(filename='carbonflux_inverse_model.log',level=logging.DEBUG)
 
 
-# Gradiant Decent
+# Gradient Decent
 
 ## Cost function related Methods
 def cost_function(prediction,y):
