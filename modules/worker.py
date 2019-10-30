@@ -248,7 +248,7 @@ def filter_free_param(ODE_state=None,ODE_coeff=None,
 
 
 def fill_free_param(free_param,ODE_state,ODE_coeff,
-                    ODE_state_indexes,ODE_coeff_indexes):
+                    ODE_state_indexes=None,ODE_coeff_indexes=None):
     """ Takes the free_parameters and filles them back into their origin which
         are determined by the {state,coeff} and their corresponding index
         objects. Overwrites the original values in the provess

@@ -366,6 +366,7 @@ def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
         for ii in np.arange(0,sample_sets):
             np.random.seed()
             free_param = worker.monte_carlo_sample_generator(constrains)
+            ODE_state,ODE_coeff = worker.fill_free_param(free_param,ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_index)
             free_param, prediction, cost = gradient_decent(fit_model,gradient_method,integration_method,
                                         ODE_state,ODE_coeff,ODE_coeff_model, y,
                                         ODE_state_indexes, ODE_coeff_index,constrains,barrier_slope,
