@@ -402,14 +402,14 @@ def NPZD_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
 
     ODE_state = np.genfromtxt(path_ODE_state_init)
     ODE_state_indexes = np.where(ODE_state == ODE_state)
-    ODE_coeff = ODE_coeff_model
+    ODE_coeff = ODE_coeff_model(ODE_state,None)
     ODE_coeff_index = None
     
     free_param = worker.filter_free_param(ODE_state=ODE_state,ODE_state_indexes=ODE_state_indexes)
     
     constrains = np.zeros((len(free_param),2))
     constrains[:,0] = 0
-    constrains[:,1] = 1    
+    constrains[:,1] = np.sum(ODE_state)    
     
     free_param,prediction,cost = worker.init_variable_space(free_param,y,gd_max_iter)
     optim_free_param = np.zeros((sample_sets,) + np.shape(free_param))
@@ -432,6 +432,7 @@ def NPZD_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
         for ii in np.arange(0,sample_sets):
             np.random.seed()
             free_param = worker.monte_carlo_sample_generator(constrains)
+            ODE_state,ODE_coeff = worker.fill_free_param(free_param,ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_index)
             free_param, prediction, cost = gradient_decent(fit_model,gradient_method,integration_method,
                                         ODE_state,ODE_coeff,ODE_coeff_model, y,
                                         ODE_state_indexes, ODE_coeff_index,constrains,barrier_slope,
