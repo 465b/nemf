@@ -9,9 +9,9 @@ path_ODE_state_init = 'initial_values/ODE_state_D05_init.tsv'
 path_ODE_coeff_init = "initial_values/ODE_coeff_D05_init.tsv"
 y = np.array([0])
 
-sample_sets = 1
+sample_sets = 3
 
-free_param, prediction = modules.caller.dn_monte_carlo(
+free_param_stack, prediction_stack, cost_stack = modules.caller.dn_monte_carlo(
                     path_ODE_state_init,path_ODE_coeff_init,y,
                     fit_model = modules.models.net_flux_fit_model,
                     gradient_method = modules.models.SGD_basic,
@@ -30,7 +30,7 @@ free_param, prediction = modules.caller.dn_monte_carlo(
                     seed=137)
 
 for ii in np.arange(sample_sets):
-    modules.plot.XFL(free_param[ii],prediction[ii])
+    modules.plot.XFL(free_param_stack[ii],prediction_stack[ii])
 
 
 # Example NPZD Model

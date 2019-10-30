@@ -350,7 +350,7 @@ def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
     free_param,prediction,cost = worker.init_variable_space(free_param,y,gd_max_iter)
     optim_free_param = np.zeros((sample_sets,) + np.shape(free_param))
     prediction_stack = np.zeros((sample_sets,) + np.shape(prediction))
-    #L_stack = np.zeros((sample_sets,) + np.shape(cost))
+    cost_stack = np.zeros((sample_sets,) + np.shape(cost))
 
     if sample_sets == 0 :
         free_param, prediction, cost = gradient_decent(fit_model,gradient_method,integration_method,
@@ -378,8 +378,9 @@ def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
             
             optim_free_param[ii] = free_param
             prediction_stack[ii] = prediction
+            cost_stack[ii] = cost
         
-    return optim_free_param,prediction_stack
+    return optim_free_param,prediction_stack, cost
 
 
 @decorators.log_input_output
