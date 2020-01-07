@@ -302,7 +302,8 @@ def division_scalar_vector_w_zeros(a,b):
 
 def prediction_and_costfunction(free_param, ODE_state, ODE_coeff,
             ODE_coeff_model,y,fit_model, integration_scheme, time_evo_max,
-            dt_time_evo, constrains=np.array([None]),barrier_slope=1,
+            dt_time_evo, idx_source, idx_sink,
+            constrains=np.array([None]),barrier_slope=1,
             stability_rel_tolerance=1e-5,tail_length_stability_check=10,
             start_stability_check=100):
     """ calculates the (stable) solution of the time evolution (prediction)
@@ -338,6 +339,12 @@ def prediction_and_costfunction(free_param, ODE_state, ODE_coeff,
     dt_time_evo
         Size of time step used in the time evolution.
         Has the same unit as the one used in the initial ODE_state
+    idx_source : list of integers
+            list containing the integers of compartments which are constructed
+            to be a carbon source 
+        idx_sink : list of integers
+            list containing the integers of compartments which are designed
+            to be a carbon sink 
     constrains : numpy.array
         2D-array containing the upper and lower limit of every free input
         parameter in the shape (len(free_param),2).
@@ -371,7 +378,9 @@ def prediction_and_costfunction(free_param, ODE_state, ODE_coeff,
     """
 
     prediction,is_stable = fit_model(integration_scheme, time_evo_max,
-                                     dt_time_evo, ODE_state, ODE_coeff,
+                                     dt_time_evo,
+                                     idx_source, idx_sink,
+                                     ODE_state, ODE_coeff,
                                      ODE_coeff_model,stability_rel_tolerance,
                                      tail_length_stability_check,
                                      start_stability_check)
@@ -479,7 +488,9 @@ def monte_carlo_sample_generator(constrains):
 
 def local_gradient(free_param,y,fit_model,integration_scheme,
                    ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes,
-                   ODE_coeff_model,constrains=np.array([None]),
+                   ODE_coeff_model,
+                   idx_source, idx_sink,
+                   constrains=np.array([None]),
                    barrier_slope=0.01, pert_scale = 1e-6,
                    time_evo_max=100, dt_time_evo=1/5,
                    stability_rel_tolerance=1e-6,
@@ -517,6 +528,12 @@ def local_gradient(free_param,y,fit_model,integration_scheme,
     ODE_coeff_indexes : numpy.array
         1D-array containing sets of indices used to select which elements  
         of the ODE_coeff array are optimized. 'None' if none are optimized.
+    idx_source : list of integers
+        list containing the integers of compartments which are constructed
+        to be a carbon source 
+    idx_sink : list of integers
+        list containing the integers of compartments which are designed
+        to be a carbon sink 
     constrains : numpy.array
         2D-array containing the upper and lower limit of every free input
         parameter in the shape (len(free_param),2).
@@ -568,7 +585,8 @@ def local_gradient(free_param,y,fit_model,integration_scheme,
     ODE_state,ODE_coeff = fill_free_param(free_param_center,ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
     cost_center = prediction_and_costfunction(
                         free_param_center,ODE_state, ODE_coeff, ODE_coeff_model,y,fit_model,
-                        integration_scheme, time_evo_max, dt_time_evo,constrains,barrier_slope,
+                        integration_scheme, time_evo_max, dt_time_evo, idx_source, idx_sink,
+                        constrains,barrier_slope,
                         stability_rel_tolerance,tail_length_stability_check, start_stability_check)[1]
 
     free_param_local = np.full( (n_x,n_x), free_param_center)
@@ -586,7 +604,8 @@ def local_gradient(free_param,y,fit_model,integration_scheme,
         
         cost_local[ii],is_stable = prediction_and_costfunction(
                         free_param_local[ii],ODE_state, ODE_coeff, ODE_coeff_model,y,fit_model,
-                        integration_scheme, time_evo_max, dt_time_evo,constrains,barrier_slope,
+                        integration_scheme, time_evo_max, dt_time_evo, idx_source, idx_sink,
+                        constrains,barrier_slope,
                         stability_rel_tolerance,tail_length_stability_check, start_stability_check)[1:]
         if is_stable is False:
             return None,is_stable

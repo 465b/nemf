@@ -83,6 +83,7 @@ def run_time_evo(integration_scheme, time_evo_max, dt_time_evo, ODE_state,
 # Top level Routine
 
 def gradient_decent(fit_model,gradient_method,integration_scheme,
+                    idx_source, idx_sink,
                     ODE_state,ODE_coeff, ODE_coeff_model, y,
                     ODE_state_indexes = None, ODE_coeff_indexes = None,
                     constrains=np.array([None]), barrier_slope=1e-2,
@@ -108,6 +109,12 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
         {euler_forward, runge_kutta}
         Selects which method is used in the integration of the time evolution.
         Euler is of first order, Runge-Kutta of second
+    idx_source : list of integers
+        list containing the integers of compartments which are constructed
+        to be a carbon source 
+    idx_sink : list of integers
+        list containing the integers of compartments which are designed
+        to be a carbon sink 
     ODE_state : numpy.array
         1D array containing the initial state of the observed quantities
         in the ODE. Often also referred to as initial conditions.
@@ -200,17 +207,19 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
             and constructing the cost function (cost) """
         prediction[ii],cost[ii],is_stable = worker.prediction_and_costfunction(
                     free_param[ii],ODE_state, ODE_coeff, ODE_coeff_model,y,fit_model,
-                    integration_scheme, time_evo_max, dt_time_evo,constrains,barrier_slope,
+                    integration_scheme, time_evo_max, dt_time_evo, idx_source, idx_sink,
+                    constrains,barrier_slope,
                     stability_rel_tolerance,tail_length_stability_check, start_stability_check)
         if not is_stable:
-            """ moves the parameter set randomly in the hope to find a stable solution """
+            """ moves the pararun_timemeter set randomly in the hope to find a stable solution """
             free_param[ii] = worker.perturb(free_param[ii],pert_scale)
         else:
             """ calculates the local gradient by evaluation the time evolution at surrounding
                 free parameters set points """
             gradient,is_stable = worker.local_gradient(free_param[:ii+1],y,fit_model,integration_scheme,
                                         ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes,
-                                        ODE_coeff_model,constrains,barrier_slope,
+                                        ODE_coeff_model,
+                                        idx_source, idx_sink, constrains,barrier_slope,
                                         pert_scale,
                                         time_evo_max, dt_time_evo,
                                         stability_rel_tolerance,tail_length_stability_check,
@@ -235,6 +244,7 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
 
 @decorators.log_input_output
 def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
+                    idx_source, idx_sink,
                     fit_model = models.net_flux_fit_model,
                     gradient_method = models.SGD_basic,
                     integration_method = models.euler_forward,
@@ -267,6 +277,12 @@ def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
     y : numpy array
         1D-array containing the desired output of the model in the form
         defined by the fit-model
+    idx_source : list of integers
+        list containing the integers of compartments which are constructed
+        to be a carbon source 
+    idx_sink : list of integers
+        list containing the integers of compartments which are designed
+        to be a carbon sink 
     fit_model : function
         {net_flux_fit_model, direct_fit_model}
         defines how the output of the time evolution get accounted for.
@@ -354,6 +370,7 @@ def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
 
     if sample_sets == 0 :
         free_param, prediction, cost = gradient_decent(fit_model,gradient_method,integration_method,
+                                idx_source, idx_sink,
                                 ODE_state,ODE_coeff,ODE_coeff_model, y,
                                 ODE_state_indexes, ODE_coeff_index,constrains,barrier_slope,
                                 gd_max_iter,time_evo_max,dt_time_evo,
@@ -368,6 +385,7 @@ def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
             free_param = worker.monte_carlo_sample_generator(constrains)
             ODE_state,ODE_coeff = worker.fill_free_param(free_param,ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_index)
             free_param, prediction, cost = gradient_decent(fit_model,gradient_method,integration_method,
+                                        idx_source, idx_sink,
                                         ODE_state,ODE_coeff,ODE_coeff_model, y,
                                         ODE_state_indexes, ODE_coeff_index,constrains,barrier_slope,
                                         gd_max_iter,time_evo_max,dt_time_evo,
@@ -380,11 +398,12 @@ def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
             prediction_stack[ii] = prediction
             cost_stack[ii] = cost
         
-    return optim_free_param,prediction_stack, cost
+    return optim_free_param,prediction_stack, cost_stack
 
 
 @decorators.log_input_output
 def NPZD_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
+                    idx_source, idx_sink,
                     fit_model = models.direct_fit_model,
                     gradient_method = models.SGD_basic,
                     integration_method = models.euler_forward,
@@ -419,6 +438,7 @@ def NPZD_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
 
     if sample_sets == 0 :
         free_param, prediction, cost = gradient_decent(fit_model,gradient_method,integration_method,
+                                idx_source, idx_sink,
                                 ODE_state,ODE_coeff,ODE_coeff_model, y,
                                 ODE_state_indexes, ODE_coeff_index,constrains,barrier_slope,
                                 gd_max_iter,time_evo_max,dt_time_evo,
@@ -435,6 +455,7 @@ def NPZD_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
             free_param = worker.monte_carlo_sample_generator(constrains)
             ODE_state,ODE_coeff = worker.fill_free_param(free_param,ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_index)
             free_param, prediction, cost = gradient_decent(fit_model,gradient_method,integration_method,
+                                        idx_source, idx_sink,
                                         ODE_state,ODE_coeff,ODE_coeff_model, y,
                                         ODE_state_indexes, ODE_coeff_index,constrains,barrier_slope,
                                         gd_max_iter,time_evo_max,dt_time_evo,

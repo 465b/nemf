@@ -152,7 +152,8 @@ def direct_fit_model(integration_scheme, time_evo_max, dt_time_evo,
 
 
 def net_flux_fit_model(integration_scheme, time_evo_max, dt_time_evo,
-                       ODE_state, ODE_coeff=None, 
+                       idx_source, idx_sink,
+                       ODE_state, ODE_coeff=None,
                        ODE_coeff_model=standard_weights_model,
                        stability_rel_tolerance=1e-5,
                        tail_length_stability_check=10,
@@ -169,12 +170,13 @@ def net_flux_fit_model(integration_scheme, time_evo_max, dt_time_evo,
         {euler_forward, runge_kutta}
         Selects which method is used in the integration of the time evolution.
         Euler is of first order, Runge-Kutta of second
-    time_evo_max
+    time_evo_max : float
         Maximal amount of iterations allowed in the time evolution.
         Has the same unit as the one used in the initial ODE_state
-    dt_time_evo
+    dt_time_evo : float
         Size of time step used in the time evolution.
         Has the same unit as the one used in the initial ODE_state
+    b
     ODE_state : numpy.array
         1D array containing the initial state of the oberserved quantities
         in the ODE. Often also referred to as initial conditions.
@@ -212,7 +214,7 @@ def net_flux_fit_model(integration_scheme, time_evo_max, dt_time_evo,
                                           tail_length_stability_check,
                                           start_stability_check)
     F_i = F_ij[-1]
-    prediction = np.array(np.sum(F_i) - 2*F_i[-1])
+    prediction = np.array(np.sum(F_i[idx_source]) - np.sum(F_i[idx_sink]))
 
     return prediction, is_stable
 
