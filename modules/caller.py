@@ -243,7 +243,7 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
 ## monte carlo methods
 
 @decorators.log_input_output
-def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
+def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,path_ODE_const,y,
                     idx_source, idx_sink,
                     fit_model = models.net_flux_fit_model,
                     gradient_method = models.SGD_basic,
@@ -356,13 +356,17 @@ def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
     ODE_coeff = np.genfromtxt(path_ODE_coeff_init)
     ODE_coeff_index = np.where( (ODE_coeff != 0) & (ODE_coeff != -1) & (ODE_coeff != 1) )
 
-
+    
+    constrains, ODE_coeff_index = worker.read_coeff_constrains(path_ODE_const)
+    free_param = worker.filter_free_param(ODE_coeff=ODE_coeff,ODE_coeff_indexes=ODE_coeff_index)
+    
+    """
     free_param = worker.filter_free_param(ODE_coeff=ODE_coeff,ODE_coeff_indexes=ODE_coeff_index)
     
     constrains = np.zeros((len(free_param),2))
     constrains[:,0] = 0
     constrains[:,1] = 1    
-    
+    """
     free_param,prediction,cost = worker.init_variable_space(free_param,y,gd_max_iter)
     optim_free_param = np.zeros((sample_sets,) + np.shape(free_param))
     prediction_stack = np.zeros((sample_sets,) + np.shape(prediction))

@@ -459,6 +459,27 @@ def perturb(x,pert_scale=1e-4):
     return x+delta_x
 
 
+def read_coeff_constrains(path):
+    """ reads the constrains of the ODE coeffitients from file """
+    constrains = np.genfromtxt(path)
+    lower = constrains[:,::2]
+    upper = constrains[:,1::2]
+
+    free_coeff = np.where( ((lower != 0) + (upper != 0)) *
+              ((lower != -1) + (upper != -1)) *
+              ((lower != 1) + (upper != 1)) )
+
+    lower = lower[free_coeff]
+    upper = upper[free_coeff]
+
+    lower = np.reshape(lower, (len(lower),))
+    upper = np.reshape(upper, (len(upper),))
+
+    constrains = np.stack((lower,upper),axis=1)
+    
+    return constrains,free_coeff
+
+
 def monte_carlo_sample_generator(constrains):
     """ Constructs a set of homogenously distributed random values 
         in the value range provided by 'constrains'.
