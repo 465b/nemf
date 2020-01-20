@@ -2,6 +2,8 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+sns.set_style('whitegrid')
+sns.set_context('paper')
 
 # plotting routines
 
@@ -93,7 +95,7 @@ def XFL(free_param=None,prediction=None,cost=None,context='talk'):
     if cost is not None:
         plt.figure()
         plt.title('Loss function over time')
-        plt.plot(cost[:-1])
+        plt.plot(cost)
         plt.ylabel('Loss function')
         plt.xlabel('Iteration Step')
         plt.show()
