@@ -287,7 +287,54 @@ def SGD_momentum(free_param,gradient,grad_scale):
     
     return free_param_next
 
+# Baltic Compartment Coefficient models
 
+## 5-compartment models / 5-dimensional model
+def d5_model(ODE_state, constants):
+
+    ppr, pco, fis, bac, det, out = ODE_state
+    f_pco_ppr, h_pco_ppr = 1,1
+    f_pco_bac, h_pco_bac = 1,1
+    f_fis_pco, h_fis_pco = 1,1
+    f_bac_det, h_bac_det = 1,1
+
+    
+    mort_ppr = 0
+    mort_pco = 0.01
+    mort_fis = 0.01
+    mort_bac = 0.01
+    mort_fis = 0.01
+    mort_det = 0.10
+
+    ODE_coeff = np.zeros((6,6))
+
+    # PPR
+    # 0 because PPR is a artificial source
+
+    # PCO
+    ODE_coeff[1,1] = holling_typeII(f_pco_ppr,h_pco_ppr,ppr) + holling_typeII(f_pco_bac,h_pco_bac,bac) - holling_type0(mort_pco)
+    ODE_coeff[1,2] = - holling_typeII(f_fis_pco,h_fis_pco,pco)
+
+    # FIS
+    ODE_coeff[2,2] = holling_typeII(f_fis_pco,h_fis_pco,pco) - holling_type0(mort_fis)
+    
+    # BAC
+    ODE_coeff[3,1] = - holling_typeII(f_pco_bac,h_pco_bac,bac)
+    ODE_coeff[3,3] = holling_typeII(f_bac_det,h_bac_det,det) - holling_type0(mort_bac)
+
+    # DET
+    ODE_coeff[4,0] = holling_type0(mort_ppr)
+    ODE_coeff[4,1] = holling_type0(mort_pco)
+    ODE_coeff[4,2] = holling_type0(mort_fis)
+    ODE_coeff[4,3] = holling_type0(mort_bac) - holling_typeII(f_bac_det,h_bac_det,det)
+    ODE_coeff[4,4] = - holling_type0(mort_det)
+
+    # SINK
+    ODE_coeff[5,5] = holling_type0(mort_det)
+
+    return ODE_coeff 
+
+    
 # NPZD model functions
 
 ## Grazing Models
@@ -304,14 +351,17 @@ def J(N,k_N,mu_m):
     cost_val = mu_m*f_N*f_I
     return cost_val
 
+def holling_type0(value):
+    return value
 
-def Grazing_typeII(g,k_P,P):
+def holling_typeII(food_processing_time,hunting_rate,prey_population):
     """ Holling type II function """
-    G_val = g*(P/(k_P + P))
+    consumption_rate = ((hunting_rate * prey_population)/
+            (1+hunting_rate * food_processing_time * prey_population))
     return G_val
 
 
-def Grazomg_typeIII(epsilon,g,P):
+def holling_typeIII(epsilon,g,P):
     """ Holling type III function """
     G_val = (g*epsilon*P**2)/(g+(epsilon*P**2))
     return G_val
@@ -449,8 +499,8 @@ def NPZFD_model(ODE_state,ODE_coeff):
     N,P,Z = ODE_state[0],ODE_state[1],ODE_state[2]
         
     cost_val = J(N,k_N,mu_max)
-    G_val_Z = Grazing_typeII(grazmax_Z,k_P,P)
-    G_val_F= Grazing_typeII(grazmax_F,k_Z,Z)
+    G_val_Z = holling_typeII(grazmax_Z,k_P,P)
+    G_val_F= holling_typeII(grazmax_F,k_Z,Z)
 
     ODE_coeff = np.zeros((4,4))
     
