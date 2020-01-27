@@ -1,0 +1,120 @@
+compartments:
+  - "PPR"
+  - "PCO"
+  - "FIS"
+  - "BAC"
+  - "DET"
+  - "OUT"
+coefficients:
+  "PPR:PCO":
+    - sign: '-'
+      fkt: holling_type_II
+      parameters:
+        - 2
+        - 2
+      optimise:
+        - parameter_no: 1
+          lower: 1
+          upper: 3
+  "PPR:BAC":
+    - sign: '-'
+      fkt: holling_type_II
+      parameters:
+        - 2
+        - 2
+      optimise:
+        - parameter_no: 1
+          lower: 1
+          upper: 3
+  "PCO:FIS":
+    - sign: '-'
+      fkt: holling_type_II
+      parameters:
+        - 2
+        - 2
+      optimise:
+        - parameter_no: 1
+          lower: 1
+          upper: 3
+  "BAC:PCO":
+    - sign: '-'
+      fkt: holling_type_II
+      parameters:
+        - 2
+        - 2
+      optimise:
+        - parameter_no: 1
+          lower: 1
+          upper: 3
+  "DET:PPR":
+    - sign: '-'
+      fkt: holling_type_0
+      parameters:
+        - 0.01
+      optimise:
+        - parameter_no: 1
+          lower: 0
+          upper: 1
+  "DET:PCO":
+    - sign: '+'
+      fkt: holling_type_0
+      parameters:
+        - 0.01
+      optimise:
+        - parameter_no: 1
+          lower: 0
+          upper: 1
+  "DET:PPR":
+    - sign: '+'
+      fkt: holling_type_0
+      parameters:
+        - 0.01
+      optimise:
+        - parameter_no: 1
+          lower: 0
+          upper: 1
+  "DET:PCO":
+    - sign: '+'
+      fkt: holling_type_0
+      parameters:
+        - 0.01
+      optimise:
+        - parameter_no: 1
+          lower: 0
+          upper: 1
+  "DET:FIS":
+    - sign: '+'
+      fkt: holling_type_0
+      parameters:
+        - 0.01
+      optimise:
+        - parameter_no: 1
+          lower: 0
+          upper: 1
+  "DET:BAC":
+    - sign: '-'
+      fkt: holling_type_II
+      parameters:
+        - 2
+        - 2
+      optimise:
+        - parameter_no: 1
+          lower: 1
+          upper: 3
+    - sign: '+'
+      fkt: holling_type_0
+      parameters:
+        - 0.01
+      optimise:
+        - parameter_no: 1
+          lower: 0
+          upper: 1
+  "OUT:DET":
+    - sign: '+'
+      fkt: holling_type_0
+      parameters:
+        - 0.01
+      optimise:
+        - parameter_no: 1
+          lower: 0
+          upper: 1

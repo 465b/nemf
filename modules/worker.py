@@ -3,6 +3,60 @@ import logging
 logging.basicConfig(filename='carbonflux_inverse_model.log',level=logging.DEBUG)
 
 
+# Data reading and parsing
+
+def read_coeff_yaml(path):
+	"Reads a yaml file and returns its as a dictionary"
+	
+	fo = open(path,'r')
+	stream = fo.read()
+	data_dict = yaml.safe_load(stream)
+	
+	return data_dict
+
+
+def initialize_ode_system(path_states, path_coefficients):
+	""" Initializes the dictionary containing the 'state' and 'interactions' 
+	
+		Parameters:
+		-----------
+		path_states : string
+			Path to the yaml file containing the state configuration.
+			The configuration contains the compartments, initial values
+			and optimization constrains.
+		path_coefficients : string
+			Path to the yaml file containing the state configuration.
+			The configuration contains the compartments, interactions paths, 
+			interaction directions (sign),interaction functions,
+			initial parameter values and optimization constrains.
+
+		Returns:
+		--------
+		ode_system_configuration : dict
+			Contains the state and interaction configuration
+			in a similar structure as provided by the yaml files."""
+
+	state_config = read_coeff_yaml(path_states)
+	interaction_config = read_coeff_yaml(path_coefficients)
+
+	interaction_compartments = list(interaction_config['compartments'])
+	state_compartments = list(state_config['compartments'])
+
+	if state_compartments != interaction_compartments:
+		raise ValueError('Bad Input. State and Interaction compartments are not equal. '+
+						  '\nState: \t\t{}\nInteraction: \t{}'.format(
+							  state_compartments,interaction_compartments))
+	else:
+		ode_system_configuration = {}
+		ode_system_configuration.update(state_config)
+		ode_system_configuration['states'] = ode_system_configuration.pop('compartments')
+		del interaction_config['compartments']
+		ode_system_configuration.update(interaction_config)
+		ode_system_configuration['interactions'] = ode_system_configuration.pop('coefficients')
+
+	return ode_system_configuration
+    
+
 # Gradient Decent
 
 ## Cost function related Methods
@@ -620,7 +674,6 @@ def local_gradient(free_param,y,fit_model,integration_scheme,
         free_param_local[ii,ii] = barrier_hard_enforcement(np.array([free_param_local[ii,ii]]),ii,
                                                   np.array([constrains[ii]]))[0]
         ODE_state,ODE_coeff = fill_free_param(free_param_local[ii],ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
-        ODE_coeff = normalize_columns(ODE_coeff)
         free_param_local[ii] = filter_free_param(ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
         
         cost_local[ii],is_stable = prediction_and_costfunction(

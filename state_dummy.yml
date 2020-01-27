@@ -1,0 +1,22 @@
+compartments:
+  PPR:
+    value: 1.8928e+04
+    optimise:
+      lower: 0
+      upper: 1        
+  PCO:
+    value: 4.69e+03
+    optimise:
+  FIS:
+    value: 1.6655e+02
+    optimise:
+  BAC:
+    value: 1.44e+04
+    optimise:
+  DET:
+    value: 8.026e+03
+    optimise:
+  OUT:
+    value: 0
+    optimise:
+
