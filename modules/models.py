@@ -1,6 +1,6 @@
 import numpy as np
 from . import caller
-
+from . import worker
 
 # Time Evolution
 
@@ -62,6 +62,24 @@ def runge_kutta(ODE_state,ODE_coeff,dt_time_evo):
     no ODE_state dependence (so far necessary) and all required
     constants should be called in the model through a function 
     (i don't know if thats very elegant, but saves an unnecessary)"""
+
+
+def interaction_model_generator(system_configuration):
+	""" uses the system configuration to compute the interaction_matrix """
+
+	interaction_index = worker.fetch_index_of_interaction(system_configuration)
+	# we will rewrite alpha_ij every time after it got optimized.
+	alpha = worker.create_empty_interaction_matrix(system_configuration)
+	
+	#interactions
+	for kk,(ii,jj) in enumerate(interaction_index):
+		interaction = list(system_configuration['interactions'])[kk]
+		#functions
+		for item in system_configuration['interactions'][interaction]:
+			# adds everything up
+			alpha[ii,jj] += int(item['sign'])*globals()[item['fkt']](*item['parameters'])
+
+	return alpha
 
 
 def standard_weights_model(ODE_state,ODE_coeff):
@@ -288,9 +306,11 @@ def SGD_momentum(free_param,gradient,grad_scale):
     return free_param_next
 
 # Baltic Compartment Coefficient models
+    """ all coefficient models should follow the form:
+        model(ode_state,ode_coeff,constants) """
 
 ## 5-compartment models / 5-dimensional model
-def d5_model(ODE_state, constants):
+def d5_model(ODE_state, ODE_coeff, constants):
 
     ppr, pco, fis, bac, det, out = ODE_state
     f_pco_ppr, h_pco_ppr = 1,1

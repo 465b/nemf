@@ -1,9 +1,13 @@
 import numpy as np
 import logging
+import yaml
+
+from . import models
+
 logging.basicConfig(filename='carbonflux_inverse_model.log',level=logging.DEBUG)
 
 
-# Data reading and parsing
+# Data reading
 
 def read_coeff_yaml(path):
 	"Reads a yaml file and returns its as a dictionary"
@@ -14,6 +18,8 @@ def read_coeff_yaml(path):
 	
 	return data_dict
 
+
+# Parsers
 
 def initialize_ode_system(path_states, path_coefficients):
 	""" Initializes the dictionary containing the 'state' and 'interactions' 
@@ -57,6 +63,184 @@ def initialize_ode_system(path_states, path_coefficients):
 	return ode_system_configuration
     
 
+def system_configuration_to_ode_method(system_configuration):
+	""" Add docstring """
+	
+	ODE_state = np.array([system_configuration['states'][ii]['value']
+					for ii in system_configuration['states']])
+	
+	ODE_coeff_model = models.interaction_model_generator
+	ODE_coeff = ODE_coeff_model(system_configuration)
+
+	return ODE_state,ODE_coeff_model, ODE_coeff
+
+
+def system_configuration_to_grad_method(system_configuration):
+	""" Add docstring """
+	
+	free_parameters = []
+	constraints = []
+
+	for ii in system_configuration['states']:
+		if system_configuration['states'][ii]['optimise'] is not None:
+			value = system_configuration['states'][ii]['value']
+			lower_bound = system_configuration['states'][ii]['optimise']['lower']
+			upper_bound = system_configuration['states'][ii]['optimise']['upper']
+
+			free_parameters.append(value)
+			constraints.append([lower_bound,upper_bound])
+			
+	for ii in system_configuration['interactions']:
+		#function
+		for item in system_configuration['interactions'][ii]:
+			#parameters
+			if item['optimise'] is not None:
+				for jj,elements in enumerate(item['optimise']):
+					value = item['parameters'][jj]
+					lower_bound = elements['lower']
+					upper_bound = elements['upper']
+
+					free_parameters.append(value)
+					constraints.append([lower_bound,upper_bound])
+		
+	free_parameters = np.array(free_parameters)
+	constraints = np.array(constraints)
+
+	return free_parameters, constraints
+	
+
+def grad_method_to_system_configuration(free_parameters, constraints,system_configuration):
+	""" Add docstring """
+
+	values = list(free_parameters)
+	
+	for ii in system_configuration['states']:
+		if system_configuration['states'][ii]['optimise'] is not None:
+			system_configuration['states'][ii]['value'] = values.pop(0)
+			
+	for ii in system_configuration['interactions']:
+		#function
+		for item in system_configuration['interactions'][ii]:
+			#parameters
+			if item['optimise'] is not None:
+				for jj,_ in enumerate(item['optimise']):
+						item['parameters'][jj] = values.pop(0)
+
+	return system_configuration
+
+## parser helper
+
+def create_empty_interaction_matrix(interaction_config):
+	""" initializes an empty interaction matrix """
+	size = len(interaction_config['states'])
+	alpha = np.zeros((size,size))
+	return alpha
+
+
+def fetch_index_of_interaction(data):
+	""" gets the indices in the interaction matrix """
+	## separate row & column
+	interactions = list(data['interactions'])
+	compartments = list(data['states'])
+	
+	interaction_index = interactions.copy()
+	for index,item in enumerate(interactions):
+		interaction_index[index] = item.split(':')
+	## parse them with the index
+	for index, item in enumerate(interaction_index):
+		interaction_index[index][0] = compartments.index(item[0])
+		interaction_index[index][1] = compartments.index(item[1])
+
+	return interaction_index
+
+## outdated parsers
+
+def filter_free_param(ODE_state=None,ODE_coeff=None,
+                      ODE_state_indexes=None,ODE_coeff_indexes=None):
+    """ Takes the initial state and coefficient arrays and returns the values
+        selected by the index-objects. Returns an array filled with the values
+        of the entries selected for optimization.
+
+    Parameters
+    ----------
+    ODE_state : numpy.array
+        1D array containing the initial state of the obersrved quantities
+        in the ODE. Often also referred to as initial conditions.
+    ODE_coeff : numpy.array
+        2d-square-matrix containing the coefficients of the ODE
+    ODE_state_indexes : numpy.array
+        1D-array containing sets of indices used to select which elements
+        of the ODE_state array are optimized. 'None' if none are optimized.
+    ODE_coeff_indexes : numpy.array
+        1D-array containing sets of indices used to select which elements  
+        of the ODE_coeff array are optimized. 'None' if none are optimized.
+    Returns:
+    --------
+    free_param : numpy.array
+        1D-array containing the set of to-be-optimized free parameters.
+    """
+    
+
+    if ( (ODE_state is None) or (ODE_state_indexes is None) ):
+        free_param_state = np.array([])
+    else:
+        free_param_state = ODE_state[ODE_state_indexes]
+    
+    if ( (ODE_coeff is None) or (ODE_coeff_indexes is None) ):
+        free_param_coeff = np.array([])
+    else:
+        free_param_coeff = ODE_coeff[ODE_coeff_indexes]
+
+    free_param = np.append(free_param_state,free_param_coeff)
+    
+    return free_param
+
+
+def fill_free_param(free_param,ODE_state,ODE_coeff,
+                    ODE_state_indexes=None,ODE_coeff_indexes=None):
+    """ Takes the free_parameters and filles them back into their origin which
+        are determined by the {state,coeff} and their corresponding index
+        objects. Overwrites the original values in the provess
+
+    Parameters
+    ----------
+    free_param : numpy.array
+        1D-array containing the set of to-be-optimized free parameters.
+    ODE_state : numpy.array
+        1D array containing the state of the observed quantities
+        in the ODE
+    ODE_coeff : numpy.array
+        2d-square-matrix containing the coefficients of the ODE
+    ODE_state_indexes : numpy.array
+        1D-array containing sets of indices used to select which elements
+        of the ODE_state array are optimized. 'None' if none are optimized.
+    ODE_coeff_indexes : numpy.array
+        1D-array containing sets of indices used to select which elements  
+        of the ODE_coeff array are optimized. 'None' if none are optimized.
+    Returns:
+    --------
+    ODE_state : numpy.array
+        1D array containing the state of the observed quantities
+        in the ODE. Now filled with potentially optimized values.
+    ODE_coeff : numpy.array
+        2d-square-matrix containing the coefficients of the ODE.
+        Now filled with potentially optimized values.
+    """
+
+    if ODE_state_indexes is None:
+        n_ODE_state = 0
+    else:
+        n_ODE_state = len(ODE_state_indexes)
+        ODE_state[ODE_state_indexes] = free_param[:n_ODE_state]
+    
+    if ODE_coeff_indexes is None:
+        pass
+    else:
+        ODE_coeff[ODE_coeff_indexes] = free_param[n_ODE_state:]
+
+    return ODE_state,ODE_coeff
+
+	
 # Gradient Decent
 
 ## Cost function related Methods
@@ -260,91 +444,6 @@ def verify_stability_time_evolution(prediction, stability_rel_tolerance=1e-6,
 # Helper Functions
 
 ## General Helper Function
-def filter_free_param(ODE_state=None,ODE_coeff=None,
-                      ODE_state_indexes=None,ODE_coeff_indexes=None):
-    """ Takes the initial state and coefficient arrays and returns the values
-        selected by the index-objects. Returns an array filled with the values
-        of the entries selected for optimization.
-
-    Parameters
-    ----------
-    ODE_state : numpy.array
-        1D array containing the initial state of the obersrved quantities
-        in the ODE. Often also referred to as initial conditions.
-    ODE_coeff : numpy.array
-        2d-square-matrix containing the coefficients of the ODE
-    ODE_state_indexes : numpy.array
-        1D-array containing sets of indices used to select which elements
-        of the ODE_state array are optimized. 'None' if none are optimized.
-    ODE_coeff_indexes : numpy.array
-        1D-array containing sets of indices used to select which elements  
-        of the ODE_coeff array are optimized. 'None' if none are optimized.
-    Returns:
-    --------
-    free_param : numpy.array
-        1D-array containing the set of to-be-optimized free parameters.
-    """
-    
-
-    if ( (ODE_state is None) or (ODE_state_indexes is None) ):
-        free_param_state = np.array([])
-    else:
-        free_param_state = ODE_state[ODE_state_indexes]
-    
-    if ( (ODE_coeff is None) or (ODE_coeff_indexes is None) ):
-        free_param_coeff = np.array([])
-    else:
-        free_param_coeff = ODE_coeff[ODE_coeff_indexes]
-
-    free_param = np.append(free_param_state,free_param_coeff)
-    
-    return free_param
-
-
-def fill_free_param(free_param,ODE_state,ODE_coeff,
-                    ODE_state_indexes=None,ODE_coeff_indexes=None):
-    """ Takes the free_parameters and filles them back into their origin which
-        are determined by the {state,coeff} and their corresponding index
-        objects. Overwrites the original values in the provess
-
-    Parameters
-    ----------
-    free_param : numpy.array
-        1D-array containing the set of to-be-optimized free parameters.
-    ODE_state : numpy.array
-        1D array containing the state of the observed quantities
-        in the ODE
-    ODE_coeff : numpy.array
-        2d-square-matrix containing the coefficients of the ODE
-    ODE_state_indexes : numpy.array
-        1D-array containing sets of indices used to select which elements
-        of the ODE_state array are optimized. 'None' if none are optimized.
-    ODE_coeff_indexes : numpy.array
-        1D-array containing sets of indices used to select which elements  
-        of the ODE_coeff array are optimized. 'None' if none are optimized.
-    Returns:
-    --------
-    ODE_state : numpy.array
-        1D array containing the state of the observed quantities
-        in the ODE. Now filled with potentially optimized values.
-    ODE_coeff : numpy.array
-        2d-square-matrix containing the coefficients of the ODE.
-        Now filled with potentially optimized values.
-    """
-
-    if ODE_state_indexes is None:
-        n_ODE_state = 0
-    else:
-        n_ODE_state = len(ODE_state_indexes)
-        ODE_state[ODE_state_indexes] = free_param[:n_ODE_state]
-    
-    if ODE_coeff_indexes is None:
-        pass
-    else:
-        ODE_coeff[ODE_coeff_indexes] = free_param[n_ODE_state:]
-
-    return ODE_state,ODE_coeff
-
 
 def division_scalar_vector_w_zeros(a,b):
     """ Divides an an array (a/b) while catching divisions by zero
