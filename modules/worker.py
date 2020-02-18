@@ -116,7 +116,7 @@ def grad_method_to_system_configuration(free_parameters, constraints,system_conf
 
 def create_empty_interaction_matrix(interaction_config):
 	""" initializes an empty interaction matrix """
-	size = len(interaction_config['states'])
+	size = len(interaction_config.states)
 	alpha = np.zeros((size,size))
 	return alpha
 
@@ -536,134 +536,88 @@ def monte_carlo_sample_generator(constrains):
     return sample_set
 
 
-def local_gradient(free_param,y,fit_model,integration_scheme,
-                   ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes,
-                   ODE_coeff_model,
-                   idx_source, idx_sink,
+def local_gradient(model_configuration, parameter_stack,
                    constrains=np.array([None]),
-                   barrier_slope=0.01, pert_scale = 1e-6,
-                   time_evo_max=100, dt_time_evo=1/5,
-                   stability_rel_tolerance=1e-6,
-                   tail_length_stability_check=10,
-                   start_stability_check=100):
+                   barrier_slope=0.01, pert_scale = 1e-6):
 
     """ Calculates the gradient in the local area around the last 
-        parameter set (free_param). Does so by exploring the local environment
+        parameter set (parameter_stack). Does so by exploring the local environment
         through random small steps in each dimension and recalculating the
         time evolution with this new slightly perturbed free_sample set.
         Local means that it roughly the same size of the previous step.
 
-    Parameters
-    ----------
-    fit_model : function
-        {net_flux_fit_model, direct_fit_model}
-        defines how the output of the time evolution get accounted for.
-        i.e. the sum of the output is returned or all its elements
-    integration_scheme: function
-        {euler_forward, runge_kutta}
-        Selects which method is used in the integration of the time evolution.
-        Euler is of first order, Runge-Kutta of second
-    ODE_state : numpy.array
-        1D array containing the initial state of the oberserved quantities
-        in the ODE. Often also referred to as initial conditions.
-    ODE_coeff : numpy.array
-        2d-square-matrix containing the coefficients of the ODE
-    ODE_coeff_model : function
-        selects the function used for the calculation of the ODE
-        coefficients. I.e. if dependencies of the current state are present.
-        If no dependency is present use 'standard_weights_model'
-    ODE_state_indexes : numpy.array
-        1D-array containing sets of indices used to select which elements
-        of the ODE_state array are optimized. 'None' if none are optimized.
-    ODE_coeff_indexes : numpy.array
-        1D-array containing sets of indices used to select which elements  
-        of the ODE_coeff array are optimized. 'None' if none are optimized.
-    idx_source : list of integers
-        list containing the integers of compartments which are constructed
-        to be a carbon source 
-    idx_sink : list of integers
-        list containing the integers of compartments which are designed
-        to be a carbon sink 
-    constrains : numpy.array
-        2D-array containing the upper and lower limit of every free input
-        parameter in the shape (len(free_param),2).
-    barrier_slope : positive-float
-        Defines the slope of the barrier used for the soft constrain.
-        Lower numbers, steeper slope. Typically between (0-1].
-    pert_scale : positive float
-        Maximal value which the system can be perturbed if necessary
-        (i.e. if instability is found). Actual perturbation ranges
-        from [0-pert_scal) uniformly distributed.
-    time_evo_max
-        Maximal amount of iterations allowed in the time evolution.
-        Has the same unit as the one used in the initial ODE_state
-    dt_time_evo
-        Size of time step used in the time evolution.
-        Has the same unit as the one used in the initial ODE_state
-    stability_rel_tolerance : positive float
-        Defines the maximal allowed relative fluctuation range in the tail
-        of the time evolution. If below, system is called stable.
-    tail_length_stability_check : posi  tive integer
-        Defines the length of the tail used for the stability calculation.
-        Tail means the amount of elements counted from the back of the
-        array.
-    start_stability_check : positive integer
-        Defines the element from which on we repeatably check if the
-        time evolution is stable. If stable, iteration stops and last
-        value is returned
+        Parameters
+        ----------
+	    model_configuration : object
+			contains all the information and necessary methods
+			of the optimized model
+		parameter_stack : numpy.array
+			2D-array containing the set of optimized free parameter,
+			stacked along the first axis.
+        constrains : numpy.array
+            2D-array containing the upper and lower limit of every free input
+            parameter in the shape (len(parameter_stack),2).
+        barrier_slope : positive-float
+            Defines the slope of the barrier used for the soft constrain.
+            Lower numbers, steeper slope. Typically between (0-1].
+        pert_scale : positive float
+            Maximal value which the system can be perturbed if necessary
+            (i.e. if instability is found). Actual perturbation ranges
+            from [0-pert_scale) uniformly distributed.
 
-    Returns
-    -------
-    gradient : numpy.array
-        Gradient at the center point calculated by the randomly chosen 
-        local environment. The gradient always points in the direction
-        of steepest ascent.
-    is_stable : bool
-        true if stability conditions are met. 
-        See verify_stability_time_evolution() for more details.
-    """
-    
-    if len(free_param) == 1:
-        free_param_diff = free_param[-1] - perturb(free_param[-1],pert_scale)
+        Returns
+        -------
+        gradient : numpy.array
+            Gradient at the center point calculated by the randomly chosen 
+            local environment. The gradient always points in the direction
+            of steepest ascent.
+        is_stable : bool
+            true if stability conditions are met. 
+            See verify_stability_time_evolution() for more details.
+        """
+    # checks if there has been a previous step 
+    # and if not uses pert scale as step size 
+    if np.shape(parameter_stack)[0] == 1:
+        parameter_stack_diff = parameter_stack[-1] - perturb(parameter_stack[-1],pert_scale)
+    # if there was it uses the previous step as step size
+    # ISSUE: this implicitly adds a "momentum" style behavior 
     else:
-        free_param_diff = free_param[-1]-free_param[-2]
+        parameter_stack_diff = parameter_stack[-1]-parameter_stack[-2]
 
-    n_x = len(free_param_diff)    
-    free_param_center = free_param[-1]
+    # calculates cost at the center/current position
+    parameter_center = parameter_stack[-1]
+    cost_center = model_configuration.calc_cost(parameter_center,barrier_slope)[1]
 
-    # the following 2 lines is already computed. optimization possibility
-    ODE_state,ODE_coeff = fill_free_param(free_param_center,ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
-    cost_center = prediction_and_costfunction(
-                        free_param_center,ODE_state, ODE_coeff, ODE_coeff_model,y,fit_model,
-                        integration_scheme, time_evo_max, dt_time_evo, idx_source, idx_sink,
-                        constrains,barrier_slope,
-                        stability_rel_tolerance,tail_length_stability_check, start_stability_check)[1]
-
-    free_param_local = np.full( (n_x,n_x), free_param_center)
+    # initializes the variable space for the surrounding local cost    
+    n_x = len(parameter_stack_diff)
+    parameter_local = np.full( (n_x,n_x), parameter_center)
     cost_local = np.zeros(n_x)
     
+    # explores the surrounding
     for ii in np.arange(n_x):
-        free_param_local[ii,ii] += free_param_diff[ii]
+        # takes a steps in each dimension separably
+        parameter_local[ii,ii] += parameter_stack_diff[ii]
 
-        # the following block is a terribly bad implementation performance wise
-        free_param_local[ii,ii] = barrier_hard_enforcement(np.array([free_param_local[ii,ii]]),ii,
-                                                  np.array([constrains[ii]]))[0]
-        ODE_state,ODE_coeff = fill_free_param(free_param_local[ii],ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
-        free_param_local[ii] = filter_free_param(ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
+        # makes sure that these step stay within the boundaries
+        parameter_local[ii,ii] = barrier_hard_enforcement(
+                                    np.array([parameter_local[ii,ii]]),ii,
+                                    np.array([constrains[ii]]))[0]
         
-        cost_local[ii],is_stable = prediction_and_costfunction(
-                        free_param_local[ii],ODE_state, ODE_coeff, ODE_coeff_model,y,fit_model,
-                        integration_scheme, time_evo_max, dt_time_evo, idx_source, idx_sink,
-                        constrains,barrier_slope,
-                        stability_rel_tolerance,tail_length_stability_check, start_stability_check)[1:]
+        #calculates the cost at their positions
+        cost_local[ii],is_stable = model_configuration.calc_cost(
+                                    parameter_local[ii],barrier_slope)[1:]
+        
+        # checks if it we find a stable solution at these points
         if is_stable is False:
             return None,is_stable
 
+    # calculates the cost to make these steps
     cost_diff = cost_local - cost_center
 
     """ The following line prevents a division by zero if 
         by chance a point does not move in between iterations.
         This is more of a work around then a feature """
-    gradient = division_scalar_vector_w_zeros(cost_diff,free_param_diff)
+    # calculates the resulting gradient
+    gradient = division_scalar_vector_w_zeros(cost_diff,parameter_stack_diff)
 
     return gradient,is_stable
