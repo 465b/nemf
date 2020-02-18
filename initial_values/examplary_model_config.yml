@@ -1,0 +1,145 @@
+compartments:
+  - "PPR"
+  - "PCO"
+  - "FIS"
+  - "BAC"
+  - "DET"
+  - "OUT"
+
+states:
+  BAC:
+    optimise: null
+    value: 14400.0
+  DET:
+    optimise: null
+    value: 8026.0
+  FIS:
+    optimise: null
+    value: 166.55
+  OUT:
+    optimise: null
+    value: 0
+  PCO:
+    optimise: null
+    value: 4690.0
+  PPR:
+    optimise:
+      lower: 0
+      upper: 1
+    value: 18928.0
+
+interactions:
+  BAC:PCO:
+  - fkt: holling_type_II
+    optimise:
+    - lower: 1
+      parameter_no: 1
+      upper: 3
+    parameters:
+    - 2
+    - 2
+    - 2
+    sign: '-1'
+  DET:BAC:
+  - fkt: holling_type_II
+    optimise:
+    - lower: 1
+      parameter_no: 1
+      upper: 3
+    parameters:
+    - 2
+    - 2
+    - 2
+    sign: '-1'
+  - fkt: holling_type_0
+    optimise:
+    - lower: 0
+      parameter_no: 1
+      upper: 1
+    parameters:
+    - 0.01
+    sign: '+1'
+  DET:FIS:
+  - fkt: holling_type_0
+    optimise:
+    - lower: 0
+      parameter_no: 1
+      upper: 1
+    parameters:
+    - 0.01
+    sign: '+1'
+  DET:PCO:
+  - fkt: holling_type_0
+    optimise:
+    - lower: 0
+      parameter_no: 1
+      upper: 1
+    parameters:
+    - 0.01
+    sign: '+1'
+  DET:PPR:
+  - fkt: holling_type_0
+    optimise:
+    - lower: 0
+      parameter_no: 1
+      upper: 1
+    parameters:
+    - 0.01
+    sign: '+1'
+  OUT:DET:
+  - fkt: holling_type_0
+    optimise:
+    - lower: 0
+      parameter_no: 1
+      upper: 1
+    parameters:
+    - 0.01
+    sign: '+1'
+  PCO:FIS:
+  - fkt: holling_type_II
+    optimise:
+    - lower: 1
+      parameter_no: 1
+      upper: 3
+    parameters:
+    - 2
+    - 2
+    - 2
+    sign: '-1'
+  PPR:BAC:
+  - fkt: holling_type_II
+    optimise:
+    - lower: 1
+      parameter_no: 1
+      upper: 3
+    parameters:
+    - 2
+    - 2
+    - 2
+    sign: '-1'
+  PPR:PCO:
+  - fkt: holling_type_II
+    optimise:
+    - lower: 1
+      parameter_no: 1
+      upper: 3
+    parameters:
+    - 2
+    - 2
+    - 2
+    sign: '-1'
+
+configuration:
+  sources: 
+    - "PPR"
+  sinks:
+    - "OUT"
+  integration_scheme: euler_forward
+  time_evo_max: 300
+  dt_time_evo: 0.2
+  ode_coeff_model: interaction_model_generator
+  stability_rel_tolerance: 1e-5
+  tail_length_stability_check: 10
+  start_stability_check: 50
+  fit_model: net_flux_fit_model
+  fit_target: [0]
