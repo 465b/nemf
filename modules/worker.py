@@ -283,7 +283,8 @@ def barrier_function(free_param,constrains=np.array([None]),barrier_slope=1):
     # checks if constrains has the correct length
     if len(constrains) != len(free_param):
         raise ValueError('List of constrains must have'+
-                         'the same length as free_param')
+                         'the same length as free_param ({},{})'.format(
+                             len(constrains),(len(free_param))))
 
     # checks if barrier_slope is positive
     if barrier_slope <= 0:
