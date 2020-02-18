@@ -479,28 +479,6 @@ def normalize_columns(A):
 
 
 ## Gradient Decent related Helper Functions
-def init_variable_space(free_param,y,max_iter):
-    """ Initializes the arrays needed for the iteration process 
-        Has no other function then to unclutter the code """
-    
-    # number of model input/output variables
-    
-    n_x = len(free_param.flatten())
-    n_y = len(y.flatten())
-    
-    # shape of map
-    #map_shape = (n_x,n_y)
-    
-    # init variable space
-    x_init = free_param.copy()
-    free_param = np.zeros( (max_iter,n_x) )
-    free_param[0] = x_init
-    prediction = np.zeros( (max_iter,n_y) )
-    cost = np.zeros( max_iter )
-    #A = np.zeros( (max_iter,)+map_shape)
-    
-    return free_param,prediction,cost
-
 
 def perturb(x,pert_scale=1e-4):
     "Adds a small perturbation to input (1D-)array"
