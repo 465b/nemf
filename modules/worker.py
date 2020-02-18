@@ -250,7 +250,7 @@ def barrier_hard_enforcement(free_param,jj,constrains=None,
     pert_scale : positive float
         Maximal value which the system can be perturbed if necessary
         (i.e. if instability is found). Actual perturbation ranges
-        from [0-pert_scal) uniformly distributed.
+        from [0-pert_scale) uniformly distributed.
     seed : positive integer
         Initializes the random number generator. Used to recreate the
         same set of pseudo-random numbers. Helpfull when debugging.
@@ -463,7 +463,7 @@ def normalize_columns(A):
         if truth_val : 
             diag_val = A[ii,ii]
             if diag_val == overshoot[ii]:
-                # only the diagnoal entry is filled
+                # only the diagonal entry is filled
                 # hence, its the dump.
                 pass
             elif (diag_val == 0): 
@@ -489,7 +489,7 @@ def perturb(x,pert_scale=1e-4):
 
 
 def read_coeff_constrains(path):
-    """ reads the constrains of the ODE coeffitients from file """
+    """ reads the constrains of the ODE coefficients from file """
     constrains = np.genfromtxt(path)
     lower = constrains[:,::2]
     upper = constrains[:,1::2]
