@@ -243,232 +243,106 @@ def gradient_decent(fit_model,gradient_method,integration_scheme,
 ## monte carlo methods
 
 @decorators.log_input_output
-def dn_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,path_ODE_const,y,
-                    idx_source, idx_sink,
-                    fit_model = models.net_flux_fit_model,
-                    gradient_method = models.SGD_basic,
-                    integration_method = models.euler_forward,
-                    ODE_coeff_model = models.standard_weights_model,
-                    barrier_slope=1e-6,
-                    sample_sets = 5,
-                    gd_max_iter=100,
-                    time_evo_max=300,
-                    dt_time_evo=1/5,
-                    pert_scale=1e-4,
-                    grad_scale=1e-12,
-                    stability_rel_tolerance=1e-5,
-                    tail_length_stability_check=10,
-                    start_stability_check=100,
-                    seed=137):
-    
-    """ Optimizes a set of randomly generated free parameters and returns
-        their optimized values and the corresponding fit-model and cost-
-        function output
+def dn_monte_carlo(path_model_configuration,
+					gradient_method = models.SGD_basic,
+					barrier_slope=1e-6,
+					sample_sets = 3,
+					gd_max_iter=10,
+					pert_scale=1e-4,
+					grad_scale=1e-12,
+					seed=137):
+
+	""" Optimizes a set of randomly generated free parameters and returns
+		their optimized values and the corresponding fit-model and cost-
+		function output 
+	
+	Parameters
+	----------
+	path_model_configuration : string
+		Path to a file containing the coupling coefficients used in 
+		the time evolution. Expects them to be in tab-seperated-format.
+	gradient_method : function
+		{SGD_basic,SGD_momentum}
+		Selects the method used during the gradient descent.
+		They differ in their robustness and convergence speed
+	barrier_slope : positive-float
+		Defines the slope of the barrier used for the soft constrain.
+		Lower numbers, steeper slope. Typically between (0-1].
+	sample_sets : positive integer
+		Amount of randomly generated sample sets used as initial free
+		parameters
+	gd_max_iter : positive integer
+		Maximal amount of iterations allowed in the gradient descent
+		algorithm.
+	pert_scale : positive float
+		Maximal value which the system can be perturbed if necessary
+		(i.e. if instability is found). Actual perturbation ranges
+		from [0-pert_scal) uniformly distributed.
+	grad_scale : positive float
+		Scales the step size in the gradient descent. Often also
+		referred to as learning rate. Necessary to compensate for the
+		"roughness" of the objective function field.
+	seed : positive integer
+		Initializes the random number generator. Used to recreate the
+		same set of pseudo-random numbers. Helpfull when debugging.
+
+	Returns
+	-------
+	model_configuration.log : dict
+		contains the results for every run
+		(parameters, prediction, cost)
+	"""
 
 
-    Parameters
-    ----------
-    path_ODE_state_init : string
-        Path to a file containing the initial values for the time evolution
-        Expects them to be in tab-seperated-format.
-    path_ODE_coeff_init : string
-        Path to a file containing the coupling coefficients used in 
-        the time evolution. Expects them to be in tab-seperated-format.
-    y : numpy array
-        1D-array containing the desired output of the model in the form
-        defined by the fit-model
-    idx_source : list of integers
-        list containing the integers of compartments which are constructed
-        to be a carbon source 
-    idx_sink : list of integers
-        list containing the integers of compartments which are designed
-        to be a carbon sink 
-    fit_model : function
-        {net_flux_fit_model, direct_fit_model}
-        defines how the output of the time evolution get accounted for.
-        i.e. the sum of the output is returned or all its elements
-    gradient_method : function
-        {SGD_basic,SGD_momentum}
-        Selects the method used during the gradient descent.
-        They differ in their robustness and convergence speed
-    integration_scheme: function
-        {euler_forward, runge_kutta}
-        Selects which method is used in the integration of the time evolution.
-        Euler is of first order, Runge-Kutta of second
-    ODE_coeff_model : function
-        selects the function used for the calculation of the ODE
-        coefficients. I.e. if dependencies of the current state are present.
-        If no dependency is present use 'standard_weights_model'
-    barrier_slope : positive-float
-        Defines the slope of the barrier used for the soft constrain.
-        Lower numbers, steeper slope. Typically between (0-1].
-    sample_sets : positive integer
-        Amount of randomly generated sample sets used as initial free
-        parameters
-    gd_max_iter : positive integer
-        Maximal amount of iterations allowed in the gradient descent
-        algorithm.
-    time_evo_max
-        Maximal amount of iterations allowed in the time evolution.
-        Has the same unit as the one used in the initial ODE_state
-    dt_time_evo
-        Size of time step used in the time evolution.
-        Has the same unit as the one used in the initial ODE_state
-    pert_scale : positive float
-        Maximal value which the system can be perturbed if necessary
-        (i.e. if instability is found). Actual perturbation ranges
-        from [0-pert_scal) uniformly distributed.
-    grad_scale : positive float
-        Scales the step size in the gradient descent. Often also
-        referred to as learning rate. Necessary to compensate for the
-        "roughness" of the objective function field.
-    stability_rel_tolerance : positive float
-        Defines the maximal allowed relative fluctuation range in the tail
-        of the time evolution. If below, system is called stable.
-    tail_length_stability_check : positive integer
-        Defines the length of the tail used for the stability calculation.
-        Tail means the amount of elements counted from the back of the
-        array.
-    start_stability_check : positive integer
-        Defines the element from which on we repeatably check if the
-        time evolution is stable. If stable, iteration stops and last
-        value is returned
-    seed : positive integer
-        Initializes the random number generator. Used to recreate the
-        same set of pseudo-random numbers. Helpfull when debugging.
+	# seeds random generator to create reproducible runs
+	np.random.seed(seed)
 
-    Returns
-    -------
-    free_param : numpy.array
-        2D-array containing the set of optimized free parameter,
-        stacked along the first axis.
-    prediction : numpy.array
-        2D-array containing the output of the time evolution,
-        stacked along the first axis.
-    cost
-        1D-array containing the corresponding values of the cost
-        function calculated based on the free_param at the same
-        first-axis index.
-    """
+	# initializes model configuration 
+	# (contains information about the optimized model)
+	model_configuration = models.model_class(path_model_configuration)
+	model_configuration.initialize_log(sample_sets, gd_max_iter)
+	
+	# runs the optimization with the initial values read from file
+	if sample_sets == 0:	
+	
+		# fetches the parameters and their constraints from model config
+		constraints = model_configuration.to_grad_method()[1]
+		parameters = worker.monte_carlo_sample_generator(constraints)
+		
+		# runs the gradient descent for the generated sample set 
+		parameters, prediction, cost = gradient_descent(model_configuration,
+										parameters, constraints, gradient_method,
+										barrier_slope, gd_max_iter,
+										pert_scale, grad_scale)
+		
+		# updates log with the generated results
+		log_dict = {'parameters': parameters,
+					'prediction': prediction,
+					'cost': cost}
+		model_configuration.log = log_dict
+	
+	# runs the optimization with randomly chosen values
+	# values are picked from inside the allowed optimization range
+	else:
+		for ii in np.arange(0,sample_sets):
+			print('Monte Carlo Sample #{}'.format(ii))
+	
+			# fetches the parameters and their constraints from model config
+			constraints = model_configuration.to_grad_method()[1]
+			parameters = worker.monte_carlo_sample_generator(constraints)
+			
+			# runs the gradient descent for the generated sample set 
+			param_stack, prediction_stack, cost_stack = gradient_descent(
+				model_configuration, parameters,
+				constraints, gradient_method,
+				barrier_slope, gd_max_iter,
+				pert_scale, grad_scale) 
+			
+			# updates log with the generated results
+			model_configuration.to_log(param_stack, prediction_stack, cost_stack)
+			
+			# updates the state of the optimization run
+			model_configuration.log['monte_carlo_idx'] = ii
+			model_configuration.log['gradient_idx'] = 0
 
-    ODE_state = np.genfromtxt(path_ODE_state_init)
-    ODE_state_indexes = None
-    ODE_coeff = np.genfromtxt(path_ODE_coeff_init)
-    ODE_coeff_index = np.where( (ODE_coeff != 0) & (ODE_coeff != -1) & (ODE_coeff != 1) )
-
-    
-    constrains, ODE_coeff_index = worker.read_coeff_constrains(path_ODE_const)
-    free_param = worker.filter_free_param(ODE_coeff=ODE_coeff,ODE_coeff_indexes=ODE_coeff_index)
-    
-    """
-    free_param = worker.filter_free_param(ODE_coeff=ODE_coeff,ODE_coeff_indexes=ODE_coeff_index)
-    
-    constrains = np.zeros((len(free_param),2))
-    constrains[:,0] = 0
-    constrains[:,1] = 1    
-    """
-    free_param,prediction,cost = worker.init_variable_space(free_param,y,gd_max_iter)
-    optim_free_param = np.zeros((sample_sets,) + np.shape(free_param))
-    prediction_stack = np.zeros((sample_sets,) + np.shape(prediction))
-    cost_stack = np.zeros((sample_sets,) + np.shape(cost))
-
-    if sample_sets == 0 :
-        free_param, prediction, cost = gradient_decent(fit_model,gradient_method,integration_method,
-                                idx_source, idx_sink,
-                                ODE_state,ODE_coeff,ODE_coeff_model, y,
-                                ODE_state_indexes, ODE_coeff_index,constrains,barrier_slope,
-                                gd_max_iter,time_evo_max,dt_time_evo,
-                                pert_scale,grad_scale,
-                                stability_rel_tolerance,tail_length_stability_check,
-                                start_stability_check,
-                                seed)
-
-    else:
-        for ii in np.arange(0,sample_sets):
-            np.random.seed()
-            free_param = worker.monte_carlo_sample_generator(constrains)
-            ODE_state,ODE_coeff = worker.fill_free_param(free_param,ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_index)
-            free_param, prediction, cost = gradient_decent(fit_model,gradient_method,integration_method,
-                                        idx_source, idx_sink,
-                                        ODE_state,ODE_coeff,ODE_coeff_model, y,
-                                        ODE_state_indexes, ODE_coeff_index,constrains,barrier_slope,
-                                        gd_max_iter,time_evo_max,dt_time_evo,
-                                        pert_scale,grad_scale,
-                                        stability_rel_tolerance,tail_length_stability_check,
-                                        start_stability_check,
-                                        seed)
-            
-            optim_free_param[ii] = free_param
-            prediction_stack[ii] = prediction
-            cost_stack[ii] = cost
-        
-    return optim_free_param,prediction_stack, cost_stack
-
-
-@decorators.log_input_output
-def NPZD_monte_carlo(path_ODE_state_init,path_ODE_coeff_init,y,
-                    idx_source, idx_sink,
-                    fit_model = models.direct_fit_model,
-                    gradient_method = models.SGD_basic,
-                    integration_method = models.euler_forward,
-                    ODE_coeff_model = models.LLM_model,
-                    barrier_slope=1e-6,
-                    sample_sets = 5,
-                    gd_max_iter=100,
-                    time_evo_max=300,
-                    dt_time_evo=1/5,
-                    pert_scale=1e-4,
-                    grad_scale=1e-12,
-                    stability_rel_tolerance=1e-5,
-                    tail_length_stability_check=10,
-                    start_stability_check=100,
-                    seed=137):
-
-    ODE_state = np.genfromtxt(path_ODE_state_init)
-    ODE_state_indexes = np.where(ODE_state == ODE_state)
-    ODE_coeff = ODE_coeff_model(ODE_state,None)
-    ODE_coeff_index = None
-    
-    free_param = worker.filter_free_param(ODE_state=ODE_state,ODE_state_indexes=ODE_state_indexes)
-    
-    constrains = np.zeros((len(free_param),2))
-    constrains[:,0] = 0
-    constrains[:,1] = np.sum(ODE_state)    
-    
-    free_param,prediction,cost = worker.init_variable_space(free_param,y,gd_max_iter)
-    optim_free_param = np.zeros((sample_sets,) + np.shape(free_param))
-    prediction_stack = np.zeros((sample_sets,) + np.shape(prediction))
-    #L_stack = np.zeros((sample_sets,) + np.shape(cost))
-
-    if sample_sets == 0 :
-        free_param, prediction, cost = gradient_decent(fit_model,gradient_method,integration_method,
-                                idx_source, idx_sink,
-                                ODE_state,ODE_coeff,ODE_coeff_model, y,
-                                ODE_state_indexes, ODE_coeff_index,constrains,barrier_slope,
-                                gd_max_iter,time_evo_max,dt_time_evo,
-                                pert_scale,grad_scale,
-                                stability_rel_tolerance,tail_length_stability_check,
-                                start_stability_check,
-                                seed)
-        
-        return free_param,prediction,cost
-
-    else:
-        for ii in np.arange(0,sample_sets):
-            np.random.seed()
-            free_param = worker.monte_carlo_sample_generator(constrains)
-            ODE_state,ODE_coeff = worker.fill_free_param(free_param,ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_index)
-            free_param, prediction, cost = gradient_decent(fit_model,gradient_method,integration_method,
-                                        idx_source, idx_sink,
-                                        ODE_state,ODE_coeff,ODE_coeff_model, y,
-                                        ODE_state_indexes, ODE_coeff_index,constrains,barrier_slope,
-                                        gd_max_iter,time_evo_max,dt_time_evo,
-                                        pert_scale,grad_scale,
-                                        stability_rel_tolerance,tail_length_stability_check,
-                                        start_stability_check,
-                                        seed)
-            
-            optim_free_param[ii] = free_param
-            prediction_stack[ii] = prediction
-        
-    return optim_free_param,prediction_stack
+	return model_configuration.log
