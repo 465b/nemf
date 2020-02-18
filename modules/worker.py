@@ -21,7 +21,7 @@ def read_coeff_yaml(path):
 
 # Parsers
 
-def initialize_ode_system(path_states, path_coefficients):
+def initialize_ode_system(path_config):
 	""" Initializes the dictionary containing the 'state' and 'interactions' 
 	
 		Parameters:
@@ -42,25 +42,9 @@ def initialize_ode_system(path_states, path_coefficients):
 			Contains the state and interaction configuration
 			in a similar structure as provided by the yaml files."""
 
-	state_config = read_coeff_yaml(path_states)
-	interaction_config = read_coeff_yaml(path_coefficients)
+	system_config = read_coeff_yaml(path_config)
 
-	interaction_compartments = list(interaction_config['compartments'])
-	state_compartments = list(state_config['compartments'])
-
-	if state_compartments != interaction_compartments:
-		raise ValueError('Bad Input. State and Interaction compartments are not equal. '+
-						  '\nState: \t\t{}\nInteraction: \t{}'.format(
-							  state_compartments,interaction_compartments))
-	else:
-		ode_system_configuration = {}
-		ode_system_configuration.update(state_config)
-		ode_system_configuration['states'] = ode_system_configuration.pop('compartments')
-		del interaction_config['compartments']
-		ode_system_configuration.update(interaction_config)
-		ode_system_configuration['interactions'] = ode_system_configuration.pop('coefficients')
-
-	return ode_system_configuration
+	return system_config
     
 
 def system_configuration_to_ode_method(system_configuration):
