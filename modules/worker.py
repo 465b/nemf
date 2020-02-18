@@ -288,7 +288,7 @@ def barrier_function(free_param,constrains=np.array([None]),barrier_slope=1):
 
     # checks if barrier_slope is positive
     if barrier_slope <= 0:
-        raise ValueError('barrier_slope must be a postive value.')
+        raise ValueError('barrier_slope must be a positive value.')
 
     # initializes arrays containing the additional cost
     cost_barrier_left = np.zeros(len(free_param))
