@@ -81,163 +81,99 @@ def run_time_evo(integration_scheme, time_evo_max, dt_time_evo, ODE_state,
 
 
 # Top level Routine
+def gradient_descent(model_configuration, parameters, constraints,
+					gradient_method,barrier_slope=1e-2,
+					gd_max_iter=100, pert_scale=1e-5,grad_scale=1e-9):
 
-def gradient_decent(fit_model,gradient_method,integration_scheme,
-                    idx_source, idx_sink,
-                    ODE_state,ODE_coeff, ODE_coeff_model, y,
-                    ODE_state_indexes = None, ODE_coeff_indexes = None,
-                    constrains=np.array([None]), barrier_slope=1e-2,
-                    gd_max_iter=100,time_evo_max=100,dt_time_evo=0.2, 
-                    pert_scale=1e-5,grad_scale=1e-9,
-                    stability_rel_tolerance=1e-9,tail_length_stability_check=10, 
-                    start_stability_check = 100,seed = 137):
+	""" framework for applying a gradient decent approach to a 
+		a model, applying a certain method 
+		
+		Parameters
+		----------
+		model_configuration : object
+			contains all the information and necessary methods
+			of the optimized model			
+		parameters: numpy.array (1D)
+			contains the values which are going to be optimized
+		constraints: numpy.array (2D)
+			contains the value ranges of the optimized parameters 
+		gradient_method : function
+			{SGD_basic,SGD_momentum}
+			Selects the method used during the gradient descent.
+			They differ in their robustness and convergence speed
+		integration_scheme: function
+			{euler_forward, runge_kutta}
+			Selects which method is used in the integration of the time evolution.
+			Euler is of first order, Runge-Kutta of second
+		barrier_slope : positive-float
+			Defines the slope of the barrier used for the soft constrain.
+			Lower numbers, steeper slope. Typically between (0-1].
+		gd_max_iter : positive integer
+			Maximal amount of iterations allowed in the gradient descent
+			algorithm.
+		pert_scale : positive float
+			Maximal value which the system can be perturbed if necessary
+			(i.e. if instability is found). Actual perturbation ranges
+			from [0-pert_scale) uniformly distributed.
+		grad_scale : positive float
+			Scales the step size in the gradient descent. Often also
+			referred to as learning rate. Necessary to compensate for the
+			"roughness" of the objective function field.
 
-    """ framework for applying a gradient decent approach to a 
-        a model, applying a certain method 
-        
-    Parameters
-    ----------
-    fit_model : function
-        {net_flux_fit_model, direct_fit_model}
-        defines how the output of the time evolution get accounted for.
-        i.e. the sum of the output is returned or all its elements
-    gradient_method : function
-        {SGD_basic,SGD_momentum}
-        Selects the method used during the gradient descent.
-        They differ in their robustness and convergence speed
-    integration_scheme: function
-        {euler_forward, runge_kutta}
-        Selects which method is used in the integration of the time evolution.
-        Euler is of first order, Runge-Kutta of second
-    idx_source : list of integers
-        list containing the integers of compartments which are constructed
-        to be a carbon source 
-    idx_sink : list of integers
-        list containing the integers of compartments which are designed
-        to be a carbon sink 
-    ODE_state : numpy.array
-        1D array containing the initial state of the observed quantities
-        in the ODE. Often also referred to as initial conditions.
-    ODE_coeff : numpy.array
-        2d-square-matrix containing the coefficients of the ODE
-    ODE_coeff_model : function
-        selects the function used for the calculation of the ODE
-        coefficients. I.e. if dependencies of the current state are present.
-        If no dependency is present use 'standard_weights_model'
-    y : numpy array
-        1D-array containing the desired output of the model in the form
-        defined by the fit-model
-    ODE_state_indexes : numpy.array
-        1D-array containing sets of indices used to select which elements
-        of the ODE_state array are optimized. 'None' if none are optimized.
-    ODE_coeff_indexes : numpy.array
-        1D-array containing sets of indices used to select which elements  
-        of the ODE_coeff array are optimized. 'None' if none are optimized.
-    constrains : numpy.array
-        2D-array containing the upper and lower limit of every free input
-        parameter in the shape (len(free_param),2).
-    barrier_slope : positive-float
-        Defines the slope of the barrier used for the soft constrain.
-        Lower numbers, steeper slope. Typically between (0-1].
-    gd_max_iter : positive integer
-        Maximal amount of iterations allowed in the gradient descent
-        algorithm.
-    time_evo_max
-        Maximal amount of iterations allowed in the time evolution.
-        Has the same unit as the one used in the initial ODE_state
-    dt_time_evo
-        Size of time step used in the time evolution.
-        Has the same unit as the one used in the initial ODE_state
-    pert_scale : positive float
-        Maximal value which the system can be perturbed if necessary
-        (i.e. if instability is found). Actual perturbation ranges
-        from [0-pert_scal) uniformly distributed.
-    grad_scale : positive float
-        Scales the step size in the gradient descent. Often also
-        referred to as learning rate. Necessary to compensate for the
-        "roughness" of the objective function field.
-    stability_rel_tolerance : positive float
-        Defines the maximal allowed relative fluctuation range in the tail
-        of the time evolution. If below, system is called stable.
-    tail_length_stability_check : positive integer
-        Defines the length of the tail used for the stability calculation.
-        Tail means the amount of elements counted from the back of the
-        array.
-    start_stability_check : positive integer
-        Defines the element from which on we repeatably check if the
-        time evolution is stable. If stable, iteration stops and last
-        value is returned
-    seed : positive integer
-        Initializes the random number generator. Used to recreate the
-        same set of pseudo-random numbers. Helpfull when debugging.
+		Returns
+		-------
+		parameter_stack : numpy.array
+			2D-array containing the set of optimized free parameter,
+			stacked along the first axis.
+		prediction_stack : numpy.array
+			2D-array containing the output of the time evolution,
+			stacked along the first axis.
+		cost_stack
+			1D-array containing the corresponding values of the cost
+			function calculated based on the free_param at the same
+			first-axis index.   """
 
-    Returns
-    -------
-    free_param : numpy.array
-        2D-array containing the set of optimized free parameter,
-        stacked along the first axis.
-    prediction : numpy.array
-        2D-array containing the output of the time evolution,
-        stacked along the first axis.
-    cost
-        1D-array containing the corresponding values of the cost
-        function calculated based on the free_param at the same
-        first-axis index.   """
+	param_stack = np.zeros((gd_max_iter,len(parameters)))
 
-    np.random.seed(seed)
-    
-    free_param_init = worker.filter_free_param(ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
-    free_param,prediction,cost = worker.init_variable_space(free_param_init,y,gd_max_iter)
-    
-    # ii keeps track of the position in the output array
-    # jj keeps track to not exceed max iterations
-    ii = 0; jj = 0
-    
-    while jj < gd_max_iter-1:
+	param_stack[0] = parameters
+	# ISSUE - I DO NOT WANT TO USE model_configuration here. clutters & entangles code!
+	prediction_stack = np.zeros((gd_max_iter,len(model_configuration.configuration['fit_target'])))
+	cost_stack = np.zeros((gd_max_iter))
 
-        """ makes sure that all points in the parameter set are inside of the search space
-            and if not moves them back into it """
-        free_param[ii] = worker.barrier_hard_enforcement(free_param[ii],ii,constrains,pert_scale)
-        ODE_state,ODE_coeff = worker.fill_free_param(free_param[ii],ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
-        ODE_coeff = worker.normalize_columns(ODE_coeff)
-        free_param[ii] = worker.filter_free_param(ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes)
-        
+	# ii keeps track of the position in the output array
+	# jj keeps track to not exceed max iterations
+	ii = 0; jj = 0
+	
+	while jj < gd_max_iter-1:
 
-        """ evaluate the system by iterating the time evolution until a stable solution (prediction) is found
-            and constructing the cost function (cost) """
-        prediction[ii],cost[ii],is_stable = worker.prediction_and_costfunction(
-                    free_param[ii],ODE_state, ODE_coeff, ODE_coeff_model,y,fit_model,
-                    integration_scheme, time_evo_max, dt_time_evo, idx_source, idx_sink,
-                    constrains,barrier_slope,
-                    stability_rel_tolerance,tail_length_stability_check, start_stability_check)
-        if not is_stable:
-            """ moves the pararun_timemeter set randomly in the hope to find a stable solution """
-            free_param[ii] = worker.perturb(free_param[ii],pert_scale)
-        else:
-            """ calculates the local gradient by evaluation the time evolution at surrounding
-                free parameters set points """
-            gradient,is_stable = worker.local_gradient(free_param[:ii+1],y,fit_model,integration_scheme,
-                                        ODE_state,ODE_coeff,ODE_state_indexes,ODE_coeff_indexes,
-                                        ODE_coeff_model,
-                                        idx_source, idx_sink, constrains,barrier_slope,
-                                        pert_scale,
-                                        time_evo_max, dt_time_evo,
-                                        stability_rel_tolerance,tail_length_stability_check,
-                                        start_stability_check)
-            if not is_stable:
-                """ moves the original set of free parameters in case that any(!)
-                    of the surrounding points used in the calculation of the
-                    local gradient is unstable """
-                free_param[ii] = worker.perturb(free_param[ii],pert_scale)
-            else:
-                """ applying a decent model to find a new and hopefully
-                    better set of free parameters """
-                free_param[ii+1] = gradient_method(free_param[:ii+1],gradient,grad_scale)
-                ii += 1
-        jj += 1
+		""" makes sure that all points in the parameter set are inside of the search space
+			and if not moves them back into it """
+		param_stack[ii] = worker.barrier_hard_enforcement(param_stack[ii],ii,constraints,pert_scale)
 
-            
-    return free_param, prediction, cost
+		""" fetch prediction and cost at given point """
+		prediction_stack[ii], cost_stack[ii] = model_configuration.calc_cost(param_stack[ii],barrier_slope)[0:1+1]
+		
+		if cost_stack[ii] == None:
+			param_stack[ii] = worker.perturb(param_stack[ii],pert_scale)
+		else:
+			""" calculate the local gradient at at the current point """
+			# maybe implement a local_gradient method as well.
+			# this would make it more consistent with the other methods
+			gradient = worker.local_gradient(model_configuration, param_stack[:ii+1],
+											 constraints, barrier_slope, pert_scale)[0]
+			if any(gradient == None):
+				""" moves the original set of free parameters_stack in case that any(!)
+					of the surrounding points used in the calculation of the
+					local gradient is unstable """
+				param_stack[ii] = worker.perturb(param_stack[ii],pert_scale)
+			else:
+				""" applying a decent model to find a new and hopefully
+					better set of free parameters_stack """
+				param_stack[ii+1] = gradient_method(param_stack[ii],gradient,grad_scale)
+				ii += 1
+		jj += 1
+
+	return param_stack, prediction_stack, cost_stack
 
 
 ## monte carlo methods
