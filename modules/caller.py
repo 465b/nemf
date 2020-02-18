@@ -5,79 +5,89 @@ from . import decorators
 
 import logging
 logging.basicConfig(filename='carbonflux_inverse_model.log',
-                    level=logging.DEBUG)
+					level=logging.DEBUG)
 
 
 
-def run_time_evo(integration_scheme, time_evo_max, dt_time_evo, ODE_state,
-                 ODE_coeff_model, ODE_coeff=None, stability_rel_tolerance=1e-5,
-                 tail_length_stability_check=10, start_stability_check=100):
-    
-    """ integrates first-order coupled ordinary-differential-equations (ODEs)
+def run_time_evo(model_configuration, integration_scheme, time_evo_max,
+				 dt_time_evo, ode_state, ode_coeff_model, ode_coeff=None,
+				 stability_rel_tolerance=1e-5, tail_length_stability_check=10,
+				 start_stability_check=100):
+	
+	""" integrates first-order coupled ordinary-differential-equations (odes)
 
-    Parameters
-    ----------
+	Parameters
+	----------
+	model_configuration : object
+			contains all the information and necessary methods
+			of the optimized model
+	integration_scheme: function
+			{euler_forward, runge_kutta}
+			Selects which method is used in the integration of the time evolution.
+			Euler is of first order, Runge-Kutta of second
+	time_evo_max
+		Maximal amount of iterations allowed in the time evolution.
+		Has the same unit as the one used in the initial ODE_state
+	dt_time_evo
+		Size of time step used in the time evolution.
+		Has the same unit as the one used in the initial ODE_state
+	ode_state : numpy.array
+		1D array containing the initial state of the observed quantities
+		in the ODE. Often also referred to as initial conditions.
+	ode_coeff : numpy.array
+		2d-square-matrix containing the coefficients of the ODE
+	ode_coeff_model : function
+		selects the function used for the calculation of the ODE
+		coefficients. I.e. if dependencies of the current state are present.
+		If no dependency is present use 'standard_weights_model'
+	stability_rel_tolerance : positive float
+		Defines the maximal allowed relative fluctuation range in the tail
+		of the time evolution. If below, system is called stable.
+	tail_length_stability_check : positive integer
+		Defines the length of the tail used for the stability calculation.
+		Tail means the amount of elements counted from the back of the
+		array.
+	start_stability_check : positive integer
+		Defines the element from which on we repeatably check if the
+		time evolution is stable. If stable, iteration stops and last
+		value is returned
 
-    integration_scheme : function
-        {euler,runge_kutta}
-    time_evo_max : positive float
-        time span that is integrated
-    dt_time_evo : positive float
-        time step that is integrated
-    ODE_state : numpy.array
-        one dimensional set of initial values
-    ODE_coeff_model : function
-        updates ODE coupling coefficients
-        necessary because coupling coefficient are allowed 
-        to be 'time' dependent, i.e the coupling is dependent
-        on the last ODE_state values (i.e. NPZD)
-    ODE_coeff : numpy.array
-        2D-square-matrix with ODE coefficients 
-    stability_rel_tolerance : positive float
-        max allowed fluctuation
-        to decide if time evolution is stable 
-    tail_length_stability_check : positive integer
-        number of entries used from the tail ODE_state from
-        which the stability is checked
-    start_stability_check : positive integer
-        amount of steps before stability is checked 
+	Returns
+	-------
+	ode_state_log : numpy.array
+		two dimensional array containing the results of the 
+		time integration for each iteration step
+	is_stable : bool
+		True if time integration was stable
+		False else
+	"""
 
-    Returns
-    -------
-    ODE_state_log : numpy.array
-        two dimensional array containing the results of the 
-        time integration for each iteration step
-    is_stable : bool
-        True if time integration was stable
-        False else
-    """
+	# initialize data arrays
+	n_obs = len(ode_state)
+	n_steps = int(time_evo_max/dt_time_evo)
+	
+	ode_state_log = np.zeros( (n_steps,n_obs) )
+	ode_state_log[0] = ode_state
 
-    # initialize data arrays
-    n_obs = len(ODE_state)
-    n_steps = int(time_evo_max/dt_time_evo)
-    
-    ODE_state_log = np.zeros( (n_steps,n_obs) )
-    ODE_state_log[0] = ODE_state
+	# calculate the time evolution
+	is_stable = False
+	for ii in np.arange(1,n_steps):
+		# updates ode coefficients
+		ode_coeff = ode_coeff_model(model_configuration)
+		# calculates next time step
+		ode_state_log[ii] = integration_scheme(ode_state_log[ii-1],ode_coeff,dt_time_evo)
 
-    # calculate the time evolution
-    is_stable = False
-    for ii in np.arange(1,n_steps):
-        # updates ODE coefficients
-        ODE_coeff = ODE_coeff_model(ODE_state_log[ii],ODE_coeff)
-        # calcu
-        ODE_state_log[ii] = integration_scheme(ODE_state_log[ii-1],ODE_coeff,dt_time_evo)
-
-        # repeatedly checks if the solution is stable, if so returns, if not continous
-        if ((ii >= start_stability_check) & (ii%tail_length_stability_check == 0) &
-            (stability_rel_tolerance != 0)):
-            is_stable = worker.verify_stability_time_evolution(ODE_state_log[:ii+1],
-                                            stability_rel_tolerance,tail_length_stability_check)
-        
-            if is_stable:
-                return ODE_state_log[:ii+1], is_stable
-        
-    
-    return ODE_state_log, is_stable
+		# repeatedly checks if the solution is stable, if so returns, if not continuos
+		if ((ii >= start_stability_check) & (ii%tail_length_stability_check == 0) &
+			(stability_rel_tolerance != 0)):
+			is_stable = worker.verify_stability_time_evolution(ode_state_log[:ii+1],
+											stability_rel_tolerance,tail_length_stability_check)
+		
+			if is_stable:
+				return ode_state_log[:ii+1], is_stable
+		
+	
+	return ode_state_log, is_stable
 
 
 # Top level Routine
@@ -275,6 +285,7 @@ def dn_monte_carlo(path_model_configuration,
 				pert_scale, grad_scale) 
 			
 			# updates log with the generated results
+			print('Parameters:\n{}\nPrediction:\n{}\nCost:\n{}\n'.format(param_stack, prediction_stack, cost_stack))
 			model_configuration.to_log(param_stack, prediction_stack, cost_stack)
 			
 			# updates the state of the optimization run
