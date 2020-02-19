@@ -351,7 +351,7 @@ def division_scalar_vector_w_zeros(a,b):
     return free_param
 
 
-def prediction_and_costfunction(free_param, ODE_state, ODE_coeff,
+def prediction_and_costfunction(free_param, ODE_state, system_configuration,
             ODE_coeff_model,y,fit_model, integration_scheme, time_evo_max,
             dt_time_evo, idx_source, idx_sink,
             constrains=np.array([None]),barrier_slope=1,
@@ -431,8 +431,8 @@ def prediction_and_costfunction(free_param, ODE_state, ODE_coeff,
     prediction,is_stable = fit_model(integration_scheme, time_evo_max,
                                      dt_time_evo,
                                      idx_source, idx_sink,
-                                     ODE_state, ODE_coeff,
-                                     ODE_coeff_model,stability_rel_tolerance,
+                                     ODE_state,ODE_coeff_model,
+                                     stability_rel_tolerance,
                                      tail_length_stability_check,
                                      start_stability_check)
 
