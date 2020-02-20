@@ -144,10 +144,7 @@ def gradient_descent(model_configuration, parameters, constraints,
 			first-axis index.   """
 
 	param_stack = np.zeros((gd_max_iter,len(parameters)))
-
 	param_stack[0] = parameters
-	# ISSUE - I DO NOT WANT TO USE model_configuration here. clutters & entangles code!
-	prediction_stack = np.zeros((gd_max_iter,len(model_configuration.configuration['fit_target'])))
 	cost_stack = np.zeros((gd_max_iter))
 
 	# ii keeps track of the position in the output array
@@ -156,12 +153,29 @@ def gradient_descent(model_configuration, parameters, constraints,
 	
 	while jj < gd_max_iter-1:
 
-		""" makes sure that all points in the parameter set are inside of the search space
-			and if not moves them back into it """
-		param_stack[ii] = worker.barrier_hard_enforcement(param_stack[ii],ii,constraints,pert_scale)
+		if (ii == 0):
+			""" catches the first set of model outputs and 
+				initializes the stack accourdinglt """
 
-		""" fetch prediction and cost at given point """
-		prediction_stack[ii], cost_stack[ii] = model_configuration.calc_cost(param_stack[ii],barrier_slope)[0:1+1]
+			""" makes sure that all points in the parameter set are inside of the search space
+				and if not moves them back into it """
+			param_stack[ii] = worker.barrier_hard_enforcement(param_stack[ii],ii,constraints,pert_scale)
+
+			""" fetch prediction and cost at given point """
+			model_log, prediction, cost_stack[ii] = \
+				model_configuration.calc_cost(param_stack[ii],barrier_slope)[0:2+1]
+
+			""" initialise model dependant variable stacks """
+			model_stack = np.zeros( (gd_max_iter,) + np.shape(model_log) )
+			prediction_stack = np.zeros( (gd_max_iter,) + np.shape(prediction) )
+			model_stack[ii] = model_log
+			prediction_stack[ii] = prediction			
+
+		else:
+			""" same as above """
+			param_stack[ii] = worker.barrier_hard_enforcement(param_stack[ii],ii,constraints,pert_scale)
+			model_stack[ii],prediction_stack[ii], cost_stack[ii] = \
+				model_configuration.calc_cost(param_stack[ii],barrier_slope)[0:2+1]
 		
 		if cost_stack[ii] == None:
 			param_stack[ii] = worker.perturb(param_stack[ii],pert_scale)
@@ -172,7 +186,7 @@ def gradient_descent(model_configuration, parameters, constraints,
 			gradient = worker.local_gradient(model_configuration, param_stack[:ii+1],
 											 constraints, barrier_slope, pert_scale)[0]
 			if any(gradient == None):
-				""" moves the original set of free parameters_stack in case that any(!)
+				""" moves the original set uof free parameters_stack in case that any(!)
 					of the surrounding points used in the calculation of the
 					local gradient is unstable """
 				param_stack[ii] = worker.perturb(param_stack[ii],pert_scale)
@@ -183,7 +197,7 @@ def gradient_descent(model_configuration, parameters, constraints,
 				ii += 1
 		jj += 1
 
-	return param_stack, prediction_stack, cost_stack
+	return param_stack, model_stack, prediction_stack, cost_stack
 
 
 ## monte carlo methods
@@ -256,13 +270,13 @@ def dn_monte_carlo(path_model_configuration,
 		parameters = worker.monte_carlo_sample_generator(constraints)
 		
 		# runs the gradient descent for the generated sample set 
-		parameters, prediction, cost = gradient_descent(model_configuration,
-										parameters, constraints, gradient_method,
-										barrier_slope, gd_max_iter,
-										pert_scale, grad_scale)
+		parameters, model_data, prediction, cost = \
+			gradient_descent(model_configuration, parameters, constraints,
+			gradient_method, barrier_slope, gd_max_iter, pert_scale, grad_scale)
 		
 		# updates log with the generated results
 		log_dict = {'parameters': parameters,
+					'model': model_data,
 					'prediction': prediction,
 					'cost': cost}
 		model_configuration.log = log_dict
@@ -278,15 +292,13 @@ def dn_monte_carlo(path_model_configuration,
 			parameters = worker.monte_carlo_sample_generator(constraints)
 			
 			# runs the gradient descent for the generated sample set 
-			param_stack, prediction_stack, cost_stack = gradient_descent(
-				model_configuration, parameters,
-				constraints, gradient_method,
-				barrier_slope, gd_max_iter,
-				pert_scale, grad_scale) 
+			param_stack, model_stack, prediction_stack, cost_stack = \
+				gradient_descent(model_configuration, parameters,constraints,
+				gradient_method, barrier_slope, gd_max_iter, pert_scale, grad_scale) 
 			
 			# updates log with the generated results
-			print('Parameters:\n{}\nPrediction:\n{}\nCost:\n{}\n'.format(param_stack, prediction_stack, cost_stack))
-			model_configuration.to_log(param_stack, prediction_stack, cost_stack)
+			model_configuration.to_log(
+				param_stack,model_stack,prediction_stack, cost_stack)
 			
 			# updates the state of the optimization run
 			model_configuration.log['monte_carlo_idx'] = ii

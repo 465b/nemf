@@ -362,71 +362,71 @@ def prediction_and_costfunction(free_param, ODE_state, system_configuration,
         barrier function that penalizes points close to the barrier 
         
         Parameters
-    ----------
+        ----------
 
-    ODE_state : numpy.array
-        1D array containing the initial state of the observed quantities
-        in the ODE. Often also referred to as initial conditions.
-    ODE_coeff : numpy.array
-        2d-square-matrix containing the coefficients of the ODE
-    ODE_coeff_model : function
-        selects the function used for the calculation of the ODE
-        coefficients. I.e. if dependencies of the current state are present.
-        If no dependency is present use 'standard_weights_model'
-    y : numpy array
-        1D-array containing the desired output of the model in the form
-        defined by the fit-model
-    fit_model : function
-        {net_flux_fit_model, direct_fit_model}
-        defines how the output of the time evolution get accounted for.
-        i.e. the sum of the output is returned or all its elements
-    integration_scheme: function
-        {euler_forward, runge_kutta}
-        Selects which method is used in the integration of the time evolution.
-        Euler is of first order, Runge-Kutta of second
-    time_evo_max
-        Maximal amount of iterations allowed in the time evolution.
-        Has the same unit as the one used in the initial ODE_state
-    dt_time_evo
-        Size of time step used in the time evolution.
-        Has the same unit as the one used in the initial ODE_state
-    idx_source : list of integers
-            list containing the integers of compartments which are constructed
-            to be a carbon source 
-        idx_sink : list of integers
-            list containing the integers of compartments which are designed
-            to be a carbon sink 
-    constrains : numpy.array
-        2D-array containing the upper and lower limit of every free input
-        parameter in the shape (len(free_param),2).
-    barrier_slope : positive-float
-        Defines the slope of the barrier used for the soft constrain.
-        Lower numbers, steeper slope. Typically between (0-1].
-    stability_rel_tolerance : positive float
-        Defines the maximal allowed relative fluctuation range in the tail
-        of the time evolution. If below, system is called stable.
-    tail_length_stability_check : positive integer
-        Defines the length of the tail used for the stability calculation.
-        Tail means the amount of elements counted from the back of the
-        array.
-    start_stability_check : positive integer
-        Defines the element from which on we repeatably check if the
-        time evolution is stable. If stable, iteration stops and last
-        value is returned
+        ODE_state : numpy.array
+            1D array containing the initial state of the observed quantities
+            in the ODE. Often also referred to as initial conditions.
+        ODE_coeff : numpy.array
+            2d-square-matrix containing the coefficients of the ODE
+        ODE_coeff_model : function
+            selects the function used for the calculation of the ODE
+            coefficients. I.e. if dependencies of the current state are present.
+            If no dependency is present use 'standard_weights_model'
+        y : numpy array
+            1D-array containing the desired output of the model in the form
+            defined by the fit-model
+        fit_model : function
+            {net_flux_fit_model, direct_fit_model}
+            defines how the output of the time evolution get accounted for.
+            i.e. the sum of the output is returned or all its elements
+        integration_scheme: function
+            {euler_forward, runge_kutta}
+            Selects which method is used in the integration of the time evolution.
+            Euler is of first order, Runge-Kutta of second
+        time_evo_max
+            Maximal amount of iterations allowed in the time evolution.
+            Has the same unit as the one used in the initial ODE_state
+        dt_time_evo
+            Size of time step used in the time evolution.
+            Has the same unit as the one used in the initial ODE_state
+        idx_source : list of integers
+                list containing the integers of compartments which are constructed
+                to be a carbon source 
+            idx_sink : list of integers
+                list containing the integers of compartments which are designed
+                to be a carbon sink 
+        constrains : numpy.array
+            2D-array containing the upper and lower limit of every free input
+            parameter in the shape (len(free_param),2).
+        barrier_slope : positive-float
+            Defines the slope of the barrier used for the soft constrain.
+            Lower numbers, steeper slope. Typically between (0-1].
+        stability_rel_tolerance : positive float
+            Defines the maximal allowed relative fluctuation range in the tail
+            of the time evolution. If below, system is called stable.
+        tail_length_stability_check : positive integer
+            Defines the length of the tail used for the stability calculation.
+            Tail means the amount of elements counted from the back of the
+            array.
+        start_stability_check : positive integer
+            Defines the element from which on we repeatably check if the
+            time evolution is stable. If stable, iteration stops and last
+            value is returned
 
-    Returns
-    -------
-    prediction : numpy.array
-        2D-array containing the output of the time evolution
-        after the fit_model has been applied, stacked along the first axis.
-    cost
-        1D-array containing the corresponding values of the cost
-        function calculated based on the free_param at the same
-        first-axis index.
-    is_stable : bool
-        true if stability conditions are met. 
-        See verify_stability_time_evolution() for more details.
-    """
+        Returns
+        -------
+        prediction : numpy.array
+            2D-array containing the output of the time evolution
+            after the fit_model has been applied, stacked along the first axis.
+        cost
+            1D-array containing the corresponding values of the cost
+            function calculated based on the free_param at the same
+            first-axis index.
+        is_stable : bool
+            true if stability conditions are met. 
+            See verify_stability_time_evolution() for more details.
+        """
 
     prediction,is_stable = fit_model(integration_scheme, time_evo_max,
                                      dt_time_evo,
@@ -605,7 +605,7 @@ def local_gradient(model_configuration, parameter_stack,
         
         #calculates the cost at their positions
         cost_local[ii],is_stable = model_configuration.calc_cost(
-                                    parameter_local[ii],barrier_slope)[1:]
+                                    parameter_local[ii],barrier_slope)[2:]
         
         # checks if it we find a stable solution at these points
         if is_stable is False:
