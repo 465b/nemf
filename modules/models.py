@@ -82,7 +82,7 @@ def interaction_model_generator(system_configuration):
         for item in system_configuration.interactions[interaction]:
             # adds everything up
             alpha[ii,jj] += int(item['sign'])*globals()[item['fkt']](*item['parameters'])
-
+            alpha[jj,jj] -= int(item['sign'])*globals()[item['fkt']](*item['parameters'])
     return alpha
 
 
