@@ -91,9 +91,10 @@ def interaction_model_generator(system_configuration):
     for further processing. Then, the optimization routine uses this processed
     time evolution output to fit the model to. Hence, the name fit_model. """
     
-def direct_fit_model(integration_scheme, time_evo_max, dt_time_evo,
+def direct_fit_model(model_configuration,
+                     integration_scheme, time_evo_max, dt_time_evo,
                      ODE_state, ODE_coeff=None, 
-                     ODE_coeff_model=standard_weights_model,
+                     ODE_coeff_model=interaction_model_generator,
                      stability_rel_tolerance=1e-5,tail_length_stability_check=10,
                      start_stability_check=100):
     """ Returns the last step in the time evolution. Hence, it uses the values
@@ -141,21 +142,23 @@ def direct_fit_model(integration_scheme, time_evo_max, dt_time_evo,
         true if stability conditions are met. 
         See verify_stability_time_evolution() for more details. """
     
-    F_ij, is_stable = caller.run_time_evo(integration_scheme, time_evo_max,
-                                          dt_time_evo,ODE_state,
-                                          ODE_coeff_model,ODE_coeff,
-                                          stability_rel_tolerance,
-                                          tail_length_stability_check,
-                                          start_stability_check)
+    F_ij, is_stable = caller.run_time_evo(model_configuration,
+                                        integration_scheme, time_evo_max,
+                                        dt_time_evo,ODE_state,
+                                        ODE_coeff_model,ODE_coeff,
+                                        stability_rel_tolerance,
+                                        tail_length_stability_check,
+                                        start_stability_check)
     F_i = F_ij[-1]
 
-    return F_i,is_stable
+    return F_ij,F_i,is_stable 
 
 
-def net_flux_fit_model(integration_scheme, time_evo_max, dt_time_evo,
+def net_flux_fit_model(model_configuration,integration_scheme, 
+                       time_evo_max, dt_time_evo,
                        idx_source, idx_sink,
                        ODE_state, ODE_coeff=None,
-                       ODE_coeff_model=standard_weights_model,
+                       ODE_coeff_model=interaction_model_generator,
                        stability_rel_tolerance=1e-5,
                        tail_length_stability_check=10,
                        start_stability_check=100):
@@ -208,7 +211,8 @@ def net_flux_fit_model(integration_scheme, time_evo_max, dt_time_evo,
         true if stability conditions are met. 
         See verify_stability_time_evolution() for more details. """
     
-    F_ij, is_stable = caller.run_time_evo(integration_scheme, time_evo_max,
+    F_ij, is_stable = caller.run_time_evo(model_configuration,
+                                          integration_scheme, time_evo_max,
                                           dt_time_evo,ODE_state,
                                           ODE_coeff_model,ODE_coeff,
                                           stability_rel_tolerance,
@@ -217,7 +221,7 @@ def net_flux_fit_model(integration_scheme, time_evo_max, dt_time_evo,
     F_i = F_ij[-1]
     prediction = np.array(np.sum(F_i[idx_source]) - np.sum(F_i[idx_sink]))
 
-    return prediction, is_stable
+    return F_ij, prediction, is_stable
 
 
 # Gradient Decent
