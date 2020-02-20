@@ -483,3 +483,13 @@ class model_class:
 									self.configuration['start_stability_check'])
 		
 		return model_log, prediction, is_stable
+	
+	
+	def calc_cost(self, parameters, barrier_slope):
+		
+		constrains = self.to_grad_method()[1]		
+		model_log, prediction, is_stable = self.calc_prediction()
+		cost = worker.cost_function(prediction,self.configuration['fit_target'])
+		cost += worker.barrier_function(parameters,constrains,barrier_slope)
+
+		return model_log, prediction, cost, is_stable
