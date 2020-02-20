@@ -323,3 +323,163 @@ def holling_type_III(epsilon,g,P):
     """ Holling type III function """
     G_val = (g*epsilon*P**2)/(g+(epsilon*P**2))
     return G_val
+
+
+# Model_Classes 
+
+class model_class:
+	def __init__(self,path):
+		self.initial_system_configuration = worker.initialize_ode_system(path)
+		self.compartments = self.initial_system_configuration['compartments']
+		self.states = self.initial_system_configuration['states']
+		self.interactions = self.initial_system_configuration['interactions']
+		self.configuration = self.initial_system_configuration['configuration']
+		self.fetch_index_of_source_and_sink()	
+		
+		
+	def initialize_log(self,n_monte_samples,max_gd_iter):
+		parameters = self.to_grad_method()[0]
+		param_log = np.zeros( (n_monte_samples,
+									max_gd_iter, len(parameters)))
+		prediction_log = np.zeros( (n_monte_samples, max_gd_iter,
+								len(self.configuration['fit_target'])) )
+		cost_log = np.zeros( (n_monte_samples, max_gd_iter) )
+		model_log = np.zeros( (n_monte_samples, max_gd_iter,
+							int(self.configuration['time_evo_max']/
+							self.configuration['dt_time_evo']),
+							len(list(self.compartments))))
+	
+		log_dict = {'parameters': param_log,
+					'predictions': prediction_log,
+					'cost': cost_log,
+					'model': model_log,
+					'monte_carlo_idx': 0, 'gradient_idx': 0}
+		
+		self.log = log_dict
+
+
+	def fetch_index_of_interaction(self):
+		""" gets the indices in the interaction matrix """
+		## separate row & column
+		interactions = list(self.interactions)
+		compartments = list(self.compartments)
+		
+		interaction_index = interactions.copy()
+		for index,item in enumerate(interactions):
+			interaction_index[index] = item.split(':')
+		## parse them with the index
+		for index, item in enumerate(interaction_index):
+			interaction_index[index][0] = compartments.index(item[0])
+			interaction_index[index][1] = compartments.index(item[1])
+
+		return interaction_index
+
+
+	def fetch_index_of_source_and_sink(self):
+		sources = list(self.configuration['sources'])
+		sinks = list(self.configuration['sinks'])
+			
+		idx_sources = sources.copy()
+		idx_sinks = sinks.copy()
+
+		for ii, item in enumerate(idx_sources):
+			idx_sources[ii] = self.compartments.index(item)
+		for ii, item in enumerate(idx_sinks):
+			idx_sinks[ii] = self.compartments.index(item)
+		
+		self.configuration['idx_sources'] = idx_sources
+		self.configuration['idx_sinks'] = idx_sinks
+
+
+	def to_log(self,parameters,model_data,predictions,cost):
+		#current monte sample
+		ii = self.log['monte_carlo_idx']
+		jj = self.log['gradient_idx']
+		
+		# reshape prediction in case they are zero-dim
+		predictions = np.reshape(predictions,(len(predictions),1))
+	
+		self.log['parameters'][ii] = parameters
+		self.log['predictions'][ii] = predictions
+		self.log['model'][ii] = model_data
+		self.log['cost'][ii] = cost
+		
+		self.log['gradient_idx'] += 1
+		
+
+	def to_ode(self):
+		ODE_state = np.array([self.states[ii]['value'] for ii in self.states])
+		ODE_coeff_model = interaction_model_generator
+		ODE_coeff = ODE_coeff_model(self)
+		
+		return ODE_state,ODE_coeff_model, ODE_coeff
+
+
+	def to_grad_method(self):
+		""" Add docstring """
+		
+		free_parameters = []
+		constraints = []
+		for ii in self.states:
+			if self.states[ii]['optimise'] is not None:
+				value = self.states[ii]['value']
+				lower_bound = self.states[ii]['optimise']['lower']
+				upper_bound = self.states[ii]['optimise']['upper']
+				free_parameters.append(value)
+				constraints.append([lower_bound,upper_bound])
+
+		for ii in self.interactions:
+			#function
+			for item in self.interactions[ii]:
+				#parameters
+				if item['optimise'] is not None:
+					for jj,elements in enumerate(item['optimise']):
+						value = item['parameters'][jj]
+						lower_bound = elements['lower']
+						upper_bound = elements['upper']
+
+						free_parameters.append(value)
+						constraints.append([lower_bound,upper_bound])
+			
+		free_parameters = np.array(free_parameters)
+		constraints = np.array(constraints)
+
+		return free_parameters, constraints
+
+
+	def update_states(self, parameters):
+		values = list(parameters)
+		
+		for ii in self.states:
+			if self.states[ii]['optimise'] is not None:
+				self.states[ii]['value'] = values.pop(0)
+	
+		for ii in self.interactions:
+			#function
+			for item in self.interactions[ii]:
+				#parameters
+				if item['optimise'] is not None:
+					for jj,_ in enumerate(item['optimise']):
+							item['parameters'][jj] = values.pop(0)
+
+	
+	def calc_prediction(self):
+		ode_states,ode_coeff_model, ode_coeff = self.to_ode()
+		fit_model = globals()[self.configuration['fit_model']]
+
+		model_log, prediction,is_stable = fit_model(self,
+									globals()[self.configuration['integration_scheme']], 
+									self.configuration['time_evo_max'],
+									self.configuration['dt_time_evo'],
+									self.configuration['idx_sources'],
+									self.configuration['idx_sinks'],
+									ode_states,
+									ode_coeff,	
+									#globals()[ode_coeff_model],
+									# ISSUE - fix the hardcoding of interatcion model
+									interaction_model_generator,
+									float(self.configuration['stability_rel_tolerance']),
+									self.configuration['tail_length_stability_check'],
+									self.configuration['start_stability_check'])
+		
+		return model_log, prediction, is_stable
