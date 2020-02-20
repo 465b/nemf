@@ -57,6 +57,10 @@ def runge_kutta(ODE_state,ODE_coeff,dt_time_evo):
     return ODE_state
 
 
+# Compartment Coefficient models
+""" all coefficient models should follow the form:
+	model(system_configuration) """
+
 ## ODE coefficient models
 """ all weights model have the form: model(ODE_state,ODE_coeff).
     no ODE_state dependence (so far necessary) and all required
@@ -67,15 +71,15 @@ def runge_kutta(ODE_state,ODE_coeff,dt_time_evo):
 def interaction_model_generator(system_configuration):
 	""" uses the system configuration to compute the interaction_matrix """
 
-	interaction_index = worker.fetch_index_of_interaction(system_configuration)
+	interaction_index = system_configuration.fetch_index_of_interaction()
 	# we will rewrite alpha_ij every time after it got optimized.
 	alpha = worker.create_empty_interaction_matrix(system_configuration)
 	
 	#interactions
 	for kk,(ii,jj) in enumerate(interaction_index):
-		interaction = list(system_configuration['interactions'])[kk]
+		interaction = list(system_configuration.interactions)[kk]
 		#functions
-		for item in system_configuration['interactions'][interaction]:
+		for item in system_configuration.interactions[interaction]:
 			# adds everything up
 			alpha[ii,jj] += int(item['sign'])*globals()[item['fkt']](*item['parameters'])
 
