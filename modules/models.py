@@ -358,17 +358,17 @@ def J(N,k_N,mu_m):
     cost_val = mu_m*f_N*f_I
     return cost_val
 
-def holling_type0(value):
+def holling_type_0(value):
     return value
 
-def holling_typeII(food_processing_time,hunting_rate,prey_population):
+def holling_type_II(food_processing_time,hunting_rate,prey_population):
     """ Holling type II function """
     consumption_rate = ((hunting_rate * prey_population)/
             (1+hunting_rate * food_processing_time * prey_population))
     return G_val
 
 
-def holling_typeIII(epsilon,g,P):
+def holling_type_III(epsilon,g,P):
     """ Holling type III function """
     G_val = (g*epsilon*P**2)/(g+(epsilon*P**2))
     return G_val
