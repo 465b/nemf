@@ -86,28 +86,7 @@ def interaction_model_generator(system_configuration):
 	return alpha
 
 
-def standard_weights_model(ODE_state,ODE_coeff):
-    """ Models if no implicit time dependency is present.
-        Hence, ODE_coeff is constant and gets returned unchanged.
-        
-    Parameters:
-    -----------
-    ODE_state : numpy.array
-        1D array containing the state of the observed quantities
-        in the ODE
-    ODE_coeff : numpy.array
-        2d-square-matrix containing the coefficients of the ODE
-        
-    Returns:
-    --------
-    ODE_state : numpy.array
-        1D array containing the state of the observed quantities
-        in the ODE  """
-
-    return ODE_coeff
-
-
-## Fit models
+# Fit models
 """ Fit models define how the output of the time evolution (if stable) is used
     for further processing. Then, the optimization routine uses this processed
     time evolution output to fit the model to. Hence, the name fit_model. """
