@@ -4,6 +4,7 @@ from . import models
 from . import decorators
 
 import logging
+import warnings
 logging.basicConfig(filename='carbonflux_inverse_model.log',
 					level=logging.DEBUG)
 
@@ -264,23 +265,14 @@ def dn_monte_carlo(path_model_configuration,
 	
 	# runs the optimization with the initial values read from file
 	if sample_sets == 0:	
-	
-		# fetches the parameters and their constraints from model config
-		constraints = model_configuration.to_grad_method()[1]
-		parameters = worker.monte_carlo_sample_generator(constraints)
 		
-		# runs the gradient descent for the generated sample set 
-		parameters, model_data, prediction, cost = \
-			gradient_descent(model_configuration, parameters, constraints,
-			gradient_method, barrier_slope, gd_max_iter, pert_scale, grad_scale)
+		model_log, prediction, is_stable = \
+			model_configuration.calc_prediction()
+		cost = worker.cost_function(prediction,
+			model_configuration.configuration['fit_target'])
+		print('Is stable? {}'.format(is_stable))
+		model_configuration.to_log(np.array([]),model_log,prediction,cost)
 		
-		# updates log with the generated results
-		log_dict = {'parameters': parameters,
-					'model': model_data,
-					'prediction': prediction,
-					'cost': cost}
-		model_configuration.log = log_dict
-	
 	# runs the optimization with randomly chosen values
 	# values are picked from inside the allowed optimization range
 	else:
@@ -289,19 +281,30 @@ def dn_monte_carlo(path_model_configuration,
 	
 			# fetches the parameters and their constraints from model config
 			constraints = model_configuration.to_grad_method()[1]
-			parameters = worker.monte_carlo_sample_generator(constraints)
-			
-			# runs the gradient descent for the generated sample set 
-			param_stack, model_stack, prediction_stack, cost_stack = \
-				gradient_descent(model_configuration, parameters,constraints,
-				gradient_method, barrier_slope, gd_max_iter, pert_scale, grad_scale) 
-			
-			# updates log with the generated results
-			model_configuration.to_log(
-				param_stack,model_stack,prediction_stack, cost_stack)
-			
-			# updates the state of the optimization run
-			model_configuration.log['monte_carlo_idx'] = ii
-			model_configuration.log['gradient_idx'] = 0
+			if len(constraints) == 0:
+				warnings.warn('Monte Carlo optimization method called with '
+								+'no parameters to optimise. '
+								+'Falling back to running model without '
+								+'optimization.')
+				dn_monte_carlo(path_model_configuration,
+					gradient_method=gradient_method,
+					barrier_slope=barrier_slope,
+					sample_sets=0,gd_max_iter=gd_max_iter,
+					pert_scale=pert_scale,grad_scale=grad_scale,seed=seed)
+			else:
+				parameters = worker.monte_carlo_sample_generator(constraints)
+				
+				# runs the gradient descent for the generated sample set 
+				param_stack, model_stack, prediction_stack, cost_stack = \
+					gradient_descent(model_configuration, parameters,constraints,
+					gradient_method, barrier_slope, gd_max_iter, pert_scale, grad_scale) 
+				
+				# updates log with the generated results
+				model_configuration.to_log(
+					param_stack,model_stack,prediction_stack, cost_stack)
+				
+				# updates the state of the optimization run
+				model_configuration.log['monte_carlo_idx'] = ii
+				model_configuration.log['gradient_idx'] = 0
 
 	return model_configuration.log
