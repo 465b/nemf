@@ -377,17 +377,24 @@ class model_class:
 
 
 	def fetch_index_of_source_and_sink(self):
-		sources = list(self.configuration['sources'])
-		sinks = list(self.configuration['sinks'])
-			
-		idx_sources = sources.copy()
-		idx_sinks = sinks.copy()
-
-		for ii, item in enumerate(idx_sources):
-			idx_sources[ii] = self.compartments.index(item)
-		for ii, item in enumerate(idx_sinks):
-			idx_sinks[ii] = self.compartments.index(item)
+		if self.configuration['sources'] == None:
+			sources = None
+			idx_sources = []
+		else:
+			sources = list(self.configuration['sources'])
+			idx_sources = sources.copy()
+			for ii, item in enumerate(idx_sources):
+				idx_sources[ii] = self.compartments.index(item)
 		
+		if self.configuration['sinks'] == None:
+			sinks = None
+			idx_sinks = []
+		else:
+			sinks = list(self.configuration['sinks'])
+			idx_sinks = sinks.copy()
+			for ii, item in enumerate(idx_sinks):
+				idx_sinks[ii] = self.compartments.index(item)
+			
 		self.configuration['idx_sources'] = idx_sources
 		self.configuration['idx_sinks'] = idx_sinks
 
