@@ -586,7 +586,7 @@ def local_gradient(model_configuration, parameter_stack,
 
     # calculates cost at the center/current position
     parameter_center = parameter_stack[-1]
-    cost_center = model_configuration.calc_cost(parameter_center,barrier_slope)[1]
+    cost_center = model_configuration.calc_cost(parameter_center,barrier_slope)[2]
 
     # initializes the variable space for the surrounding local cost    
     n_x = len(parameter_stack_diff)
