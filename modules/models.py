@@ -403,13 +403,24 @@ class model_class:
 		#current monte sample
 		ii = self.log['monte_carlo_idx']
 		
-		# reshape prediction in case they are zero-dim
-		predictions = np.reshape(predictions,(len(predictions),1))
+		if np.shape(predictions) == ():
+			# reshape prediction in case they are zero-dim
+			predictions = np.reshape(predictions,(1,1))
+		else:
+			# reshape prediction in case they are one-dim
+			predictions = np.reshape(predictions,(len(predictions),1))
 	
-		self.log['parameters'][ii] = parameters
-		self.log['predictions'][ii] = predictions
-		self.log['model'][ii] = model_data
-		self.log['cost'][ii] = cost
+		if np.shape(self.log['parameters'])[0] == 0:
+			# in case there is only one parameter set
+			self.log['parameters'] = parameters
+			self.log['predictions'] = predictions
+			self.log['model'] = model_data
+			self.log['cost'] = cost
+		else:
+			self.log['parameters'][ii] = parameters
+			self.log['predictions'][ii] = predictions
+			self.log['model'][ii] = model_data
+			self.log['cost'][ii] = cost
 		
 		self.log['gradient_idx'] += 1
 		
