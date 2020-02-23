@@ -425,6 +425,11 @@ class model_class:
 		self.log['gradient_idx'] += 1
 		
 
+	def from_ode(self,ode_states):
+		for ii, item in enumerate(self.states):
+			self.states[item]['value'] = ode_states[ii]
+			
+
 	def to_ode(self):
 		ODE_state = np.array([self.states[ii]['value'] for ii in self.states])
 		ODE_coeff_model = interaction_model_generator
