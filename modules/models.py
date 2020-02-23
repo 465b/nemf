@@ -402,14 +402,11 @@ class model_class:
 	def to_log(self,parameters,model_data,predictions,cost):
 		#current monte sample
 		ii = self.log['monte_carlo_idx']
-		
+
 		if np.shape(predictions) == ():
 			# reshape prediction in case they are zero-dim
 			predictions = np.reshape(predictions,(1,1))
-		else:
-			# reshape prediction in case they are one-dim
-			predictions = np.reshape(predictions,(len(predictions),1))
-	
+		
 		if np.shape(self.log['parameters'])[0] == 0:
 			# in case there is only one parameter set
 			self.log['parameters'] = parameters
@@ -428,7 +425,7 @@ class model_class:
 	def from_ode(self,ode_states):
 		for ii, item in enumerate(self.states):
 			self.states[item]['value'] = ode_states[ii]
-			
+
 
 	def to_ode(self):
 		ODE_state = np.array([self.states[ii]['value'] for ii in self.states])

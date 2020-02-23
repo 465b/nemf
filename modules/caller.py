@@ -254,7 +254,11 @@ def dn_monte_carlo(path_model_configuration,
 		(parameters, prediction, cost)
 	"""
 
-
+	if sample_sets == -1:
+		sample_sets = 0
+		optim_flag = True
+	else: 
+		optim_flag = False
 	# seeds random generator to create reproducible runs
 	np.random.seed(seed)
 
@@ -264,15 +268,53 @@ def dn_monte_carlo(path_model_configuration,
 	model_configuration.initialize_log(sample_sets, gd_max_iter)
 	
 	# runs the optimization with the initial values read from file
-	if sample_sets == 0:	
-		
+	if optim_flag:
+		""" This option is run if there is no optimization desired,
+			of if no parameters to optimized are provided """
+		sample_sets = 0
 		model_log, prediction, is_stable = \
 			model_configuration.calc_prediction()
 		cost = worker.cost_function(prediction,
 			model_configuration.configuration['fit_target'])
 		print('Is stable? {}'.format(is_stable))
 		model_configuration.to_log(np.array([]),model_log,prediction,cost)
+
+	elif sample_sets == 0:	
+		""" This option runs the optimization with the initial parameters
+			presented in the model configuration """
 		
+		# fetches the parameters and their constraints from model config
+		constraints = model_configuration.to_grad_method()[1]
+		if len(constraints) == 0:
+			warnings.warn('Monte Carlo optimization method called with '
+							+'no parameters to optimise. '
+							+'Falling back to running model without '
+							+'optimization.')
+			return dn_monte_carlo(path_model_configuration,
+				gradient_method=gradient_method,
+				barrier_slope=barrier_slope,
+				sample_sets=-1,gd_max_iter=gd_max_iter,
+				pert_scale=pert_scale,grad_scale=grad_scale,seed=seed)
+		else:
+			parameters = worker.monte_carlo_sample_generator(constraints)
+			
+			# runs the gradient descent for the generated sample set 
+			parameters, model_data, prediction, cost = \
+				gradient_descent(model_configuration, parameters, constraints,
+				gradient_method, barrier_slope, gd_max_iter, pert_scale, grad_scale)
+			
+			# updates log with the generated results
+
+			model_configuration.to_log(
+					parameters,model_data,prediction, cost)
+			"""
+			log_dict = {'parameters': parameters,
+						'model': model_data,
+						'prediction': prediction,
+						'cost': cost}
+			model_configuration.log = log_dict
+			"""
+				
 	# runs the optimization with randomly chosen values
 	# values are picked from inside the allowed optimization range
 	else:
@@ -286,10 +328,10 @@ def dn_monte_carlo(path_model_configuration,
 								+'no parameters to optimise. '
 								+'Falling back to running model without '
 								+'optimization.')
-				dn_monte_carlo(path_model_configuration,
+				return dn_monte_carlo(path_model_configuration,
 					gradient_method=gradient_method,
 					barrier_slope=barrier_slope,
-					sample_sets=0,gd_max_iter=gd_max_iter,
+					sample_sets=-1,gd_max_iter=gd_max_iter,
 					pert_scale=pert_scale,grad_scale=grad_scale,seed=seed)
 			else:
 				parameters = worker.monte_carlo_sample_generator(constraints)
