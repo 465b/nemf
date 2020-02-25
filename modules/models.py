@@ -316,21 +316,64 @@ def J(N,k_N,mu_m):
 	cost_val = mu_m*f_N*f_I
 	return cost_val
 
-def holling_type_0(value):
-	return value
+
+def holling_type_0(coefficient):
+	""" constant respone (implicit linear),
+		compartment size independent """
+	return coefficient
+
+
+def holling_type_I(value,coefficient):
+	""" (co-)linear response """
+	return value*coefficient
 
 def holling_type_II(food_processing_time,hunting_rate,prey_population):
-	""" Holling type II function """
+	""" (co-)linear + saturation response """
 	consumption_rate = ((hunting_rate * prey_population)/
 			(1+hunting_rate * food_processing_time * prey_population))
 	return consumption_rate
 
 
 def holling_type_III(P,epsilon,g):
-	""" Holling type III function """
+	""" quadratic (+ implicit linear) + saturation response """
 	G_val = (g*epsilon*P**2)/(g+(epsilon*P**2))
 	return G_val
 
+
+def sloppy_feeding(holling_type,coeff,*args):
+	""" calls holling_type functions with an extra "efficiency" coefficient.
+		the inverse of the efficiency is then supposed to flow into
+		a different compartment """
+		
+	if holling_type == '0':
+		return coeff*holling_type_0(*args)
+	elif holling_type == 'I':
+		return coeff*holling_type_I(*args)
+	elif holling_type == 'II':
+		return coeff*holling_type_II(*args)
+	elif holling_type == 'III':
+		return coeff*holling_type_III(*args)
+	else:
+		raise ValueError("The defined holling_type is not available. "
+			+"Use one of the following: ['0','I','II','III']")
+	
+
+def nutrition_limited_growth(N,growth_rate,half_saturation):
+	""" reparameterization of holling_II """
+	return growth_rate*(N/(half_saturation+N))
+
+## referencing interaction functions
+	""" It is helpfull from a mechanistic point of view to not only
+		represent the relation between parameters but also its 'context'.
+		Hence, a linear mortality might be represented with a lin_mort()
+		function which then maps to a standard linear function to better
+		represent its usage and increase readability """
+
+linear_mortality = holling_type_0
+remineralisation = holling_type_0
+exudation = holling_type_0
+excretion = holling_type_0
+stress_dependant_exudation = holling_type_I
 
 # Model_Classes 
 
