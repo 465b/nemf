@@ -307,14 +307,7 @@ def dn_monte_carlo(path_model_configuration,
 
 			model_configuration.to_log(
 					parameters,model_data,prediction, cost)
-			"""
-			log_dict = {'parameters': parameters,
-						'model': model_data,
-						'prediction': prediction,
-						'cost': cost}
-			model_configuration.log = log_dict
-			"""
-				
+	
 	# runs the optimization with randomly chosen values
 	# values are picked from inside the allowed optimization range
 	else:
