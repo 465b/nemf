@@ -69,21 +69,25 @@ def runge_kutta(ODE_state,ODE_coeff,dt_time_evo):
 
 
 def interaction_model_generator(system_configuration):
-    """ uses the system configuration to compute the interaction_matrix """
+	""" uses the system configuration to compute the interaction_matrix """
 
-    interaction_index = system_configuration.fetch_index_of_interaction()
-    # we will rewrite alpha_ij every time after it got optimized.
-    alpha = worker.create_empty_interaction_matrix(system_configuration)
-    
-    #interactions
-    for kk,(ii,jj) in enumerate(interaction_index):
-        interaction = list(system_configuration.interactions)[kk]
-        #functions
-        for item in system_configuration.interactions[interaction]:
-            # adds everything up
-            alpha[ii,jj] += int(item['sign'])*globals()[item['fkt']](*item['parameters'])
-            alpha[jj,jj] -= int(item['sign'])*globals()[item['fkt']](*item['parameters'])
-    return alpha
+	interaction_index = system_configuration.fetch_index_of_interaction()
+	# we will rewrite alpha_ij every time after it got optimized.
+	alpha = worker.create_empty_interaction_matrix(system_configuration)
+	
+	#interactions
+	for kk,(ii,jj) in enumerate(interaction_index):
+		interaction = list(system_configuration.interactions)[kk]
+		#functions
+		for item in system_configuration.interactions[interaction]:
+			parameters = item['parameters'].copy()
+			for nn,entry in enumerate(parameters):
+				if type(entry) == str:
+					parameters[nn] = system_configuration.states[entry]['value']
+
+			alpha[ii,jj] += int(item['sign'])*globals()[item['fkt']](*parameters)
+			alpha[jj,jj] -= int(item['sign'])*globals()[item['fkt']](*parameters)
+	return alpha
 
 
 # Fit models
@@ -330,12 +334,19 @@ def holling_type_III(epsilon,g,P):
 
 class model_class:
 	def __init__(self,path):
-		self.initial_system_configuration = worker.initialize_ode_system(path)
-		self.compartments = self.initial_system_configuration['compartments']
-		self.states = self.initial_system_configuration['states']
-		self.interactions = self.initial_system_configuration['interactions']
-		self.configuration = self.initial_system_configuration['configuration']
-		self.fetch_index_of_source_and_sink()	
+		self.init_sys_config = worker.initialize_ode_system(path)
+		self.compartments = self.init_sys_config['compartments']
+		self.states = self.init_sys_config['states']
+		self.interactions = self.init_sys_config['interactions']
+		self.configuration = self.init_sys_config['configuration']
+		self.fetch_index_of_source_and_sink()
+		
+		self.configuration['model_output_shape'] = \
+			(int(self.configuration['time_evo_max']/
+				self.configuration['dt_time_evo']),
+				len(list(self.init_sys_config['states'])))
+		self.configuration['prediction_shape'] = \
+			(len(self.configuration['fit_target']),)
 		
 		
 	def initialize_log(self,n_monte_samples,max_gd_iter):
@@ -467,7 +478,11 @@ class model_class:
 		return free_parameters, constraints
 
 
-	def update_states(self, parameters):
+	def refresh_to_initial(self):
+		self.states = self.init_sys_config['states']
+
+
+	def update_system_with_parameters(self, parameters):
 		values = list(parameters)
 		
 		for ii in self.states:
@@ -506,7 +521,9 @@ class model_class:
 	
 	
 	def calc_cost(self, parameters, barrier_slope):
-		
+
+		self.refresh_to_initial()
+		self.update_system_with_parameters(parameters)	
 		constrains = self.to_grad_method()[1]		
 		model_log, prediction, is_stable = self.calc_prediction()
 		cost = worker.cost_function(prediction,self.configuration['fit_target'])
