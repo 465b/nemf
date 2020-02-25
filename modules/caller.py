@@ -320,7 +320,10 @@ def dn_monte_carlo(path_model_configuration,
 	else:
 		for ii in np.arange(0,sample_sets):
 			print('Monte Carlo Sample #{}'.format(ii))
-	
+			
+			# updates the state of the optimization run
+			model_configuration.log['monte_carlo_idx'] = ii
+			
 			# fetches the parameters and their constraints from model config
 			constraints = model_configuration.to_grad_method()[1]
 			if len(constraints) == 0:
