@@ -332,8 +332,5 @@ def dn_monte_carlo(path_model_configuration,
 				model_configuration.to_log(
 					param_stack,model_stack,prediction_stack, cost_stack)
 				
-				# updates the state of the optimization run
-				model_configuration.log['monte_carlo_idx'] = ii
-				model_configuration.log['gradient_idx'] = 0
 
 	return model_configuration.log
