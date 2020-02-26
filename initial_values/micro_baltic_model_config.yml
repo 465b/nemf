@@ -42,6 +42,11 @@ interactions:
       - 0.27
       - 0.7
       sign: '-1'
+    - fkt: exudation
+      parameters:
+      - 0.02
+      optimise:
+      sign: '+1'
   DOC:PHY:
     - fkt: linear_mortality
       optimise:
@@ -53,7 +58,7 @@ interactions:
       parameters:
         - 'NUT'
         - 0.01
-      sign: '-1'
+      sign: '+1'
   PHY:ZOO:
     - fkt: holling_type_II
       parameters:
