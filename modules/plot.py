@@ -1,11 +1,61 @@
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import networkx as nx
 
 sns.set_style('whitegrid')
 sns.set_context('paper')
 
 # plotting routines
+
+def interaction_graph(model_config):
+    """ Takes the model configuration and draws a labeled
+        directional-multi-graph to illustrate the interactions """
+    
+    # define the present nodes/compartments
+    nodes = list(model_config.states)
+
+    # fetch the list of interaction paths present
+    interactions = list(model_config.interactions)
+
+    # fetch list of edges and their labels
+    edges = []; labels = []
+    for path in interactions:
+        for edge in model_config.interactions[path]:
+            # swap direction depending on the function sign 
+            if edge['sign'] == '+1':
+                edges.append(tuple(path.split(':'))[::-1])
+            else:
+                edges.append(tuple(path.split(':')))
+            labels.append(edge['fkt'])
+
+    # setting up edge labes dict
+    edge_labels = {}
+    for ii,edge in enumerate(edges):
+        # checks if key is already present
+        if (edge in edge_labels):
+            # and if so appends it
+            edge_labels[edge] += '\n + {}'.format(labels[ii].replace('_','\n'))
+        else:
+            # or creates it
+            edge_labels[edge] = labels[ii].replace('_','\n')
+
+    # initialise graph
+    G = nx.MultiDiGraph()
+    G.add_nodes_from(nodes)
+    G.add_edges_from(edges)
+
+    # define node positions
+    pos = nx.kamada_kawai_layout(G)
+
+    # actual plotting
+    nx.draw(G, pos,node_size=2000, node_color='pink',
+           labels={node:node for node in G.nodes()},
+           arrowsize=20)
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels,
+        label_pos=0.35, font_size=10,font_color='tab:red',rotate=False)
+    plt.show()
+
 
 def coupling_matrix(d2_weights,ODE_coeff_weights,names):
     plt.figure(figsize=(12,6))
