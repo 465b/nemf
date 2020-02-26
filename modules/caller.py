@@ -160,7 +160,7 @@ def gradient_descent(model_configuration, parameters, constraints,
 		""" makes sure that all points in the parameter set are inside
 			of the search space and if not moves them back into it """
 		param_stack[ii] = worker.barrier_hard_enforcement(
-			param_stack[ii],ii,constraints,pert_scale)
+			param_stack[ii],constraints,pert_scale)
 		""" fetch prediction and cost at given point """
 		model_log,prediction_stack[ii], cost_stack[ii] = \
 			model_configuration.calc_cost(param_stack[ii],barrier_slope)[0:2+1]

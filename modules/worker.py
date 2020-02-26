@@ -231,7 +231,7 @@ def barrier_function(free_param,constrains=np.array([None]),barrier_slope=1):
     return cost_barrier
 
 
-def barrier_hard_enforcement(free_param,jj,constrains=None,
+def barrier_hard_enforcement(free_param,constrains=None,
                              pert_scale=1e-2,seed=137):
     """ if outside the search space we enforce a 'in-constrain'
         search space by ignoring the recommended step and
@@ -280,7 +280,6 @@ def barrier_hard_enforcement(free_param,jj,constrains=None,
         if (free_param[ii] <= left):
             buffer = left + np.random.rand()*pert_scale
             warn_string = ( 'Left  barrier enforcement'+
-                            'at step {:4d} {:4d}. '.format(jj,ii)+
                             'Value shifted from {:+8.2E} to {:+8.2E}'.format(
                                 free_param[ii],buffer))
             logging.debug(warn_string)
@@ -289,7 +288,6 @@ def barrier_hard_enforcement(free_param,jj,constrains=None,
         if (free_param[ii] >= right):
             buffer = right - np.random.rand()*pert_scale
             warn_string = ( 'Right barrier enforcement'+
-                            'at step {:4d} {:4d}. '.format(jj,ii)+
                             'Value shifted from {:+8.2E} to {:+8.2E}'.format(
                                 free_param[ii],buffer))
             logging.debug(warn_string)
@@ -601,7 +599,7 @@ def local_gradient(model_configuration, parameter_stack,
 
         # makes sure that these step stay within the boundaries
         parameter_local[ii,ii] = barrier_hard_enforcement(
-                                    np.array([parameter_local[ii,ii]]),ii,
+                                    np.array([parameter_local[ii,ii]]),
                                     np.array([constrains[ii]]))[0]
         
         #calculates the cost at their positions
