@@ -176,7 +176,7 @@ def gradient_descent(model_configuration, parameters, constraints,
 			# this would make it more consistent with the other methods
 			gradient = worker.local_gradient(model_configuration,
 				param_stack[:ii+1], constraints, barrier_slope, pert_scale)[0]
-			if any(gradient == None):
+			if gradient is None:
 				""" moves the original set uof free parameters_stack in case
 					that any(!) of the surrounding points used in the calculation
 					of the local gradient is unstable """
