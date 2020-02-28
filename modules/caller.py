@@ -79,8 +79,10 @@ def run_time_evo(model_configuration, integration_scheme, time_evo_max,
 		ode_state_log[ii] = integration_scheme(ode_state_log[ii-1],ode_coeff,dt_time_evo)
 		model_configuration.from_ode(ode_state_log[ii])
 		# repeatedly checks if the solution is stable, if so returns, if not continuos
-		if ((ii >= start_stability_check) & (ii%tail_length_stability_check == 0) &
-			(stability_rel_tolerance != 0)):
+		if ( (ii >= int(start_stability_check/dt_time_evo))
+			& (ii%tail_length_stability_check == 0) 
+			& (stability_rel_tolerance != 0)):
+		
 			is_stable = worker.verify_stability_time_evolution(ode_state_log[:ii+1],
 											stability_rel_tolerance,tail_length_stability_check)
 		
