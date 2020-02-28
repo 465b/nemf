@@ -441,7 +441,7 @@ def monte_carlo_sample_generator(constrains):
     return sample_set
 
 
-def local_gradient(model_configuration, parameter_stack,
+def local_gradient(model_config, parameter_stack,
                    constrains=np.array([None]),
                    barrier_slope=0.01, pert_scale = 1e-6):
 
@@ -453,7 +453,7 @@ def local_gradient(model_configuration, parameter_stack,
 
         Parameters
         ----------
-	    model_configuration : object
+	    model_config : object
 			contains all the information and necessary methods
 			of the optimized model
 		parameter_stack : numpy.array
@@ -483,7 +483,8 @@ def local_gradient(model_configuration, parameter_stack,
     # checks if there has been a previous step 
     # and if not uses pert scale as step size 
     if np.shape(parameter_stack)[0] == 1:
-        parameter_stack_diff = parameter_stack[-1] - perturb(parameter_stack[-1],pert_scale)
+        parameter_stack_diff = parameter_stack[-1] \
+                               - perturb(parameter_stack[-1],pert_scale)
     # if there was it uses the previous step as step size
     # ISSUE: this implicitly adds a "momentum" style behavior 
     else:
@@ -491,7 +492,7 @@ def local_gradient(model_configuration, parameter_stack,
 
     # calculates cost at the center/current position
     parameter_center = parameter_stack[-1]
-    cost_center = model_configuration.calc_cost(parameter_center,barrier_slope)[2]
+    cost_center = model_config.calc_cost(parameter_center,barrier_slope)[2]
 
     # initializes the variable space for the surrounding local cost    
     n_x = len(parameter_stack_diff)
@@ -509,7 +510,7 @@ def local_gradient(model_configuration, parameter_stack,
                                     np.array([constrains[ii]]))[0]
         
         #calculates the cost at their positions
-        cost_local[ii],is_stable = model_configuration.calc_cost(
+        cost_local[ii],is_stable = model_config.calc_cost(
                                     parameter_local[ii],barrier_slope)[2:]
         
         # checks if it we find a stable solution at these points
