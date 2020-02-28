@@ -22,17 +22,14 @@ def read_coeff_yaml(path):
 # Parsers
 
 def initialize_ode_system(path_config):
-	""" Initializes the dictionary containing the 'state' and 'interactions' 
-	
+	""" Initializes the dictionary containing the 'state' and 'interactions'
+
 		Parameters:
 		-----------
-		path_states : string
-			Path to the yaml file containing the state configuration.
+		path_config : string
+			Path to the yaml file containing the ode model configuration.
 			The configuration contains the compartments, initial values
-			and optimization constrains.
-		path_coefficients : string
-			Path to the yaml file containing the state configuration.
-			The configuration contains the compartments, interactions paths, 
+			and optimization constrains - as well as - interactions paths, 
 			interaction directions (sign),interaction functions,
 			initial parameter values and optimization constrains.
 
@@ -45,99 +42,8 @@ def initialize_ode_system(path_config):
 	system_config = read_coeff_yaml(path_config)
 
 	return system_config
-    
-
-def system_configuration_to_ode_method(system_configuration):
-	""" Add docstring """
-	
-	ODE_state = np.array([system_configuration['states'][ii]['value']
-					for ii in system_configuration['states']])
-	
-	ODE_coeff_model = models.interaction_model_generator
-	ODE_coeff = ODE_coeff_model(system_configuration)
-
-	return ODE_state,ODE_coeff_model, ODE_coeff
 
 
-def system_configuration_to_grad_method(system_configuration):
-	""" Add docstring """
-	
-	free_parameters = []
-	constraints = []
-
-	for ii in system_configuration['states']:
-		if system_configuration['states'][ii]['optimise'] is not None:
-			value = system_configuration['states'][ii]['value']
-			lower_bound = system_configuration['states'][ii]['optimise']['lower']
-			upper_bound = system_configuration['states'][ii]['optimise']['upper']
-
-			free_parameters.append(value)
-			constraints.append([lower_bound,upper_bound])
-			
-	for ii in system_configuration['interactions']:
-		#function
-		for item in system_configuration['interactions'][ii]:
-			#parameters
-			if item['optimise'] is not None:
-				for jj,elements in enumerate(item['optimise']):
-					value = item['parameters'][jj]
-					lower_bound = elements['lower']
-					upper_bound = elements['upper']
-
-					free_parameters.append(value)
-					constraints.append([lower_bound,upper_bound])
-		
-	free_parameters = np.array(free_parameters)
-	constraints = np.array(constraints)
-
-	return free_parameters, constraints
-	
-
-def grad_method_to_system_configuration(free_parameters, constraints,system_configuration):
-	""" Add docstring """
-
-	values = list(free_parameters)
-	
-	for ii in system_configuration['states']:
-		if system_configuration['states'][ii]['optimise'] is not None:
-			system_configuration['states'][ii]['value'] = values.pop(0)
-			
-	for ii in system_configuration['interactions']:
-		#function
-		for item in system_configuration['interactions'][ii]:
-			#parameters
-			if item['optimise'] is not None:
-				for jj,_ in enumerate(item['optimise']):
-						item['parameters'][jj] = values.pop(0)
-
-	return system_configuration
-
-## parser helper
-
-def create_empty_interaction_matrix(interaction_config):
-	""" initializes an empty interaction matrix """
-	size = len(interaction_config.states)
-	alpha = np.zeros((size,size))
-	return alpha
-
-
-def fetch_index_of_interaction(data):
-	""" gets the indices in the interaction matrix """
-	## separate row & column
-	interactions = list(data['interactions'])
-	compartments = list(data['states'])
-	
-	interaction_index = interactions.copy()
-	for index,item in enumerate(interactions):
-		interaction_index[index] = item.split(':')
-	## parse them with the index
-	for index, item in enumerate(interaction_index):
-		interaction_index[index][0] = compartments.index(item[0])
-		interaction_index[index][1] = compartments.index(item[1])
-
-	return interaction_index
-
-	
 # Gradient Decent
 
 ## Cost function related Methods

@@ -73,7 +73,7 @@ def interaction_model_generator(system_configuration):
 
 	interaction_index = system_configuration.fetch_index_of_interaction()
 	# we will rewrite alpha_ij every time after it got optimized.
-	alpha = worker.create_empty_interaction_matrix(system_configuration)
+	alpha = system_configuration.create_empty_interaction_matrix()
 	
 	#interactions
 	for kk,(ii,jj) in enumerate(interaction_index):
@@ -525,6 +525,12 @@ class model_class:
 
 	def refresh_to_initial(self):
 		self.states = self.init_sys_config['states']
+
+	def create_empty_interaction_matrix(self):
+		""" initializes an returns empty interaction matrix """
+		size = len(self.states)
+		alpha = np.zeros((size,size))
+		return alpha
 
 
 	def update_system_with_parameters(self, parameters):
