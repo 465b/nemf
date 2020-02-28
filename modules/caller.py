@@ -35,12 +35,12 @@ def run_time_evo(model_configuration, integration_scheme, time_evo_max,
 	ode_state : numpy.array
 		1D array containing the initial state of the observed quantities
 		in the ODE. Often also referred to as initial conditions.
-	ode_coeff : numpy.array
-		2d-square-matrix containing the coefficients of the ODE
 	ode_coeff_model : function
 		selects the function used for the calculation of the ODE
 		coefficients. I.e. if dependencies of the current state are present.
 		If no dependency is present use 'standard_weights_model'
+	ode_coeff : numpy.array
+		2d-square-matrix containing the coefficients of the ODE
 	stability_rel_tolerance : positive float
 		Defines the maximal allowed relative fluctuation range in the tail
 		of the time evolution. If below, system is called stable.
@@ -79,8 +79,10 @@ def run_time_evo(model_configuration, integration_scheme, time_evo_max,
 		ode_state_log[ii] = integration_scheme(ode_state_log[ii-1],ode_coeff,dt_time_evo)
 		model_configuration.from_ode(ode_state_log[ii])
 		# repeatedly checks if the solution is stable, if so returns, if not continuos
-		if ((ii >= start_stability_check) & (ii%tail_length_stability_check == 0) &
-			(stability_rel_tolerance != 0)):
+		if ( (ii >= int(start_stability_check/dt_time_evo))
+			& (ii%tail_length_stability_check == 0) 
+			& (stability_rel_tolerance != 0)):
+		
 			is_stable = worker.verify_stability_time_evolution(ode_state_log[:ii+1],
 											stability_rel_tolerance,tail_length_stability_check)
 		
@@ -112,10 +114,6 @@ def gradient_descent(model_configuration, parameters, constraints,
 			{SGD_basic,SGD_momentum}
 			Selects the method used during the gradient descent.
 			They differ in their robustness and convergence speed
-		integration_scheme: function
-			{euler_forward, runge_kutta}
-			Selects which method is used in the integration of the time evolution.
-			Euler is of first order, Runge-Kutta of second
 		barrier_slope : positive-float
 			Defines the slope of the barrier used for the soft constrain.
 			Lower numbers, steeper slope. Typically between (0-1].
@@ -136,6 +134,11 @@ def gradient_descent(model_configuration, parameters, constraints,
 		parameter_stack : numpy.array
 			2D-array containing the set of optimized free parameter,
 			stacked along the first axis.
+		model_stack: numpy.array
+			3D-array containing the output of the ode-model.
+			first axis represents the gradient descent iteration step.
+			second axis represents the time step of the ode.
+			third axis represents the modelled compartments
 		prediction_stack : numpy.array
 			2D-array containing the output of the time evolution,
 			stacked along the first axis.
@@ -144,23 +147,28 @@ def gradient_descent(model_configuration, parameters, constraints,
 			function calculated based on the free_param at the same
 			first-axis index.   """
 
+	# initialize variabale space
 	param_stack = np.zeros((gd_max_iter,len(parameters)))
 	param_stack[0] = parameters
 	cost_stack = np.zeros((gd_max_iter))
+	## fetches ode-model/fit-model shape from model configuration
 	model_output_shape = model_configuration.configuration['model_output_shape']
 	prediction_output_shape = model_configuration.configuration['prediction_shape']
+	##
 	model_stack = np.zeros( (gd_max_iter,) + model_output_shape )
 	prediction_stack = np.zeros( (gd_max_iter,) + prediction_output_shape )
+
 	# ii keeps track of the position in the output array
-	# jj keeps track to not exceed max iterations
+	# jj keeps track of the actual iteration step,
+	# 	 to ensure that it does not exceed max iterations
 	ii = 0; jj = 0
-	
 	while jj < gd_max_iter-1:
+		print('Gradient Descent Step #{}'.format(jj))
 
 		""" makes sure that all points in the parameter set are inside
 			of the search space and if not moves them back into it """
 		param_stack[ii] = worker.barrier_hard_enforcement(
-			param_stack[ii],ii,constraints,pert_scale)
+			param_stack[ii],constraints,pert_scale)
 		""" fetch prediction and cost at given point """
 		model_log,prediction_stack[ii], cost_stack[ii] = \
 			model_configuration.calc_cost(param_stack[ii],barrier_slope)[0:2+1]
@@ -176,7 +184,7 @@ def gradient_descent(model_configuration, parameters, constraints,
 			# this would make it more consistent with the other methods
 			gradient = worker.local_gradient(model_configuration,
 				param_stack[:ii+1], constraints, barrier_slope, pert_scale)[0]
-			if any(gradient == None):
+			if gradient is None:
 				""" moves the original set uof free parameters_stack in case
 					that any(!) of the surrounding points used in the calculation
 					of the local gradient is unstable """
@@ -229,7 +237,7 @@ def dn_monte_carlo(path_model_configuration,
 	pert_scale : positive float
 		Maximal value which the system can be perturbed if necessary
 		(i.e. if instability is found). Actual perturbation ranges
-		from [0-pert_scal) uniformly distributed.
+		from [0-pert_scale) uniformly distributed.
 	grad_scale : positive float
 		Scales the step size in the gradient descent. Often also
 		referred to as learning rate. Necessary to compensate for the
@@ -240,9 +248,10 @@ def dn_monte_carlo(path_model_configuration,
 
 	Returns
 	-------
-	model_configuration.log : dict
-		contains the results for every run
-		(parameters, prediction, cost)
+	model_configuration : dict
+		contains the configuration of the model including the output log,
+		containing all the intermediate outputs
+		(parameters, model, prediction, cost)
 	"""
 
 	if sample_sets == -1:
@@ -333,4 +342,4 @@ def dn_monte_carlo(path_model_configuration,
 					param_stack,model_stack,prediction_stack, cost_stack)
 				
 
-	return model_configuration.log
+	return model_configuration

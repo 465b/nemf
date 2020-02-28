@@ -5,101 +5,107 @@ from . import worker
 # Time Evolution
 
 ## Integration Schemes
-def euler_forward(ODE_state,ODE_coeff,dt_time_evo):
+def euler_forward(ode_state,ode_coeff,dt_time_evo):
 	""" integration scheme for the time evolution 
 		based on a euler forward method
 		
 		Parameters:
 		-----------
-		ODE_state : numpy.array
+		ode_state : numpy.array
 			1D array containing the state of the observed quantities
 			in the ODE
-		ODE_coeff : numpy.array
+		ode_coeff : numpy.array
 			2d-square-matrix containing the coefficients of the ODE
 		dt_time_evo
 			Size of time step used in the time evolution.
-			Has the same unit as the one used in the initial ODE_state
+			Has the same unit as the one used in the initial ode_state
 		
 		Returns:
 		--------
-		ODE_state : numpy.array
+		ode_state : numpy.array
 			1D array containing the state of the observed quantities
 			in the ODE. Now at the next iteration step  """
 	
-	ODE_state = ODE_state + np.matmul(ODE_coeff,ODE_state)*dt_time_evo 
+	ode_state = ode_state + np.matmul(ode_coeff,ode_state)*dt_time_evo 
 	
-	return ODE_state
+	return ode_state
 
-def runge_kutta(ODE_state,ODE_coeff,dt_time_evo):
+def runge_kutta(ode_state,ode_coeff,dt_time_evo):
 	""" integration scheme for the time evolution 
 		based on a euler forward method 
 		
 		Parameters:
 		-----------
-		ODE_state : numpy.array
+		ode_state : numpy.array
 			1D array containing the state of the observed quantities
 			in the ODE
-		ODE_coeff : numpy.array
+		ode_coeff : numpy.array
 			2d-square-matrix containing the coefficients of the ODE
 		dt_time_evo
 			Size of time step used in the time evolution.
-			Has the same unit as the one used in the initial ODE_state
+			Has the same unit as the one used in the initial ode_state
 		
 		Returns:
 		--------
-		ODE_state : numpy.array
+		ode_state : numpy.array
 			1D array containing the state of the observed quantities
 			in the ODE. Now at the next iteration step  """
 	
-	ODE_state_half = ODE_state + dt_time_evo/2*np.matmul(ODE_coeff,ODE_state)
-	ODE_state = ODE_state_half + np.matmul(ODE_coeff,ODE_state_half)*dt_time_evo
+	ode_state_half = ode_state + dt_time_evo/2*np.matmul(ode_coeff,ode_state)
+	ode_state = ode_state_half + np.matmul(ode_coeff,ode_state_half)*dt_time_evo
 	
-	return ODE_state
+	return ode_state
 
 
 # Compartment Coefficient models
 """ all coefficient models should follow the form:
-	model(system_configuration) """
+	model(model_config) """
 
 ## ODE coefficient models
-""" all weights model have the form: model(ODE_state,ODE_coeff).
-	no ODE_state dependence (so far necessary) and all required
+""" all weights model have the form: model(ode_state,ode_coeff).
+	no ode_state dependence (so far necessary) and all required
 	constants should be called in the model through a function 
-	(i don't know if thats very elegant, but saves an unnecessary)"""
+	(i don't know if thats very elegant, but saves an unnecessary) """
 
 
-def interaction_model_generator(system_configuration):
+def interaction_model_generator(model_config):
 	""" uses the system configuration to compute the interaction_matrix """
 
-	interaction_index = system_configuration.fetch_index_of_interaction()
+	interaction_index = model_config.fetch_index_of_interaction()
 	# we will rewrite alpha_ij every time after it got optimized.
-	alpha = worker.create_empty_interaction_matrix(system_configuration)
+	alpha = model_config.create_empty_interaction_matrix()
 	
 	#interactions
 	for kk,(ii,jj) in enumerate(interaction_index):
-		interaction = list(system_configuration.interactions)[kk]
+		interaction = list(model_config.interactions)[kk]
 		#functions
-		for item in system_configuration.interactions[interaction]:
+		for item in model_config.interactions[interaction]:
 			parameters = item['parameters'].copy()
 			for nn,entry in enumerate(parameters):
 				if type(entry) == str:
-					parameters[nn] = system_configuration.states[entry]['value']
+					parameters[nn] = model_config.states[entry]['value']
 
-			alpha[ii,jj] += int(item['sign'])*globals()[item['fkt']](*parameters)
-			alpha[jj,jj] -= int(item['sign'])*globals()[item['fkt']](*parameters)
+			# updates the matrix
+			## nondiagonal elements
+			alpha[ii,jj] += int(item['sign']) \
+								*globals()[item['fkt']](*parameters)
+			## diagonal elements
+			alpha[jj,jj] -= int(item['sign']) \
+								*globals()[item['fkt']](*parameters)
 	return alpha
 
 
 # Fit models
-""" Fit models define how the output of the time evolution (if stable) is used
-	for further processing. Then, the optimization routine uses this processed
-	time evolution output to fit the model to. Hence, the name fit_model. """
+""" Fit models define how the output of the time evolution (if stable)
+	is used  further processing. Then, the optimization routine uses
+	this processed time evolution output to fit the model to.
+	Hence, the name fit_model. """
 	
-def direct_fit_model(model_configuration,integration_scheme, 
+def direct_fit_model(model_config,integration_scheme, 
 					   time_evo_max, dt_time_evo,
 					   idx_source, idx_sink,
-					   ODE_state, ODE_coeff=None,
-					   ODE_coeff_model=interaction_model_generator,
+					   ode_state, ode_coeff=None,
+					   ode_coeff_model=interaction_model_generator,
 					   stability_rel_tolerance=1e-5,
 					   tail_length_stability_check=10,
 					   start_stability_check=100):
@@ -115,19 +121,20 @@ def direct_fit_model(model_configuration,integration_scheme,
 			Runge-Kutta of second
 		time_evo_max
 			Maximal amount of iterations allowed in the time evolution.
-			Has the same unit as the one used in the initial ODE_state
+			Has the same unit as the one used in the initial ode_state
 		dt_time_evo
 			Size of time step used in the time evolution.
-			Has the same unit as the one used in the initial ODE_state
-		ODE_state : numpy.array
+			Has the same unit as the one used in the initial ode_state
+		ode_state : numpy.array
 			1D array containing the initial state of the observed quantities
 			in the ODE. Often also referred to as initial conditions.
-		ODE_coeff : numpy.array
+		ode_coeff : numpy.array
 			2d-square-matrix containing the coefficients of the ODE
-		ODE_coeff_model : function
+		ode_coeff_model : function
 			selects the function used for the calculation of the ODE
-			coefficients. I.e. if dependencies of the current state are present.
-			If no dependency is present use 'standard_weights_model'
+			coefficients. I.e. if dependencies of the current 
+			state are present. If no dependency is present
+			use 'standard_weights_model'
 		stability_rel_tolerance : positive float
 			Defines the maximal allowed relative fluctuation range in the tail
 			of the time evolution. If below, system is called stable.
@@ -149,10 +156,10 @@ def direct_fit_model(model_configuration,integration_scheme,
 			true if stability conditions are met. 
 			See verify_stability_time_evolution() for more details. """
 	
-	F_ij, is_stable = caller.run_time_evo(model_configuration,
+	F_ij, is_stable = caller.run_time_evo(model_config,
 										integration_scheme, time_evo_max,
-										dt_time_evo,ODE_state,
-										ODE_coeff_model,ODE_coeff,
+										dt_time_evo,ode_state,
+										ode_coeff_model,ode_coeff,
 										stability_rel_tolerance,
 										tail_length_stability_check,
 										start_stability_check)
@@ -161,11 +168,11 @@ def direct_fit_model(model_configuration,integration_scheme,
 	return F_ij,F_i,is_stable 
 
 
-def net_flux_fit_model(model_configuration,integration_scheme, 
+def net_flux_fit_model(model_config,integration_scheme, 
 					   time_evo_max, dt_time_evo,
 					   idx_source, idx_sink,
-					   ODE_state, ODE_coeff=None,
-					   ODE_coeff_model=interaction_model_generator,
+					   ode_state, ode_coeff=None,
+					   ode_coeff_model=interaction_model_generator,
 					   stability_rel_tolerance=1e-5,
 					   tail_length_stability_check=10,
 					   start_stability_check=100):
@@ -184,23 +191,24 @@ def net_flux_fit_model(model_configuration,integration_scheme,
 			Runge-Kutta of second
 		time_evo_max : float
 			Maximal amount of iterations allowed in the time evolution.
-			Has the same unit as the one used in the initial ODE_state
+			Has the same unit as the one used in the initial ode_state
 		dt_time_evo : float
 			Size of time step used in the time evolution.
-			Has the same unit as the one used in the initial ODE_state
+			Has the same unit as the one used in the initial ode_state
 		b
-		ODE_state : numpy.array
+		ode_state : numpy.array
 			1D array containing the initial state of the observed quantities
 			in the ODE. Often also referred to as initial conditions.
-		ODE_coeff : numpy.array
+		ode_coeff : numpy.array
 			2d-square-matrix containing the coefficients of the ODE
-		ODE_coeff_model : function
+		ode_coeff_model : function
 			selects the function used for the calculation of the ODE
-			coefficients. I.e. if dependencies of the current state are present.
-			If no dependency is present use 'standard_weights_model'
+			coefficients. I.e. if dependencies of the current state 
+			are present. If no dependency is present 
+			use 'standard_weights_model'
 		stability_rel_tolerance : positive float
-			Defines the maximal allowed relative fluctuation range in the tail
-			of the time evolution. If below, system is called stable.
+			Defines the maximal allowed relative fluctuation range in the 
+			tail of the time evolution. If below, system is called stable.
 		tail_length_stability_check : positive integer
 			Defines the length of the tail used for the stability calculation.
 			Tail means the amount of elements counted from the back of the
@@ -219,10 +227,10 @@ def net_flux_fit_model(model_configuration,integration_scheme,
 			true if stability conditions are met. 
 			See verify_stability_time_evolution() for more details. """
 
-	F_ij, is_stable = caller.run_time_evo(model_configuration,
+	F_ij, is_stable = caller.run_time_evo(model_config,
 										  integration_scheme, time_evo_max,
-										  dt_time_evo,ODE_state,
-										  ODE_coeff_model,ODE_coeff,
+										  dt_time_evo,ode_state,
+										  ode_coeff_model,ode_coeff,
 										  stability_rel_tolerance,
 										  tail_length_stability_check,
 										  start_stability_check)
@@ -392,8 +400,8 @@ class model_class:
 				len(list(self.init_sys_config['states'])))
 		self.configuration['prediction_shape'] = \
 			(len(self.configuration['fit_target']),)
-		
-		
+
+
 	def initialize_log(self,n_monte_samples,max_gd_iter):
 		parameters = self.to_grad_method()[0]
 		param_log = np.zeros( (n_monte_samples,
@@ -479,25 +487,31 @@ class model_class:
 		
 
 	def from_ode(self,ode_states):
+		""" updates self with the results provided by the ode solver """
 		for ii, item in enumerate(self.states):
 			self.states[item]['value'] = ode_states[ii]
 
 
 	def to_ode(self):
-		ODE_state = np.array([self.states[ii]['value'] for ii in self.states])
-		ODE_coeff_model = interaction_model_generator
-		ODE_coeff = ODE_coeff_model(self)
+		""" fetches the parameters necessary for the ode solver 
+ 	       Returns: ode_state,ode_coeff_model,ode_coeff """
+		ode_state = np.array([self.states[ii]['value'] for ii in self.states])
+		ode_coeff_model = interaction_model_generator
+		ode_coeff = ode_coeff_model(self)
 		
-		return ODE_state,ODE_coeff_model, ODE_coeff
+		return ode_state,ode_coeff_model, ode_coeff
 
 
 	def to_grad_method(self):
-		""" Add docstring """
+		""" fetches the parameters necessary for the gradient descent method
+ 	       Returns: free_parameters, constraints """
 		
 		free_parameters = []
 		constraints = []
+		labels = []
 		for ii in self.states:
 			if self.states[ii]['optimise'] is not None:
+				labels.append('{}'.format(ii))
 				value = self.states[ii]['value']
 				lower_bound = self.states[ii]['optimise']['lower']
 				upper_bound = self.states[ii]['optimise']['upper']
@@ -510,6 +524,7 @@ class model_class:
 				#parameters
 				if item['optimise'] is not None:
 					for jj,elements in enumerate(item['optimise']):
+						labels.append('{},{},{}'.format(ii,item,jj))
 						value = item['parameters'][jj]
 						lower_bound = elements['lower']
 						upper_bound = elements['upper']
@@ -520,11 +535,17 @@ class model_class:
 		free_parameters = np.array(free_parameters)
 		constraints = np.array(constraints)
 
-		return free_parameters, constraints
+		return free_parameters, constraints, labels
 
 
 	def refresh_to_initial(self):
 		self.states = self.init_sys_config['states']
+
+	def create_empty_interaction_matrix(self):
+		""" initializes an returns empty interaction matrix """
+		size = len(self.states)
+		alpha = np.zeros((size,size))
+		return alpha
 
 
 	def update_system_with_parameters(self, parameters):
@@ -548,19 +569,19 @@ class model_class:
 		fit_model = globals()[self.configuration['fit_model']]
 
 		model_log, prediction,is_stable = fit_model(self,
-									globals()[self.configuration['integration_scheme']], 
-									self.configuration['time_evo_max'],
-									self.configuration['dt_time_evo'],
-									self.configuration['idx_sources'],
-									self.configuration['idx_sinks'],
-									ode_states,
-									ode_coeff,	
-									#globals()[ode_coeff_model],
-									# ISSUE - fix the hardcoding of interatcion model
-									interaction_model_generator,
-									float(self.configuration['stability_rel_tolerance']),
-									self.configuration['tail_length_stability_check'],
-									self.configuration['start_stability_check'])
+			globals()[self.configuration['integration_scheme']], 
+			self.configuration['time_evo_max'],
+			self.configuration['dt_time_evo'],
+			self.configuration['idx_sources'],
+			self.configuration['idx_sinks'],
+			ode_states,
+			ode_coeff,	
+			#globals()[ode_coeff_model],
+			# ISSUE - fix the hardcoding of interatcion model
+			interaction_model_generator,
+			float(self.configuration['stability_rel_tolerance']),
+			self.configuration['tail_length_stability_check'],
+			self.configuration['start_stability_check'])
 		
 		return model_log, prediction, is_stable
 	

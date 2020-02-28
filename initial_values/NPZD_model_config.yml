@@ -44,7 +44,7 @@ interactions:
     - 'P'
     - 1.6 # epsilon
     - 1.575 # g 
-    sign: '+1'
+    sign: '-1'
   D:P:
   - fkt: linear_mortality
     optimise:
@@ -74,6 +74,6 @@ configuration:
   ode_coeff_model: interaction_model_generator
   stability_rel_tolerance: 1e-3
   tail_length_stability_check: 10
-  start_stability_check: 500
+  start_stability_check: 50
   fit_model: direct_fit_model
   fit_target: [1,1,0,0]

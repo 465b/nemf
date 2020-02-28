@@ -3,7 +3,6 @@ import modules.models as models
 import modules.worker as worker
 import modules.caller as caller
 import modules.plot as plot
-import modules.plot
 
 import matplotlib.pyplot as plt
 
@@ -19,7 +18,7 @@ data_dict = caller.dn_monte_carlo(path,
     sample_sets=1, gd_max_iter=100, grad_scale=1e-1)
 
 # simple plot of some results
-plt.plot(data_dict['cost'][0])
+plt.plot(data_dict.log['cost'][0,:-1])
 plt.show()
-plt.plot(data_dict['predictions'][0])
+plt.plot(data_dict.log['predictions'][0,:-1])
 plt.show()

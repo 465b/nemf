@@ -22,17 +22,14 @@ def read_coeff_yaml(path):
 # Parsers
 
 def initialize_ode_system(path_config):
-	""" Initializes the dictionary containing the 'state' and 'interactions' 
-	
+	""" Initializes the dictionary containing the 'state' and 'interactions'
+
 		Parameters:
 		-----------
-		path_states : string
-			Path to the yaml file containing the state configuration.
+		path_config : string
+			Path to the yaml file containing the ode model configuration.
 			The configuration contains the compartments, initial values
-			and optimization constrains.
-		path_coefficients : string
-			Path to the yaml file containing the state configuration.
-			The configuration contains the compartments, interactions paths, 
+			and optimization constrains - as well as - interactions paths, 
 			interaction directions (sign),interaction functions,
 			initial parameter values and optimization constrains.
 
@@ -45,99 +42,8 @@ def initialize_ode_system(path_config):
 	system_config = read_coeff_yaml(path_config)
 
 	return system_config
-    
-
-def system_configuration_to_ode_method(system_configuration):
-	""" Add docstring """
-	
-	ODE_state = np.array([system_configuration['states'][ii]['value']
-					for ii in system_configuration['states']])
-	
-	ODE_coeff_model = models.interaction_model_generator
-	ODE_coeff = ODE_coeff_model(system_configuration)
-
-	return ODE_state,ODE_coeff_model, ODE_coeff
 
 
-def system_configuration_to_grad_method(system_configuration):
-	""" Add docstring """
-	
-	free_parameters = []
-	constraints = []
-
-	for ii in system_configuration['states']:
-		if system_configuration['states'][ii]['optimise'] is not None:
-			value = system_configuration['states'][ii]['value']
-			lower_bound = system_configuration['states'][ii]['optimise']['lower']
-			upper_bound = system_configuration['states'][ii]['optimise']['upper']
-
-			free_parameters.append(value)
-			constraints.append([lower_bound,upper_bound])
-			
-	for ii in system_configuration['interactions']:
-		#function
-		for item in system_configuration['interactions'][ii]:
-			#parameters
-			if item['optimise'] is not None:
-				for jj,elements in enumerate(item['optimise']):
-					value = item['parameters'][jj]
-					lower_bound = elements['lower']
-					upper_bound = elements['upper']
-
-					free_parameters.append(value)
-					constraints.append([lower_bound,upper_bound])
-		
-	free_parameters = np.array(free_parameters)
-	constraints = np.array(constraints)
-
-	return free_parameters, constraints
-	
-
-def grad_method_to_system_configuration(free_parameters, constraints,system_configuration):
-	""" Add docstring """
-
-	values = list(free_parameters)
-	
-	for ii in system_configuration['states']:
-		if system_configuration['states'][ii]['optimise'] is not None:
-			system_configuration['states'][ii]['value'] = values.pop(0)
-			
-	for ii in system_configuration['interactions']:
-		#function
-		for item in system_configuration['interactions'][ii]:
-			#parameters
-			if item['optimise'] is not None:
-				for jj,_ in enumerate(item['optimise']):
-						item['parameters'][jj] = values.pop(0)
-
-	return system_configuration
-
-## parser helper
-
-def create_empty_interaction_matrix(interaction_config):
-	""" initializes an empty interaction matrix """
-	size = len(interaction_config.states)
-	alpha = np.zeros((size,size))
-	return alpha
-
-
-def fetch_index_of_interaction(data):
-	""" gets the indices in the interaction matrix """
-	## separate row & column
-	interactions = list(data['interactions'])
-	compartments = list(data['states'])
-	
-	interaction_index = interactions.copy()
-	for index,item in enumerate(interactions):
-		interaction_index[index] = item.split(':')
-	## parse them with the index
-	for index, item in enumerate(interaction_index):
-		interaction_index[index][0] = compartments.index(item[0])
-		interaction_index[index][1] = compartments.index(item[1])
-
-	return interaction_index
-
-	
 # Gradient Decent
 
 ## Cost function related Methods
@@ -231,7 +137,7 @@ def barrier_function(free_param,constrains=np.array([None]),barrier_slope=1):
     return cost_barrier
 
 
-def barrier_hard_enforcement(free_param,jj,constrains=None,
+def barrier_hard_enforcement(free_param,constrains=None,
                              pert_scale=1e-2,seed=137):
     """ if outside the search space we enforce a 'in-constrain'
         search space by ignoring the recommended step and
@@ -280,7 +186,6 @@ def barrier_hard_enforcement(free_param,jj,constrains=None,
         if (free_param[ii] <= left):
             buffer = left + np.random.rand()*pert_scale
             warn_string = ( 'Left  barrier enforcement'+
-                            'at step {:4d} {:4d}. '.format(jj,ii)+
                             'Value shifted from {:+8.2E} to {:+8.2E}'.format(
                                 free_param[ii],buffer))
             logging.debug(warn_string)
@@ -289,7 +194,6 @@ def barrier_hard_enforcement(free_param,jj,constrains=None,
         if (free_param[ii] >= right):
             buffer = right - np.random.rand()*pert_scale
             warn_string = ( 'Right barrier enforcement'+
-                            'at step {:4d} {:4d}. '.format(jj,ii)+
                             'Value shifted from {:+8.2E} to {:+8.2E}'.format(
                                 free_param[ii],buffer))
             logging.debug(warn_string)
@@ -537,7 +441,7 @@ def monte_carlo_sample_generator(constrains):
     return sample_set
 
 
-def local_gradient(model_configuration, parameter_stack,
+def local_gradient(model_config, parameter_stack,
                    constrains=np.array([None]),
                    barrier_slope=0.01, pert_scale = 1e-6):
 
@@ -549,7 +453,7 @@ def local_gradient(model_configuration, parameter_stack,
 
         Parameters
         ----------
-	    model_configuration : object
+	    model_config : object
 			contains all the information and necessary methods
 			of the optimized model
 		parameter_stack : numpy.array
@@ -579,7 +483,8 @@ def local_gradient(model_configuration, parameter_stack,
     # checks if there has been a previous step 
     # and if not uses pert scale as step size 
     if np.shape(parameter_stack)[0] == 1:
-        parameter_stack_diff = parameter_stack[-1] - perturb(parameter_stack[-1],pert_scale)
+        parameter_stack_diff = parameter_stack[-1] \
+                               - perturb(parameter_stack[-1],pert_scale)
     # if there was it uses the previous step as step size
     # ISSUE: this implicitly adds a "momentum" style behavior 
     else:
@@ -587,7 +492,7 @@ def local_gradient(model_configuration, parameter_stack,
 
     # calculates cost at the center/current position
     parameter_center = parameter_stack[-1]
-    cost_center = model_configuration.calc_cost(parameter_center,barrier_slope)[2]
+    cost_center = model_config.calc_cost(parameter_center,barrier_slope)[2]
 
     # initializes the variable space for the surrounding local cost    
     n_x = len(parameter_stack_diff)
@@ -601,11 +506,11 @@ def local_gradient(model_configuration, parameter_stack,
 
         # makes sure that these step stay within the boundaries
         parameter_local[ii,ii] = barrier_hard_enforcement(
-                                    np.array([parameter_local[ii,ii]]),ii,
+                                    np.array([parameter_local[ii,ii]]),
                                     np.array([constrains[ii]]))[0]
         
         #calculates the cost at their positions
-        cost_local[ii],is_stable = model_configuration.calc_cost(
+        cost_local[ii],is_stable = model_config.calc_cost(
                                     parameter_local[ii],barrier_slope)[2:]
         
         # checks if it we find a stable solution at these points
