@@ -242,9 +242,10 @@ def dn_monte_carlo(path_model_configuration,
 
 	Returns
 	-------
-	model_configuration.log : dict
-		contains the results for every run
-		(parameters, prediction, cost)
+	model_configuration : dict
+		contains the configuration of the model including the output log,
+		containing all the intermediate outputs
+		(parameters, model, prediction, cost)
 	"""
 
 	if sample_sets == -1:
@@ -335,4 +336,4 @@ def dn_monte_carlo(path_model_configuration,
 					param_stack,model_stack,prediction_stack, cost_stack)
 				
 
-	return model_configuration.log
+	return model_configuration
