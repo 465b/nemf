@@ -154,7 +154,7 @@ def direct_fit_model(model_config,integration_scheme,
 			after the fit_model has been applied, stacked along the first axis.
 		is_stable : bool
 			true if stability conditions are met. 
-			See verify_stability_time_evolution() for more details. """
+			See check_convergence() for more details. """
 	
 	F_ij, is_stable = caller.run_time_evo(model_config,
 										integration_scheme, time_evo_max,
@@ -225,7 +225,7 @@ def net_flux_fit_model(model_config,integration_scheme,
 			after the fit_model has been applied, stacked along the first axis.
 		is_stable : bool
 			true if stability conditions are met. 
-			See verify_stability_time_evolution() for more details. """
+			See check_convergence() for more details. """
 
 	F_ij, is_stable = caller.run_time_evo(model_config,
 										  integration_scheme, time_evo_max,

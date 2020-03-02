@@ -206,7 +206,7 @@ def barrier_hard_enforcement(free_param,constrains=None,
 
 ## Stability
 
-def verify_stability_time_evolution(prediction, stability_rel_tolerance=1e-6,
+def check_convergence(prediction, stability_rel_tolerance=1e-6,
                                     tail_length=10):
     """ checks if the current solution is stable by 
         comparing the relative fluctuations in the 
@@ -330,7 +330,7 @@ def prediction_and_costfunction(free_param, ODE_state, system_configuration,
             first-axis index.
         is_stable : bool
             true if stability conditions are met. 
-            See verify_stability_time_evolution() for more details.
+            See check_convergence() for more details.
         """
 
     prediction,is_stable = fit_model(integration_scheme, time_evo_max,
@@ -478,7 +478,7 @@ def local_gradient(model_config, parameter_stack,
             of steepest ascent.
         is_stable : bool
             true if stability conditions are met. 
-            See verify_stability_time_evolution() for more details.
+            See check_convergence() for more details.
         """
     # checks if there has been a previous step 
     # and if not uses pert scale as step size 

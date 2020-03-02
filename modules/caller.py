@@ -83,7 +83,7 @@ def run_time_evo(model_configuration, integration_scheme, time_evo_max,
 			& (ii%tail_length_stability_check == 0) 
 			& (stability_rel_tolerance != 0)):
 		
-			is_stable = worker.verify_stability_time_evolution(ode_state_log[:ii+1],
+			is_stable = worker.check_convergence(ode_state_log[:ii+1],
 											stability_rel_tolerance,tail_length_stability_check)
 		
 			if is_stable:
@@ -152,8 +152,8 @@ def gradient_descent(model_configuration, parameters, constraints,
 	param_stack[0] = parameters
 	cost_stack = np.zeros((gd_max_iter))
 	## fetches ode-model/fit-model shape from model configuration
-	model_output_shape = model_configuration.configuration['model_output_shape']
-	prediction_output_shape = model_configuration.configuration['prediction_shape']
+	model_output_shape = model_config.configuration['model_output_shape']
+	prediction_output_shape = model_config.configuration['prediction_shape']
 	##
 	model_stack = np.zeros( (gd_max_iter,) + model_output_shape )
 	prediction_stack = np.zeros( (gd_max_iter,) + prediction_output_shape )
@@ -171,7 +171,7 @@ def gradient_descent(model_configuration, parameters, constraints,
 			param_stack[ii],constraints,pert_scale)
 		""" fetch prediction and cost at given point """
 		model_log,prediction_stack[ii], cost_stack[ii] = \
-			model_configuration.calc_cost(param_stack[ii],barrier_slope)[0:2+1]
+			model_config.calc_cost(param_stack[ii],barrier_slope)[0:2+1]
 		# deals with shorter model output
 		model_stack[ii,:len(model_log)] = model_log
 		
@@ -182,7 +182,7 @@ def gradient_descent(model_configuration, parameters, constraints,
 			""" calculate the local gradient at at the current point """
 			# maybe implement a local_gradient method as well.
 			# this would make it more consistent with the other methods
-			gradient = worker.local_gradient(model_configuration,
+			gradient = worker.local_gradient(model_config,
 				param_stack[:ii+1], constraints, barrier_slope, pert_scale)[0]
 			if gradient is None:
 				""" moves the original set uof free parameters_stack in case
