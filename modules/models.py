@@ -388,7 +388,6 @@ stress_dependant_exudation = holling_type_I
 class model_class:
 	def __init__(self,path):
 		self.init_sys_config = worker.initialize_ode_system(path)
-		self.compartments = self.init_sys_config['compartments']
 		self.states = self.init_sys_config['states']
 		self.interactions = self.init_sys_config['interactions']
 		self.configuration = self.init_sys_config['configuration']
@@ -412,7 +411,7 @@ class model_class:
 		model_log = np.zeros( (n_monte_samples, max_gd_iter,
 							int(self.configuration['time_evo_max']/
 							self.configuration['dt_time_evo']),
-							len(list(self.compartments))))
+							len(list(self.states))))
 	
 		log_dict = {'parameters': param_log,
 					'predictions': prediction_log,
@@ -427,7 +426,7 @@ class model_class:
 		""" gets the indices in the interaction matrix """
 		## separate row & column
 		interactions = list(self.interactions)
-		compartments = list(self.compartments)
+		compartments = list(self.states)
 		
 		interaction_index = interactions.copy()
 		for index,item in enumerate(interactions):
@@ -448,7 +447,7 @@ class model_class:
 			sources = list(self.configuration['sources'])
 			idx_sources = sources.copy()
 			for ii, item in enumerate(idx_sources):
-				idx_sources[ii] = self.compartments.index(item)
+				idx_sources[ii] = list(self.states).index(item)
 		
 		if self.configuration['sinks'] == None:
 			sinks = None
@@ -457,7 +456,7 @@ class model_class:
 			sinks = list(self.configuration['sinks'])
 			idx_sinks = sinks.copy()
 			for ii, item in enumerate(idx_sinks):
-				idx_sinks[ii] = self.compartments.index(item)
+				idx_sinks[ii] = list(self.states).index(item)
 			
 		self.configuration['idx_sources'] = idx_sources
 		self.configuration['idx_sinks'] = idx_sinks
