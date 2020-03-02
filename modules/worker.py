@@ -238,8 +238,8 @@ def check_convergence(prediction, stability_rel_tolerance=1e-6,
     average = np.average(prediction_tail,axis=0)
     spread = np.max(prediction_tail,axis=0) -np.min(prediction_tail,axis=0)
     rel_spread = spread/average
-    rel_condition = (rel_spread <= stability_rel_tolerance).all() 
-    abs_condition = (spread <= stability_rel_tolerance).all()
+    rel_condition = (rel_spread <= float(stability_rel_tolerance)).all() 
+    abs_condition = (spread <= float(stability_rel_tolerance)).all()
     is_stable = rel_condition or abs_condition
     return is_stable
 

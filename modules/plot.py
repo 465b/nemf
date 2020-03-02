@@ -133,6 +133,7 @@ def output_summary(model_config):
         print(log['parameters'])
         ax = plt.subplot(1,1,1)
         draw_model_output(ax,log['model'],model_config)
+        plt.show()
     elif sample_sets_switch == 2:
         optimization_overview(log['cost'],
                    log['predictions'],
@@ -144,7 +145,7 @@ def output_summary(model_config):
             optimization_overview(log['cost'][ii],
                     log['predictions'][ii],
                     log['parameters'][ii],
-                    log['model'][ii][-2],
+                    log['model'][ii][np.where(log['cost'] == 0)[1][0]-2],
                     model_config)
 
 

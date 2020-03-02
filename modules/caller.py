@@ -94,16 +94,17 @@ def run_time_evo(model_configuration, integration_scheme, time_evo_max,
 
 
 # Top level Routine
-def gradient_descent(model_configuration, parameters, constraints,
+def gradient_descent(model_config, parameters, constraints,
 					gradient_method,barrier_slope=1e-2,
-					gd_max_iter=100, pert_scale=1e-5,grad_scale=1e-9):
+					gd_max_iter=100, pert_scale=1e-5,grad_scale=1e-9,
+					convergence_tail_length = 10, convergence_tolerance=1e-3):
 
 	""" framework for applying a gradient decent approach to a 
 		a model, applying a certain method 
 		
 		Parameters
 		----------
-		model_configuration : object
+		model_config : object
 			contains all the information and necessary methods
 			of the optimized model			
 		parameters: numpy.array (1D)
@@ -163,8 +164,16 @@ def gradient_descent(model_configuration, parameters, constraints,
 	# 	 to ensure that it does not exceed max iterations
 	ii = 0; jj = 0
 	while jj < gd_max_iter-1:
-		print('Gradient Descent Step #{}'.format(jj))
 
+		if ( (ii >= int(convergence_tail_length)) & (convergence_tolerance != 0)):
+			# checks if the gradient descent optimization has converged and stops if so
+			grad_convergence = worker.check_convergence(cost_stack[:ii+1],
+											convergence_tolerance,convergence_tail_length)
+			if grad_convergence == True:
+				print('Gradient Descent converged after iteration step {}'.format(ii))
+				return param_stack, model_stack, prediction_stack, cost_stack
+
+		print('Gradient Descent Step #{}'.format(jj))
 		""" makes sure that all points in the parameter set are inside
 			of the search space and if not moves them back into it """
 		param_stack[ii] = worker.barrier_hard_enforcement(
@@ -210,6 +219,8 @@ def dn_monte_carlo(path_model_configuration,
 					gd_max_iter=10,
 					pert_scale=1e-4,
 					grad_scale=1e-12,
+					convergence_tail_length = 10,
+					convergence_tolerance=1e-3,
 					seed=137):
 
 	""" Optimizes a set of randomly generated free parameters and returns
@@ -301,7 +312,9 @@ def dn_monte_carlo(path_model_configuration,
 			# runs the gradient descent for the generated sample set 
 			parameters, model_data, prediction, cost = \
 				gradient_descent(model_configuration, parameters, constraints,
-				gradient_method, barrier_slope, gd_max_iter, pert_scale, grad_scale)
+				gradient_method, barrier_slope, gd_max_iter, pert_scale, 
+				grad_scale, convergence_tail_length = 10,
+				convergence_tolerance=1e-3)
 			
 			# updates log with the generated results
 
@@ -334,8 +347,11 @@ def dn_monte_carlo(path_model_configuration,
 				
 				# runs the gradient descent for the generated sample set 
 				param_stack, model_stack, prediction_stack, cost_stack = \
-					gradient_descent(model_configuration, parameters,constraints,
-					gradient_method, barrier_slope, gd_max_iter, pert_scale, grad_scale) 
+					gradient_descent(model_configuration, 
+						parameters,constraints,gradient_method, barrier_slope,
+						gd_max_iter, pert_scale, grad_scale,
+						convergence_tail_length = 10,
+						convergence_tolerance=1e-3)
 				
 				# updates log with the generated results
 				model_configuration.to_log(
