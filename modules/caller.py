@@ -149,15 +149,15 @@ def gradient_descent(model_config, parameters, constraints,
 			first-axis index.   """
 
 	# initialize variabale space
-	param_stack = np.zeros((gd_max_iter,len(parameters)))
+	param_stack = np.full((gd_max_iter,len(parameters)), np.nan)
 	param_stack[0] = parameters
-	cost_stack = np.zeros((gd_max_iter))
+	cost_stack = np.full((gd_max_iter), np.nan)
 	## fetches ode-model/fit-model shape from model configuration
 	model_output_shape = model_config.configuration['model_output_shape']
 	prediction_output_shape = model_config.configuration['prediction_shape']
 	##
-	model_stack = np.zeros( (gd_max_iter,) + model_output_shape )
-	prediction_stack = np.zeros( (gd_max_iter,) + prediction_output_shape )
+	model_stack = np.full((gd_max_iter,)+model_output_shape,np.nan)
+	prediction_stack = np.full((gd_max_iter,)+prediction_output_shape,np.nan)
 
 	# ii keeps track of the position in the output array
 	# jj keeps track of the actual iteration step,

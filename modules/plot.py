@@ -145,7 +145,7 @@ def output_summary(model_config):
             optimization_overview(log['cost'][ii],
                     log['predictions'][ii],
                     log['parameters'][ii],
-                    log['model'][ii][np.where(log['cost'] == 0)[1][0]-2],
+                    log['model'][ii][np.where(np.isnan(log['cost'][ii]))[0][0]-1],
                     model_config)
 
 
