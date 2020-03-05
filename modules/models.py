@@ -566,7 +566,7 @@ class model_class:
 	def calc_prediction(self):
 		ode_states,ode_coeff_model, ode_coeff = self.to_ode()
 		fit_model = globals()[self.configuration['fit_model']]
-
+		
 		model_log, prediction,is_stable = fit_model(self,
 			globals()[self.configuration['integration_scheme']], 
 			self.configuration['time_evo_max'],
@@ -575,9 +575,7 @@ class model_class:
 			self.configuration['idx_sinks'],
 			ode_states,
 			ode_coeff,	
-			#globals()[ode_coeff_model],
-			# ISSUE - fix the hardcoding of interatcion model
-			interaction_model_generator,
+			ode_coeff_model,
 			float(self.configuration['stability_rel_tolerance']),
 			self.configuration['tail_length_stability_check'],
 			self.configuration['start_stability_check'])
