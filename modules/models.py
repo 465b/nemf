@@ -82,7 +82,7 @@ def interaction_model_generator(model_config):
 		for item in model_config.interactions[interaction]:
 			parameters = item['parameters'].copy()
 			for nn,entry in enumerate(parameters):
-				if type(entry) == str:
+				if (type(entry) == str) & (entry in list(model_config.states)):
 					parameters[nn] = model_config.states[entry]['value']
 
 			# updates the matrix
@@ -559,8 +559,8 @@ class model_class:
 			for item in self.interactions[ii]:
 				#parameters
 				if item['optimise'] is not None:
-					for jj,_ in enumerate(item['optimise']):
-							item['parameters'][jj] = values.pop(0)
+					for element in item['optimise']:
+							item['parameters'][element['parameter_no']] = values.pop(0)
 
 	
 	def calc_prediction(self):
