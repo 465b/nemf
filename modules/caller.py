@@ -201,7 +201,7 @@ def gradient_descent(model_config, parameters, constraints,
 			else:
 				""" applying a decent model to find a new and hopefully
 					better set of free parameters_stack """
-				param_stack[ii+1] = gradient_method(param_stack[ii],
+				param_stack[ii+1] = gradient_method(param_stack[:ii+1],
 										gradient,grad_scale)
 				ii += 1
 		jj += 1
@@ -307,7 +307,7 @@ def dn_monte_carlo(path_model_configuration,
 				sample_sets=-1,gd_max_iter=gd_max_iter,
 				pert_scale=pert_scale,grad_scale=grad_scale,seed=seed)
 		else:
-			parameters = worker.monte_carlo_sample_generator(constraints)
+			parameters = model_configuration.to_grad_method()[0] 
 			
 			# runs the gradient descent for the generated sample set 
 			parameters, model_data, prediction, cost = \
