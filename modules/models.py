@@ -82,7 +82,7 @@ def interaction_model_generator(model_config):
 		for item in model_config.interactions[interaction]:
 			parameters = item['parameters'].copy()
 			for nn,entry in enumerate(parameters):
-				if type(entry) == str:
+				if (type(entry) == str) & (entry in list(model_config.states)):
 					parameters[nn] = model_config.states[entry]['value']
 
 			# updates the matrix
@@ -154,7 +154,7 @@ def direct_fit_model(model_config,integration_scheme,
 			after the fit_model has been applied, stacked along the first axis.
 		is_stable : bool
 			true if stability conditions are met. 
-			See verify_stability_time_evolution() for more details. """
+			See check_convergence() for more details. """
 	
 	F_ij, is_stable = caller.run_time_evo(model_config,
 										integration_scheme, time_evo_max,
@@ -225,7 +225,7 @@ def net_flux_fit_model(model_config,integration_scheme,
 			after the fit_model has been applied, stacked along the first axis.
 		is_stable : bool
 			true if stability conditions are met. 
-			See verify_stability_time_evolution() for more details. """
+			See check_convergence() for more details. """
 
 	F_ij, is_stable = caller.run_time_evo(model_config,
 										  integration_scheme, time_evo_max,
@@ -388,7 +388,6 @@ stress_dependant_exudation = holling_type_I
 class model_class:
 	def __init__(self,path):
 		self.init_sys_config = worker.initialize_ode_system(path)
-		self.compartments = self.init_sys_config['compartments']
 		self.states = self.init_sys_config['states']
 		self.interactions = self.init_sys_config['interactions']
 		self.configuration = self.init_sys_config['configuration']
@@ -412,7 +411,7 @@ class model_class:
 		model_log = np.zeros( (n_monte_samples, max_gd_iter,
 							int(self.configuration['time_evo_max']/
 							self.configuration['dt_time_evo']),
-							len(list(self.compartments))))
+							len(list(self.states))))
 	
 		log_dict = {'parameters': param_log,
 					'predictions': prediction_log,
@@ -427,7 +426,7 @@ class model_class:
 		""" gets the indices in the interaction matrix """
 		## separate row & column
 		interactions = list(self.interactions)
-		compartments = list(self.compartments)
+		compartments = list(self.states)
 		
 		interaction_index = interactions.copy()
 		for index,item in enumerate(interactions):
@@ -448,7 +447,7 @@ class model_class:
 			sources = list(self.configuration['sources'])
 			idx_sources = sources.copy()
 			for ii, item in enumerate(idx_sources):
-				idx_sources[ii] = self.compartments.index(item)
+				idx_sources[ii] = list(self.states).index(item)
 		
 		if self.configuration['sinks'] == None:
 			sinks = None
@@ -457,7 +456,7 @@ class model_class:
 			sinks = list(self.configuration['sinks'])
 			idx_sinks = sinks.copy()
 			for ii, item in enumerate(idx_sinks):
-				idx_sinks[ii] = self.compartments.index(item)
+				idx_sinks[ii] = list(self.states).index(item)
 			
 		self.configuration['idx_sources'] = idx_sources
 		self.configuration['idx_sinks'] = idx_sinks
@@ -560,14 +559,14 @@ class model_class:
 			for item in self.interactions[ii]:
 				#parameters
 				if item['optimise'] is not None:
-					for jj,_ in enumerate(item['optimise']):
-							item['parameters'][jj] = values.pop(0)
+					for element in item['optimise']:
+							item['parameters'][element['parameter_no']] = values.pop(0)
 
 	
 	def calc_prediction(self):
 		ode_states,ode_coeff_model, ode_coeff = self.to_ode()
 		fit_model = globals()[self.configuration['fit_model']]
-
+		
 		model_log, prediction,is_stable = fit_model(self,
 			globals()[self.configuration['integration_scheme']], 
 			self.configuration['time_evo_max'],
@@ -576,9 +575,7 @@ class model_class:
 			self.configuration['idx_sinks'],
 			ode_states,
 			ode_coeff,	
-			#globals()[ode_coeff_model],
-			# ISSUE - fix the hardcoding of interatcion model
-			interaction_model_generator,
+			ode_coeff_model,
 			float(self.configuration['stability_rel_tolerance']),
 			self.configuration['tail_length_stability_check'],
 			self.configuration['start_stability_check'])

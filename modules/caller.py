@@ -83,7 +83,7 @@ def run_time_evo(model_configuration, integration_scheme, time_evo_max,
 			& (ii%tail_length_stability_check == 0) 
 			& (stability_rel_tolerance != 0)):
 		
-			is_stable = worker.verify_stability_time_evolution(ode_state_log[:ii+1],
+			is_stable = worker.check_convergence(ode_state_log[:ii+1],
 											stability_rel_tolerance,tail_length_stability_check)
 		
 			if is_stable:
@@ -94,16 +94,18 @@ def run_time_evo(model_configuration, integration_scheme, time_evo_max,
 
 
 # Top level Routine
-def gradient_descent(model_configuration, parameters, constraints,
+def gradient_descent(model_config, parameters, constraints,
 					gradient_method,barrier_slope=1e-2,
-					gd_max_iter=100, pert_scale=1e-5,grad_scale=1e-9):
+					gd_max_iter=100, pert_scale=1e-5,grad_scale=1e-9,
+					convergence_tail_length = 10, convergence_tolerance=1e-3,
+					verbose=False):
 
 	""" framework for applying a gradient decent approach to a 
 		a model, applying a certain method 
 		
 		Parameters
 		----------
-		model_configuration : object
+		model_config : object
 			contains all the information and necessary methods
 			of the optimized model			
 		parameters: numpy.array (1D)
@@ -148,30 +150,40 @@ def gradient_descent(model_configuration, parameters, constraints,
 			first-axis index.   """
 
 	# initialize variabale space
-	param_stack = np.zeros((gd_max_iter,len(parameters)))
+	param_stack = np.full((gd_max_iter,len(parameters)), np.nan)
 	param_stack[0] = parameters
-	cost_stack = np.zeros((gd_max_iter))
+	cost_stack = np.full((gd_max_iter), np.nan)
 	## fetches ode-model/fit-model shape from model configuration
-	model_output_shape = model_configuration.configuration['model_output_shape']
-	prediction_output_shape = model_configuration.configuration['prediction_shape']
+	model_output_shape = model_config.configuration['model_output_shape']
+	prediction_output_shape = model_config.configuration['prediction_shape']
 	##
-	model_stack = np.zeros( (gd_max_iter,) + model_output_shape )
-	prediction_stack = np.zeros( (gd_max_iter,) + prediction_output_shape )
+	model_stack = np.full((gd_max_iter,)+model_output_shape,np.nan)
+	prediction_stack = np.full((gd_max_iter,)+prediction_output_shape,np.nan)
 
 	# ii keeps track of the position in the output array
 	# jj keeps track of the actual iteration step,
 	# 	 to ensure that it does not exceed max iterations
 	ii = 0; jj = 0
 	while jj < gd_max_iter-1:
-		print('Gradient Descent Step #{}'.format(jj))
 
+		if ( (ii >= int(convergence_tail_length)) & (convergence_tolerance != 0)):
+			# checks if the gradient descent optimization has converged and stops if so
+			grad_convergence = worker.check_convergence(cost_stack[:ii+1],
+											convergence_tolerance,convergence_tail_length)
+			if grad_convergence == True:
+				if verbose:
+					print('Gradient Descent converged after iteration step {}'.format(ii))
+				return param_stack, model_stack, prediction_stack, cost_stack
+		
+		if verbose:
+			print('Gradient Descent Step #{}'.format(jj))
 		""" makes sure that all points in the parameter set are inside
 			of the search space and if not moves them back into it """
 		param_stack[ii] = worker.barrier_hard_enforcement(
 			param_stack[ii],constraints,pert_scale)
 		""" fetch prediction and cost at given point """
 		model_log,prediction_stack[ii], cost_stack[ii] = \
-			model_configuration.calc_cost(param_stack[ii],barrier_slope)[0:2+1]
+			model_config.calc_cost(param_stack[ii],barrier_slope)[0:2+1]
 		# deals with shorter model output
 		model_stack[ii,:len(model_log)] = model_log
 		
@@ -182,7 +194,7 @@ def gradient_descent(model_configuration, parameters, constraints,
 			""" calculate the local gradient at at the current point """
 			# maybe implement a local_gradient method as well.
 			# this would make it more consistent with the other methods
-			gradient = worker.local_gradient(model_configuration,
+			gradient = worker.local_gradient(model_config,
 				param_stack[:ii+1], constraints, barrier_slope, pert_scale)[0]
 			if gradient is None:
 				""" moves the original set uof free parameters_stack in case
@@ -192,7 +204,7 @@ def gradient_descent(model_configuration, parameters, constraints,
 			else:
 				""" applying a decent model to find a new and hopefully
 					better set of free parameters_stack """
-				param_stack[ii+1] = gradient_method(param_stack[ii],
+				param_stack[ii+1] = gradient_method(param_stack[:ii+1],
 										gradient,grad_scale)
 				ii += 1
 		jj += 1
@@ -210,7 +222,10 @@ def dn_monte_carlo(path_model_configuration,
 					gd_max_iter=10,
 					pert_scale=1e-4,
 					grad_scale=1e-12,
-					seed=137):
+					convergence_tail_length = 10,
+					convergence_tolerance=1e-3,
+					seed=137,
+					verbose=False):
 
 	""" Optimizes a set of randomly generated free parameters and returns
 		their optimized values and the corresponding fit-model and cost-
@@ -276,7 +291,8 @@ def dn_monte_carlo(path_model_configuration,
 			model_configuration.calc_prediction()
 		cost = worker.cost_function(prediction,
 			model_configuration.configuration['fit_target'])
-		print('Is stable? {}'.format(is_stable))
+		if verbose:
+			print('Is the model stable? {}'.format(is_stable))
 		model_configuration.to_log(np.array([]),model_log,prediction,cost)
 
 	elif sample_sets == 0:	
@@ -296,12 +312,14 @@ def dn_monte_carlo(path_model_configuration,
 				sample_sets=-1,gd_max_iter=gd_max_iter,
 				pert_scale=pert_scale,grad_scale=grad_scale,seed=seed)
 		else:
-			parameters = worker.monte_carlo_sample_generator(constraints)
+			parameters = model_configuration.to_grad_method()[0] 
 			
 			# runs the gradient descent for the generated sample set 
 			parameters, model_data, prediction, cost = \
 				gradient_descent(model_configuration, parameters, constraints,
-				gradient_method, barrier_slope, gd_max_iter, pert_scale, grad_scale)
+				gradient_method, barrier_slope, gd_max_iter, pert_scale, 
+				grad_scale, convergence_tail_length = 10,
+				convergence_tolerance=1e-3,verbose=verbose)
 			
 			# updates log with the generated results
 
@@ -312,7 +330,8 @@ def dn_monte_carlo(path_model_configuration,
 	# values are picked from inside the allowed optimization range
 	else:
 		for ii in np.arange(0,sample_sets):
-			print('Monte Carlo Sample #{}'.format(ii))
+			if verbose:
+				print('Monte Carlo Sample #{}'.format(ii))
 			
 			# updates the state of the optimization run
 			model_configuration.log['monte_carlo_idx'] = ii
@@ -334,8 +353,11 @@ def dn_monte_carlo(path_model_configuration,
 				
 				# runs the gradient descent for the generated sample set 
 				param_stack, model_stack, prediction_stack, cost_stack = \
-					gradient_descent(model_configuration, parameters,constraints,
-					gradient_method, barrier_slope, gd_max_iter, pert_scale, grad_scale) 
+					gradient_descent(model_configuration, 
+						parameters,constraints,gradient_method, barrier_slope,
+						gd_max_iter, pert_scale, grad_scale,
+						convergence_tail_length = 10,
+						convergence_tolerance=1e-3, verbose=verbose)
 				
 				# updates log with the generated results
 				model_configuration.to_log(
