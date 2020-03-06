@@ -97,7 +97,8 @@ def run_time_evo(model_configuration, integration_scheme, time_evo_max,
 def gradient_descent(model_config, parameters, constraints,
 					gradient_method,barrier_slope=1e-2,
 					gd_max_iter=100, pert_scale=1e-5,grad_scale=1e-9,
-					convergence_tail_length = 10, convergence_tolerance=1e-3):
+					convergence_tail_length = 10, convergence_tolerance=1e-3,
+					verbose=False):
 
 	""" framework for applying a gradient decent approach to a 
 		a model, applying a certain method 
@@ -170,10 +171,12 @@ def gradient_descent(model_config, parameters, constraints,
 			grad_convergence = worker.check_convergence(cost_stack[:ii+1],
 											convergence_tolerance,convergence_tail_length)
 			if grad_convergence == True:
-				print('Gradient Descent converged after iteration step {}'.format(ii))
+				if verbose:
+					print('Gradient Descent converged after iteration step {}'.format(ii))
 				return param_stack, model_stack, prediction_stack, cost_stack
-
-		print('Gradient Descent Step #{}'.format(jj))
+		
+		if verbose:
+			print('Gradient Descent Step #{}'.format(jj))
 		""" makes sure that all points in the parameter set are inside
 			of the search space and if not moves them back into it """
 		param_stack[ii] = worker.barrier_hard_enforcement(
@@ -221,7 +224,8 @@ def dn_monte_carlo(path_model_configuration,
 					grad_scale=1e-12,
 					convergence_tail_length = 10,
 					convergence_tolerance=1e-3,
-					seed=137):
+					seed=137,
+					verbose=False):
 
 	""" Optimizes a set of randomly generated free parameters and returns
 		their optimized values and the corresponding fit-model and cost-
@@ -287,7 +291,8 @@ def dn_monte_carlo(path_model_configuration,
 			model_configuration.calc_prediction()
 		cost = worker.cost_function(prediction,
 			model_configuration.configuration['fit_target'])
-		print('Is stable? {}'.format(is_stable))
+		if verbose:
+			print('Is the model stable? {}'.format(is_stable))
 		model_configuration.to_log(np.array([]),model_log,prediction,cost)
 
 	elif sample_sets == 0:	
@@ -314,7 +319,7 @@ def dn_monte_carlo(path_model_configuration,
 				gradient_descent(model_configuration, parameters, constraints,
 				gradient_method, barrier_slope, gd_max_iter, pert_scale, 
 				grad_scale, convergence_tail_length = 10,
-				convergence_tolerance=1e-3)
+				convergence_tolerance=1e-3,verbose=verbose)
 			
 			# updates log with the generated results
 
@@ -325,7 +330,8 @@ def dn_monte_carlo(path_model_configuration,
 	# values are picked from inside the allowed optimization range
 	else:
 		for ii in np.arange(0,sample_sets):
-			print('Monte Carlo Sample #{}'.format(ii))
+			if verbose:
+				print('Monte Carlo Sample #{}'.format(ii))
 			
 			# updates the state of the optimization run
 			model_configuration.log['monte_carlo_idx'] = ii
@@ -351,7 +357,7 @@ def dn_monte_carlo(path_model_configuration,
 						parameters,constraints,gradient_method, barrier_slope,
 						gd_max_iter, pert_scale, grad_scale,
 						convergence_tail_length = 10,
-						convergence_tolerance=1e-3)
+						convergence_tolerance=1e-3, verbose=verbose)
 				
 				# updates log with the generated results
 				model_configuration.to_log(
