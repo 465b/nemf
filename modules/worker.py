@@ -206,7 +206,7 @@ def barrier_hard_enforcement(free_param,constrains=None,
 
 ## Stability
 
-def verify_stability_time_evolution(prediction, stability_rel_tolerance=1e-6,
+def check_convergence(prediction, stability_rel_tolerance=1e-6,
                                     tail_length=10):
     """ checks if the current solution is stable by 
         comparing the relative fluctuations in the 
@@ -232,15 +232,23 @@ def verify_stability_time_evolution(prediction, stability_rel_tolerance=1e-6,
         true if stability conditions are met
     """
 
-    
+    # gets relevant data slice    
     prediction_tail = prediction[-tail_length-1:-1]
 
+    # computes local average and spread
     average = np.average(prediction_tail,axis=0)
     spread = np.max(prediction_tail,axis=0) -np.min(prediction_tail,axis=0)
+    
+    # compares spread to the provided conditions 
     rel_spread = spread/average
-    rel_condition = (rel_spread <= stability_rel_tolerance).all() 
-    abs_condition = (spread <= stability_rel_tolerance).all()
+    rel_condition = (rel_spread <= float(stability_rel_tolerance)).all() 
+    # also evaluates positive if the spread is smaller in absolute values
+    # then the provided conditions. This avoid instability due to float
+    # rounding errors
+    abs_condition = (spread <= float(stability_rel_tolerance)).all()
+    
     is_stable = rel_condition or abs_condition
+    
     return is_stable
 
 
@@ -330,7 +338,7 @@ def prediction_and_costfunction(free_param, ODE_state, system_configuration,
             first-axis index.
         is_stable : bool
             true if stability conditions are met. 
-            See verify_stability_time_evolution() for more details.
+            See check_convergence() for more details.
         """
 
     prediction,is_stable = fit_model(integration_scheme, time_evo_max,
@@ -478,7 +486,7 @@ def local_gradient(model_config, parameter_stack,
             of steepest ascent.
         is_stable : bool
             true if stability conditions are met. 
-            See verify_stability_time_evolution() for more details.
+            See check_convergence() for more details.
         """
     # checks if there has been a previous step 
     # and if not uses pert scale as step size 
