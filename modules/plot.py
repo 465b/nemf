@@ -2,6 +2,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import networkx as nx
+import yaml
 
 sns.set_style('whitegrid')
 sns.set_context('paper')
