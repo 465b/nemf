@@ -15,9 +15,16 @@ def interaction_graph(model_config):
     
     # define the present nodes/compartments
     nodes = list(model_config.states)
-
     # fetch the list of interaction paths present
     interactions = list(model_config.interactions)
+    # fetch configuration
+    config = model_config.configuration
+    if 'idx_sinks' in config:
+        config.pop('idx_sinks')
+        config.pop('idx_sources')
+
+    comment = yaml.dump(config, default_flow_style=False, sort_keys=False)
+    comment = comment.replace('!!python/tuple','')
 
     # fetch list of edges and their labels
     edges = []; labels = []
@@ -47,14 +54,24 @@ def interaction_graph(model_config):
     G.add_edges_from(edges)
 
     # define node positions
-    pos = nx.kamada_kawai_layout(G)
+    pos = nx.circular_layout(G)
 
     # actual plotting
+    ax = plt.subplot(111)
     nx.draw(G, pos,node_size=2000, node_color='pink',
            labels={node:node for node in G.nodes()},
            arrowsize=20)
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels,
         label_pos=0.35, font_size=10,font_color='tab:red',rotate=False)
+    plt.legend(title=comment,loc='center right', bbox_to_anchor=(1., 0.5))
+    
+    # Shrink current axis by 20%
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    # Put a legend to the right of the current axis
+    ax.legend(title=comment,loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.tight_layout()
+    plt.show()
 
 
 def draw_cost(ax,cost):
