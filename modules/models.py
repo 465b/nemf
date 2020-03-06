@@ -371,11 +371,11 @@ def nutrition_limited_growth(N,growth_rate,half_saturation):
 	return growth_rate*(N/(half_saturation+N))
 
 ## referencing interaction functions
-	""" It is helpfull from a mechanistic point of view to not only
-		represent the relation between parameters but also its 'context'.
-		Hence, a linear mortality might be represented with a lin_mort()
-		function which then maps to a standard linear function to better
-		represent its usage and increase readability """
+""" It is helpfull from a mechanistic point of view to not only
+	represent the relation between parameters but also its 'context'.
+	Hence, a linear mortality might be represented with a lin_mort()
+	function which then maps to a standard linear function to better
+	represent its usage and increase readability """
 
 linear_mortality = holling_type_0
 remineralisation = holling_type_0
@@ -403,10 +403,10 @@ class model_class:
 
 	def initialize_log(self,n_monte_samples,max_gd_iter):
 		parameters = self.to_grad_method()[0]
-		param_log = np.zeros( (n_monte_samples,
+		param_log = np.zeros((n_monte_samples,
 									max_gd_iter, len(parameters)))
 		prediction_log = np.zeros( (n_monte_samples, max_gd_iter,
-								len(self.configuration['fit_target'])) )
+								len(self.configuration['fit_target'])))
 		cost_log = np.zeros( (n_monte_samples, max_gd_iter) )
 		model_log = np.zeros( (n_monte_samples, max_gd_iter,
 							int(self.configuration['time_evo_max']/
@@ -560,7 +560,8 @@ class model_class:
 				#parameters
 				if item['optimise'] is not None:
 					for element in item['optimise']:
-							item['parameters'][element['parameter_no']] = values.pop(0)
+							item['parameters'][element['parameter_no']] = \
+								values.pop(0)
 
 	
 	def calc_prediction(self):
@@ -589,7 +590,9 @@ class model_class:
 		self.update_system_with_parameters(parameters)	
 		constrains = self.to_grad_method()[1]		
 		model_log, prediction, is_stable = self.calc_prediction()
-		cost = worker.cost_function(prediction,self.configuration['fit_target'])
-		cost += worker.barrier_function(parameters,constrains,barrier_slope)
+		cost = worker.cost_function(
+			prediction,self.configuration['fit_target'])
+		cost += worker.barrier_function(
+			parameters,constrains,barrier_slope)
 
 		return model_log, prediction, cost, is_stable
