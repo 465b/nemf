@@ -336,7 +336,7 @@ def holling_type_I(value,coefficient):
 	""" (co-)linear response """
 	return value*coefficient
 
-def holling_type_II(food_processing_time,hunting_rate,prey_population):
+def holling_type_II(prey_population,food_processing_time,hunting_rate):
 	""" (co-)linear + saturation response """
 	consumption_rate = ((hunting_rate * prey_population)/
 			(1+hunting_rate * food_processing_time * prey_population))
