@@ -1,6 +1,7 @@
 import numpy as np
 from . import caller
 from . import worker
+from copy import deepcopy
 
 # Time Evolution
 
@@ -389,9 +390,12 @@ class model_class:
 	def __init__(self,path):
 		self.init_sys_config = worker.initialize_ode_system(path)
 		self.sanity_check_input()
-		self.states = self.init_sys_config['states']
-		self.interactions = self.init_sys_config['interactions']
-		self.configuration = self.init_sys_config['configuration']
+		self.states = deepcopy(
+			self.init_sys_config['states'])
+		self.interactions = deepcopy(
+			self.init_sys_config['interactions'])
+		self.configuration = deepcopy(
+			self.init_sys_config['configuration'])
 		self.fetch_index_of_source_and_sink()
 		
 		self.configuration['model_output_shape'] = \
@@ -578,7 +582,8 @@ class model_class:
 
 
 	def refresh_to_initial(self):
-		self.states = self.init_sys_config['states']
+		self.states = deepcopy(self.init_sys_config['states'])
+
 
 	def create_empty_interaction_matrix(self):
 		""" initializes an returns empty interaction matrix """
@@ -600,7 +605,7 @@ class model_class:
 				#parameters
 				if item['optimise'] is not None:
 					for element in item['optimise']:
-							item['parameters'][element['parameter_no']] = \
+							item['parameters'][element['parameter_no']-1] = \
 								values.pop(0)
 
 	
