@@ -388,6 +388,7 @@ stress_dependant_exudation = holling_type_I
 class model_class:
 	def __init__(self,path):
 		self.init_sys_config = worker.initialize_ode_system(path)
+		self.sanity_check_input()
 		self.states = self.init_sys_config['states']
 		self.interactions = self.init_sys_config['interactions']
 		self.configuration = self.init_sys_config['configuration']
@@ -399,6 +400,45 @@ class model_class:
 				len(list(self.init_sys_config['states'])))
 		self.configuration['prediction_shape'] = \
 			(len(self.configuration['fit_target']),)
+
+
+	def sanity_check_input(self):
+		unit = self.init_sys_config
+
+		# checks if states is well defined
+		name = "Model configuration "
+		assert_if_exists_non_empty('states',unit,reference='states')
+		assert (len(list(unit['states'])) > 1), \
+			name + "only contains a single compartment"
+		## check if all states are well defined
+		for item in list(unit['states']):
+			assert_if_non_empty(item,unit['states'],item,reference='state')
+			assert_if_exists('optimise',unit['states'][item],item)
+			assert_if_exists_non_empty('value',unit['states'][item],
+									   item,'value')
+			assert_if_exists('optimise',unit['states'][item],item)
+			
+		# checks if interactions is well defined
+		assert_if_exists_non_empty('interactions',unit,'interactions')
+		## check if all interactions are well defined
+		for item in list(unit['interactions']):
+			for edge in unit['interactions'][item]:
+				assert edge != None, \
+					name + "interaction {} is empty".format(item)
+				assert_if_exists_non_empty('fkt',edge,item,)
+				assert_if_exists_non_empty('sign',edge,item)
+				assert_if_exists('parameters',edge,item)
+				assert_if_exists('optimise',edge,item)
+
+		# checks if configuration is well defined
+		#assert (unit[]) 
+		assert_if_exists_non_empty('configuration', unit)
+		required_elements = ['integration_scheme','time_evo_max',
+			'dt_time_evo','ode_coeff_model', 'stability_rel_tolerance',
+			'tail_length_stability_check','start_stability_check',
+			'fit_model','fit_target']
+		for element in required_elements:
+			assert_if_exists_non_empty(element,unit['configuration'])
 
 
 	def initialize_log(self,n_monte_samples,max_gd_iter):
@@ -596,3 +636,19 @@ class model_class:
 			parameters,constrains,barrier_slope)
 
 		return model_log, prediction, cost, is_stable
+
+
+def assert_if_exists(unit,container,item='',reference='',
+								name="Model configuration "):
+	assert (unit in container), \
+		name + reference + " {} lacks definition of {}".format(item,unit)
+
+def assert_if_non_empty(unit,container,item='',reference='',
+								name="Model configuration "):
+	assert (container[unit] != None), \
+		name + reference + " {} {} is empty".format(item,unit)
+
+def assert_if_exists_non_empty(unit,container,item='',reference='',
+								name="Model configuration "):
+	assert_if_exists(unit,container,item,reference=reference,name=name)
+	assert_if_non_empty(unit,container,item,reference=reference,name=name)
