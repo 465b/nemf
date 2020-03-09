@@ -15,7 +15,7 @@ def run_time_evo(model_configuration, integration_scheme, time_evo_max,
 				 stability_rel_tolerance=1e-5, tail_length_stability_check=10,
 				 start_stability_check=100):
 	
-	""" integrates first-order coupled ordinary-differential-equations (odes)
+	""" integrates coupled ordinary-differential-equations (ODEs)
 
 	Parameters
 	----------
@@ -76,15 +76,18 @@ def run_time_evo(model_configuration, integration_scheme, time_evo_max,
 		# updates ode coefficients
 		ode_coeff = ode_coeff_model(model_configuration)
 		# calculates next time step
-		ode_state_log[ii] = integration_scheme(ode_state_log[ii-1],ode_coeff,dt_time_evo)
+		ode_state_log[ii] = integration_scheme(
+			ode_state_log[ii-1],ode_coeff,dt_time_evo)
 		model_configuration.from_ode(ode_state_log[ii])
-		# repeatedly checks if the solution is stable, if so returns, if not continuos
+		# repeatedly checks if the solution is stable,
+		# if so returns, if not continues
 		if ( (ii >= int(start_stability_check/dt_time_evo))
 			& (ii%tail_length_stability_check == 0) 
 			& (stability_rel_tolerance != 0)):
 		
-			is_stable = worker.check_convergence(ode_state_log[:ii+1],
-											stability_rel_tolerance,tail_length_stability_check)
+			is_stable = worker.check_convergence(
+				ode_state_log[:ii+1], stability_rel_tolerance,
+				tail_length_stability_check)
 		
 			if is_stable:
 				return ode_state_log[:ii+1], is_stable
@@ -130,6 +133,14 @@ def gradient_descent(model_config, parameters, constraints,
 			Scales the step size in the gradient descent. Often also
 			referred to as learning rate. Necessary to compensate for the
 			"roughness" of the objective function field.
+		convergence_tail_length : int
+			number of values counted from the end up that are used to check
+			for convergence of the gradient descent iteration.
+		convergence_tolerance : float
+			maximal allowed relative fluctuation range in the tail of the
+			cost function to test positive for convergence
+		verbose : bool
+			Flag for extra verbosity during runtime
 
 		Returns
 		-------
@@ -162,17 +173,21 @@ def gradient_descent(model_config, parameters, constraints,
 
 	# ii keeps track of the position in the output array
 	# jj keeps track of the actual iteration step,
-	# 	 to ensure that it does not exceed max iterations
+	# to ensure that it does not exceed max iterations
 	ii = 0; jj = 0
 	while jj < gd_max_iter-1:
 
-		if ( (ii >= int(convergence_tail_length)) & (convergence_tolerance != 0)):
-			# checks if the gradient descent optimization has converged and stops if so
-			grad_convergence = worker.check_convergence(cost_stack[:ii+1],
-											convergence_tolerance,convergence_tail_length)
+		if ((ii >= int(convergence_tail_length)) 
+			 & (convergence_tolerance != 0)):
+			# checks if the gradient descent optimization
+			# has converged and stops if so
+			grad_convergence = worker.check_convergence(
+				cost_stack[:ii+1], convergence_tolerance,
+				convergence_tail_length)
 			if grad_convergence == True:
 				if verbose:
-					print('Gradient Descent converged after iteration step {}'.format(ii))
+					print('Gradient Descent converged'+
+						'after iteration step {}'.format(ii))
 				return param_stack, model_stack, prediction_stack, cost_stack
 		
 		if verbose:
@@ -260,6 +275,14 @@ def dn_monte_carlo(path_model_configuration,
 	seed : positive integer
 		Initializes the random number generator. Used to recreate the
 		same set of pseudo-random numbers. Helpfull when debugging.
+	convergence_tail_length : int
+		number of values counted from the end up that are used to check
+		for convergence of the gradient descent iteration.
+	convergence_tolerance : float
+		maximal allowed relative fluctuation range in the tail of the
+		cost function to test positive for convergence
+	verbose : bool
+		Flag for extra verbosity during runtime
 
 	Returns
 	-------
@@ -284,8 +307,8 @@ def dn_monte_carlo(path_model_configuration,
 	
 	# runs the optimization with the initial values read from file
 	if optim_flag:
-		""" This option is run if there is no optimization desired,
-			of if no parameters to optimized are provided """
+		# This option is run if there is no optimization desired,
+		# of if no parameters to optimized are provided
 		sample_sets = 0
 		model_log, prediction, is_stable = \
 			model_configuration.calc_prediction()
@@ -296,11 +319,12 @@ def dn_monte_carlo(path_model_configuration,
 		model_configuration.to_log(np.array([]),model_log,prediction,cost)
 
 	elif sample_sets == 0:	
-		""" This option runs the optimization with the initial parameters
-			presented in the model configuration """
+		# This option runs the optimization with the initial parameters
+		# presented in the model configuration
 		
 		# fetches the parameters and their constraints from model config
 		constraints = model_configuration.to_grad_method()[1]
+		# tests if there is anything to optimise
 		if len(constraints) == 0:
 			warnings.warn('Monte Carlo optimization method called with '
 							+'no parameters to optimise. '
@@ -312,6 +336,7 @@ def dn_monte_carlo(path_model_configuration,
 				sample_sets=-1,gd_max_iter=gd_max_iter,
 				pert_scale=pert_scale,grad_scale=grad_scale,seed=seed)
 		else:
+			# fetches parameters which shall be optimized
 			parameters = model_configuration.to_grad_method()[0] 
 			
 			# runs the gradient descent for the generated sample set 
@@ -338,6 +363,7 @@ def dn_monte_carlo(path_model_configuration,
 			
 			# fetches the parameters and their constraints from model config
 			constraints = model_configuration.to_grad_method()[1]
+			# tests is there is anything to optimise
 			if len(constraints) == 0:
 				warnings.warn('Monte Carlo optimization method called with '
 								+'no parameters to optimise. '
@@ -349,6 +375,7 @@ def dn_monte_carlo(path_model_configuration,
 					sample_sets=-1,gd_max_iter=gd_max_iter,
 					pert_scale=pert_scale,grad_scale=grad_scale,seed=seed)
 			else:
+				# fetches parameters which shall be optimized
 				parameters = worker.monte_carlo_sample_generator(constraints)
 				
 				# runs the gradient descent for the generated sample set 

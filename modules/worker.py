@@ -232,15 +232,23 @@ def check_convergence(prediction, stability_rel_tolerance=1e-6,
         true if stability conditions are met
     """
 
-    
+    # gets relevant data slice    
     prediction_tail = prediction[-tail_length-1:-1]
 
+    # computes local average and spread
     average = np.average(prediction_tail,axis=0)
     spread = np.max(prediction_tail,axis=0) -np.min(prediction_tail,axis=0)
+    
+    # compares spread to the provided conditions 
     rel_spread = spread/average
     rel_condition = (rel_spread <= float(stability_rel_tolerance)).all() 
+    # also evaluates positive if the spread is smaller in absolute values
+    # then the provided conditions. This avoid instability due to float
+    # rounding errors
     abs_condition = (spread <= float(stability_rel_tolerance)).all()
+    
     is_stable = rel_condition or abs_condition
+    
     return is_stable
 
 
