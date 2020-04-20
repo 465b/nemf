@@ -113,6 +113,7 @@ def draw_model_output(ax,model,model_config):
     dt = model_config.configuration['dt_time_evo']
     T = model_config.configuration['time_evo_max']
     time = np.arange(T,step=dt)
+    time = time[:len(model)]
     labels = list(model_config.states)
 
     ax.title.set_text('optimized model')
