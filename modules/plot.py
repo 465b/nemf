@@ -33,7 +33,6 @@ def interaction_graph(model_config):
     
     comment = yaml.dump(config, default_flow_style=False, line_break=True)
     comment = comment.replace('!!python/tuple','')
-    print(comment)
 
     # fetch list of edges and their labels
     edges = []; labels = []
