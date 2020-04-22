@@ -7,6 +7,8 @@ It was created to assist in development of a carbon flux model in the Baltic sea
 
 See examples.py
 
+A set of exemplary framework configurations are provided in the [configuration_files](configuration_files/)
+
 
 ## Use case
 
