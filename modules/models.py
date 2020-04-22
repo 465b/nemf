@@ -407,6 +407,10 @@ class model_class:
 
 
 	def sanity_check_input(self):
+		""" 
+			checks for obvious errors in the configuration file.
+			passing this test doesn't guarante a correct configuration. 
+		"""
 		unit = self.init_sys_config
 
 		# checks if states is well defined
