@@ -101,7 +101,7 @@ it fits a set of selected parameters.
 This achieved by calculating the time evolution of the system and varying the parameters to get closer to the desired fit target. The varying of the parameters is done by a gradient descent approach.
 
 The results of such a run might then look like the following:
-![exemplary results](figure/../figures/examplary_results.svg "exemplary fit results")
+![exemplary results](figure/../figures/exemplary_results.svg "exemplary fit results")
 Top left shows the cost of the current model configuration. The cost is a quadratic measure of distance to the desired model.
 Top right shows a output of the ODE model after it reached its steady state for every parameter set tested, while bottem left shows the tested parameters.
 Bottem right shows the full model output of the (so far) best fitted model.
