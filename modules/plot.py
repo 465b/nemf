@@ -25,7 +25,13 @@ def interaction_graph(model_config):
         config.pop('idx_sources')
 
     # turns dict into yaml style string
-    comment = yaml.dump(config, default_flow_style=False, sort_keys=False)
+    
+    ## quick and dirty reformating of the lists and tuples
+    for item in config:
+        if ((type(config[item]) == list) or (type(config[item]) == tuple)):
+            config[item] = str(config[item])
+    
+    comment = yaml.dump(config, default_flow_style=False, line_break=True)
     comment = comment.replace('!!python/tuple','')
 
     # fetch list of edges and their labels
@@ -69,13 +75,12 @@ def interaction_graph(model_config):
         label_pos=0.35, font_size=10,font_color='tab:red',rotate=False)
 
     # adds configuration
-    plt.legend(title=comment,loc='center right', bbox_to_anchor=(1., 0.5))
+    plt.legend(title=comment,loc='center left', bbox_to_anchor=(1., 0.5))
     # positions legends
     ## Shrink current axis by 20%
     box = ax.get_position()
-    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
     ## Put a legend to the right of the current axis
-    ax.legend(title=comment,loc='center left', bbox_to_anchor=(1, 0.5))
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
     
     plt.tight_layout()
     plt.show()
@@ -113,6 +118,7 @@ def draw_model_output(ax,model,model_config):
     dt = model_config.configuration['dt_time_evo']
     T = model_config.configuration['time_evo_max']
     time = np.arange(T,step=dt)
+    time = time[:len(model)]
     labels = list(model_config.states)
 
     ax.title.set_text('optimized model')
