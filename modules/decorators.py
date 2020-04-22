@@ -1,5 +1,6 @@
 import pickle
 import datetime
+import os
 
 def log_input_output(func):
     def wrapper(*args,**kwargs):
@@ -17,7 +18,9 @@ def log_input_output(func):
         list_kwargs = [(k, v) for k, v in kwargs.items()]
         commented_results = [list_args+list_kwargs, result]
         
-        pickling_on = open("_".join((date,func.__name__))+".pickle","wb")
+        path = os.path.join('output_data',
+                              "_".join((date,func.__name__))+".pickle")
+        pickling_on = open(path,"wb")
         pickle.dump(commented_results,pickling_on)
         pickling_on.close()
         

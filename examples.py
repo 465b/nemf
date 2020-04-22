@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 
 # path of model/system configuration
-path = ('initial_values/NPZD_model_config.yml')
+path = ('configuration_files/NPZD_model_config.yml')
 
 model_config = models.model_class(path)
 plot.interaction_graph(model_config)

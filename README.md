@@ -1,11 +1,21 @@
-# Inverse Modeling Library
+# General Ecosystem Modeling Framework
 
-This is a python implementation of an inverse modeling tool for ODE's (ordinary differential equations).
-It was created to assist in development of a carbon flux model in the Baltic sea by Maike Scheffold, but is designed to work for all coupled ODE's system of any order or dimension.
+GEMF is a ecosystem modelling framework written in python.
+It is designed to offer an easy to use method for modelling ecosystems with low- to intermediate complexity.
+The framework offers the functionality to handle non-equilibrium, non-linear interactions.
+Because of the far spread field of ecology and its research challenges, we designed the framework with flexibility in mind.
+We provide a set of functions for the typical use-cases so that the framework be used without needing to write any code.
+However, we made it possible for the user to define interaction functions between ecosystem components without needing to change any of the framework code.
+The framework offers an easy to use method that fits any parameter of the model to mimic the studied system.
+For simplicity, the current version of the framework is limited to non-spatially resolved models (box-models).
+It was originally created to assist in development of a carbon flow model in the Baltic sea by Maike Scheffold
+
 
 ## Quick Start
 
 See examples.py
+
+A set of exemplary framework configurations are provided in the [configuration_files](configuration_files/)
 
 
 ## Use case
@@ -28,19 +38,21 @@ To reduce the complexity of problem of solving and fitting ODE-systems, we requi
 * The desired state is a stable state of the ODE system.
   
 
+## How does it work?
+
+For a conceptual description of the internals of this library, see [README_concept.md](README_concept.md)
+
+
 ## Usage
 
 The designed work-flow when using this library is to first draw up a network diagram or graph that represents the system you want to study.
 
-To set up the model one needs to define all the compartments (represented by nodes). The interactions between these compartments are symbolized by the directional lines (edges). Each of these edges represents a flow between compartments. The kind of interaction is labeled on each edge.
-Note that this creates a directional-multi-graph. Multi in this context means that we can have several edges going back an forth (directional) between two nodes.
-
-This step can be skipped if the ODE's of the system are already well known.
-
 An exemplary graph might look like the following:
-
 ![interaction graph](figures/network_diagram.svg "Exemplary interaction graph")
 
+To set up the model one needs to define all the compartments (represented by nodes). The interactions between these compartments are symbolized by the directional lines (edges). Each of these edges represents a flow between compartments. The kind of interaction is labeled on each edge.
+Note that this creates a directional-multi-graph. Multi in this context means that we can have several edges going back an forth (directional) between two nodes.
+This step can be skipped if the ODE's of the system are already well known.
 
 The library uses a yaml configuration file to read-in the graph structure.
 This configuration file follows the same structure as the graph.
@@ -83,27 +95,25 @@ For more details on the yaml file, see [README_YAML.md](README_YAML.md)
 
 
 The function intended for the user are gathered in the caller module.
-
 The main top level function is **'dn_monte_carlo()'**.
-It required input is the path to the yaml configuration file.
-The function fits the parameters selected in the yaml file by calculating the time evolution of the system and varying the parameters to get closer to the desired fit target. The varying of the parameters is done by a gradient descent approach.
+When provided with the yaml configuration file,
+it fits a set of selected parameters.
+This achieved by calculating the time evolution of the system and varying the parameters to get closer to the desired fit target. The varying of the parameters is done by a gradient descent approach.
 
 The results of such a run might then look like the following:
-![exemplary results](figure/../figures/examplary_results.svg "exemplary fit results")
+![exemplary results](figure/../figures/exemplary_results.svg "exemplary fit results")
 Top left shows the cost of the current model configuration. The cost is a quadratic measure of distance to the desired model.
 Top right shows a output of the ODE model after it reached its steady state for every parameter set tested, while bottem left shows the tested parameters.
 Bottem right shows the full model output of the (so far) best fitted model.
 Note that for illustratrive purposes, we only shoed the first few iteration steps. Ideally the cost converges to zero.
 
-## How does it work?
 
-For a conceptual description of the internals of this library, see [README_concept.md](README_concept.md)
+The framework provides three functions intended for the user:**dn_monte_carlo()**,**gradient_descent()**, and **run_time_evo()**. To give a short overview of the implementation: 
 
-To give a short overview of the implementation:  
-After **'dn_monte_carlo()'** ran, it returns a set of the optimized free parameter which are or can be initially randomly chosen. Hence, the name 'monte carlo'. However, it the initial set can also be prescribed, if desired.
+* After **dn_monte_carlo()** ran, it returns a set of the optimized free parameter which are or can be initially randomly chosen. Hence, the name 'monte carlo'. However, it the initial set can also be prescribed, if desired.
 Additionally, it returns the value of the cost function, the prediction of the fit model, as well as the full ode-model output for the final parameter set as well as all intermediate steps.
 
-**dn_monte_carlo()**  calls the **'gradient_descent()'** function which does the actual optimization and is therefore responsible for most of the heavy lifting concerning the fitting in this library.
+* dn_monte_carlo()  calls the **gradient_descent()** function which does the actual optimization and is therefore responsible for most of the heavy lifting concerning the fitting in this library.
 For a given set of initial free parameters (among many other input parameters), an optimized set is returned, based on the gradient descent approach starting from the initial set.
 
-The last top level function is the **'run_time_evo()'** on which the gradient_descent() routine heavily relies on. It does the time integration of the system of ODEs and by doing so tests the influence of the free parameter.
+* The last top level function is the **run_time_evo()** on which the gradient_descent() routine heavily relies on. It does the time integration of the system of ODEs and by doing so tests the influence of the free parameter.

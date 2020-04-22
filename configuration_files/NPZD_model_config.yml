@@ -51,7 +51,7 @@ interactions:
     parameters:
     - 0.04
     sign: '+1'
-  N:Z:
+  D:Z:
   - fkt: linear_mortality
     optimise:
     parameters:
@@ -69,11 +69,11 @@ configuration:
   sources: null
   sinks: null
   integration_scheme: euler_forward
-  time_evo_max: 100
+  time_evo_max: 300
   dt_time_evo: 0.1
   ode_coeff_model: interaction_model_generator
-  stability_rel_tolerance: 1e-3
+  stability_rel_tolerance: 1.0e-3
   tail_length_stability_check: 10
   start_stability_check: 50
   fit_model: direct_fit_model
-  fit_target: [1,1,0,0]
+  fit_target: [1.,0.5,1.,0.1]
