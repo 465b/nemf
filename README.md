@@ -50,7 +50,7 @@ For a conceptual description of the internals of this library, see [README_conce
 ## Example
 
 A simple example might be a simple NPZD model as presented below:
-![interaction graph](figures/network_diagram.svg "Exemplary interaction graph")
+![interaction graph](doc/figures/network_diagram.svg "Exemplary interaction graph")
 
 The user needs to define the compartments and interactions between them.
 If the model should be fitted, they also need to provide some constraints and some data to fit it to.  
@@ -60,7 +60,7 @@ Once the model is configured the framework handles the time integration as well 
 
 
 The results of such a run might then look like the following:
-![exemplary results](figures/exemplary_results.svg "exemplary fit results")
+![exemplary results](doc/figures/exemplary_results.svg "exemplary fit results")
 
 Top left shows the cost of the current model configuration. The cost is a quadratic measure of distance of the current model to the desired model.
 Top right shows a output of the model after it reached its steady state for every parameter set tested.
