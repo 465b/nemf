@@ -19,13 +19,12 @@ def interaction_graph(model_config):
     # fetch the list of interaction paths present
     interactions = list(model_config.interactions)
     # fetch configuration
-    config = model_config.configuration
+    config = model_config.configuration.copy()
     if 'idx_sinks' in config:
         config.pop('idx_sinks')
         config.pop('idx_sources')
 
     # turns dict into yaml style string
-    
     ## quick and dirty reformating of the lists and tuples
     for item in config:
         if ((type(config[item]) == list) or (type(config[item]) == tuple)):

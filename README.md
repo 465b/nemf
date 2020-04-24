@@ -30,12 +30,12 @@ import gemf as
 model_config = gemf.load_configuration('path/to/model_configuration.yml')
 
 # To solve the time integration of this model call:
-forward_results = gemf.run_forward_model(model_config)
+forward_results = gemf.forward_model(model_config)
 # To also solve the inverse problem as defined in the configuration, call:
-inverse_results = gemf.run_inverse_model(model_config)
+inverse_results = gemf.inverse_model(model_config)
 
 # To plot the results call 
-gemf.plot_results_summary(inverse_results)
+gemf.plot.output_summary(inverse_results)
 ```
 
 For details on the yaml configuration file, see [README_YAML.md](README_YAML.md)  

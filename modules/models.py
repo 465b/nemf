@@ -157,7 +157,7 @@ def direct_fit_model(model_config,integration_scheme,
 			true if stability conditions are met. 
 			See check_convergence() for more details. """
 	
-	F_ij, is_stable = caller.run_time_evo(model_config,
+	F_ij, is_stable = caller.time_evolution(model_config,
 										integration_scheme, time_evo_max,
 										dt_time_evo,ode_state,
 										ode_coeff_model,ode_coeff,
@@ -228,7 +228,7 @@ def net_flux_fit_model(model_config,integration_scheme,
 			true if stability conditions are met. 
 			See check_convergence() for more details. """
 
-	F_ij, is_stable = caller.run_time_evo(model_config,
+	F_ij, is_stable = caller.time_evolution(model_config,
 										  integration_scheme, time_evo_max,
 										  dt_time_evo,ode_state,
 										  ode_coeff_model,ode_coeff,
