@@ -1,6 +1,6 @@
 import numpy as np
-from . import caller
-from . import worker
+from gemf import caller
+from gemf import worker
 from copy import deepcopy
 
 # Time Evolution

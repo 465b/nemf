@@ -1,7 +1,7 @@
 import numpy as np
-from . import worker
-from . import models
-from . import decorators
+from gemf import worker
+from gemf import models
+from gemf import decorators
 
 import logging
 import warnings

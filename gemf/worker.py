@@ -2,7 +2,7 @@ import numpy as np
 import logging
 import yaml
 
-from . import models
+from gemf import models
 
 logging.basicConfig(filename='carbonflux_inverse_model.log',level=logging.DEBUG)
 
