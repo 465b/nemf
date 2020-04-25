@@ -4,7 +4,7 @@
 import gemf
 
 # provide the path of model/system configuration
-path = ('configuration_files/NPZD_model_config.yml')
+path = ('configuration_files/exemplary_NPZD_model.yml')
 
 # load the model configuration
 model_config = gemf.model_class(path)

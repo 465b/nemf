@@ -83,8 +83,8 @@ def interaction_model_generator(model_config):
 		for item in model_config.interactions[interaction]:
 			parameters = item['parameters'].copy()
 			for nn,entry in enumerate(parameters):
-				if (type(entry) == str) & (entry in list(model_config.states)):
-					parameters[nn] = model_config.states[entry]['value']
+				if (type(entry) == str) & (entry in list(model_config.compartment)):
+					parameters[nn] = model_config.compartment[entry]['value']
 
 			# updates the matrix
 			## nondiagonal elements
@@ -390,8 +390,8 @@ class model_class:
 	def __init__(self,path):
 		self.init_sys_config = worker.initialize_ode_system(path)
 		self.sanity_check_input()
-		self.states = deepcopy(
-			self.init_sys_config['states'])
+		self.compartment = deepcopy(
+			self.init_sys_config['compartment'])
 		self.interactions = deepcopy(
 			self.init_sys_config['interactions'])
 		self.configuration = deepcopy(
@@ -401,7 +401,7 @@ class model_class:
 		self.configuration['model_output_shape'] = \
 			(int(self.configuration['time_evo_max']/
 				self.configuration['dt_time_evo']),
-				len(list(self.init_sys_config['states'])))
+				len(list(self.init_sys_config['compartment'])))
 		self.configuration['prediction_shape'] = \
 			(len(self.configuration['fit_target']),)
 
@@ -413,18 +413,18 @@ class model_class:
 		"""
 		unit = self.init_sys_config
 
-		# checks if states is well defined
+		# checks if compartment is well defined
 		name = "Model configuration "
-		assert_if_exists_non_empty('states',unit,reference='states')
-		assert (len(list(unit['states'])) > 1), \
+		assert_if_exists_non_empty('compartment',unit,reference='compartment')
+		assert (len(list(unit['compartment'])) > 1), \
 			name + "only contains a single compartment"
-		## check if all states are well defined
-		for item in list(unit['states']):
-			assert_if_non_empty(item,unit['states'],item,reference='state')
-			assert_if_exists('optimise',unit['states'][item],item)
-			assert_if_exists_non_empty('value',unit['states'][item],
+		## check if all compartment are well defined
+		for item in list(unit['compartment']):
+			assert_if_non_empty(item,unit['compartment'],item,reference='state')
+			assert_if_exists('optimise',unit['compartment'][item],item)
+			assert_if_exists_non_empty('value',unit['compartment'][item],
 									   item,'value')
-			assert_if_exists('optimise',unit['states'][item],item)
+			assert_if_exists('optimise',unit['compartment'][item],item)
 			
 		# checks if interactions is well defined
 		assert_if_exists_non_empty('interactions',unit,'interactions')
@@ -459,7 +459,7 @@ class model_class:
 		model_log = np.zeros( (n_monte_samples, max_gd_iter,
 							int(self.configuration['time_evo_max']/
 							self.configuration['dt_time_evo']),
-							len(list(self.states))))
+							len(list(self.compartment))))
 	
 		log_dict = {'parameters': param_log,
 					'predictions': prediction_log,
@@ -474,7 +474,7 @@ class model_class:
 		""" gets the indices in the interaction matrix """
 		## separate row & column
 		interactions = list(self.interactions)
-		compartments = list(self.states)
+		compartments = list(self.compartment)
 		
 		interaction_index = interactions.copy()
 		for index,item in enumerate(interactions):
@@ -495,7 +495,7 @@ class model_class:
 			sources = list(self.configuration['sources'])
 			idx_sources = sources.copy()
 			for ii, item in enumerate(idx_sources):
-				idx_sources[ii] = list(self.states).index(item)
+				idx_sources[ii] = list(self.compartment).index(item)
 		
 		if self.configuration['sinks'] == None:
 			sinks = None
@@ -504,7 +504,7 @@ class model_class:
 			sinks = list(self.configuration['sinks'])
 			idx_sinks = sinks.copy()
 			for ii, item in enumerate(idx_sinks):
-				idx_sinks[ii] = list(self.states).index(item)
+				idx_sinks[ii] = list(self.compartment).index(item)
 			
 		self.configuration['idx_sources'] = idx_sources
 		self.configuration['idx_sinks'] = idx_sinks
@@ -535,14 +535,14 @@ class model_class:
 
 	def from_ode(self,ode_states):
 		""" updates self with the results provided by the ode solver """
-		for ii, item in enumerate(self.states):
-			self.states[item]['value'] = ode_states[ii]
+		for ii, item in enumerate(self.compartment):
+			self.compartment[item]['value'] = ode_states[ii]
 
 
 	def to_ode(self):
 		""" fetches the parameters necessary for the ode solver 
  	       Returns: ode_state,ode_coeff_model,ode_coeff """
-		ode_state = np.array([self.states[ii]['value'] for ii in self.states])
+		ode_state = np.array([self.compartment[ii]['value'] for ii in self.compartment])
 		ode_coeff_model = interaction_model_generator
 		ode_coeff = ode_coeff_model(self)
 		
@@ -556,12 +556,12 @@ class model_class:
 		free_parameters = []
 		constraints = []
 		labels = []
-		for ii in self.states:
-			if self.states[ii]['optimise'] is not None:
+		for ii in self.compartment:
+			if self.compartment[ii]['optimise'] is not None:
 				labels.append('{}'.format(ii))
-				value = self.states[ii]['value']
-				lower_bound = self.states[ii]['optimise']['lower']
-				upper_bound = self.states[ii]['optimise']['upper']
+				value = self.compartment[ii]['value']
+				lower_bound = self.compartment[ii]['optimise']['lower']
+				upper_bound = self.compartment[ii]['optimise']['upper']
 				free_parameters.append(value)
 				constraints.append([lower_bound,upper_bound])
 
@@ -586,12 +586,12 @@ class model_class:
 
 
 	def refresh_to_initial(self):
-		self.states = deepcopy(self.init_sys_config['states'])
+		self.compartment = deepcopy(self.init_sys_config['compartment'])
 
 
 	def create_empty_interaction_matrix(self):
 		""" initializes an returns empty interaction matrix """
-		size = len(self.states)
+		size = len(self.compartment)
 		alpha = np.zeros((size,size))
 		return alpha
 
@@ -599,9 +599,9 @@ class model_class:
 	def update_system_with_parameters(self, parameters):
 		values = list(parameters)
 		
-		for ii in self.states:
-			if self.states[ii]['optimise'] is not None:
-				self.states[ii]['value'] = values.pop(0)
+		for ii in self.compartment:
+			if self.compartment[ii]['optimise'] is not None:
+				self.compartment[ii]['value'] = values.pop(0)
 	
 		for ii in self.interactions:
 			#function
