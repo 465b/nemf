@@ -571,7 +571,8 @@ class model_class:
 				#parameters
 				if item['optimise'] is not None:
 					for jj,elements in enumerate(item['optimise']):
-						labels.append('{},{},{}'.format(ii,item,jj))
+						labels.append('{},fkt: {} #{}'.format(
+							ii,item['fkt'],elements['parameter_no']))
 						value = item['parameters'][jj]
 						lower_bound = elements['lower']
 						upper_bound = elements['upper']
