@@ -3,10 +3,10 @@ from gemf import worker
 from gemf import models
 from gemf import decorators
 
-import logging
+#import logging
 import warnings
-logging.basicConfig(filename='carbonflux_inverse_model.log',
-					level=logging.DEBUG)
+#logging.basicConfig(filename='carbonflux_inverse_model.log',
+#					level=logging.DEBUG)
 
 
 def time_evolution(model_configuration, integration_scheme, time_evo_max,
@@ -102,8 +102,7 @@ def gradient_descent(model_config, parameters, constraints,
 					convergence_tail_length = 10, convergence_tolerance=1e-3,
 					verbose=False):
 
-	""" framework for applying a gradient decent approach to a 
-		a model, applying a certain method 
+	""" Applies a gradient decent optimization routine to a model configuration.
 		
 		Parameters
 		----------
@@ -227,20 +226,18 @@ def gradient_descent(model_config, parameters, constraints,
 
 
 ## monte carlo methods
-@decorators.log_input_output
+#@decorators.log_input_output
 def forward_model(model_configuration,
 					seed=137,
 					verbose=False):
 
-	""" Optimizes a set of randomly generated free parameters and returns
-		their optimized values and the corresponding fit-model and cost-
-		function output 
-	
+	""" Runs the time integration for a provided model configuration.
+			
 		Parameters
 		----------
-		path_model_configuration : model_class object
+		model_configuration : model_class object
 			class object containing the model configuration
-			and its related methods
+			and its related methods. See load_configuration()
 		seed : positive integer
 			Initializes the random number generator. Used to recreate the
 			same set of pseudo-random numbers. Helpfull when debugging.
@@ -249,7 +246,7 @@ def forward_model(model_configuration,
 
 		Returns
 		-------
-		path_model_configuration : model_class object
+		model_configuration : model_class object
 			class object containing the model configuration, model run results,
 			and its related methods
 	"""
@@ -275,7 +272,7 @@ def forward_model(model_configuration,
 	return model_configuration
 
 
-@decorators.log_input_output
+#@decorators.log_input_output
 def inverse_model(model_configuration,
 					gradient_method = models.SGD_basic,
 					barrier_slope=1e-6,
@@ -294,9 +291,9 @@ def inverse_model(model_configuration,
 	
 		Parameters
 		----------
-		path_model_configuration : model_class object
+		model_configuration : model_class object
 			class object containing the model configuration
-			and its related methods
+			and its related methods. See load_configuration()
 		gradient_method : function
 			{SGD_basic,SGD_momentum}
 			Selects the method used during the gradient descent.
@@ -332,7 +329,7 @@ def inverse_model(model_configuration,
 
 		Returns
 		-------
-		path_model_configuration : model_class object
+		model_configuration : model_class object
 			class object containing the model configuration, 
 			model run results (parameters, model, prediction, cost),
 			and its related methods
