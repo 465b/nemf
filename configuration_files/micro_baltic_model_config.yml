@@ -5,7 +5,7 @@ compartments:
   - "BAC"
   - "DOC"
 
-states:
+compartment:
   NUT:
     optimise:
     value: 1.0

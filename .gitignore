@@ -7,4 +7,5 @@
 *.png
 *.pickle
 *.log
-archived_routines
+*.egg-info
+*dist

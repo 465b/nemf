@@ -15,17 +15,16 @@ def interaction_graph(model_config):
         directional-multi-graph to illustrate the interactions """
     
     # define the present nodes/compartments
-    nodes = list(model_config.states)
+    nodes = list(model_config.compartment)
     # fetch the list of interaction paths present
     interactions = list(model_config.interactions)
     # fetch configuration
-    config = model_config.configuration
+    config = model_config.configuration.copy()
     if 'idx_sinks' in config:
         config.pop('idx_sinks')
         config.pop('idx_sources')
 
     # turns dict into yaml style string
-    
     ## quick and dirty reformating of the lists and tuples
     for item in config:
         if ((type(config[item]) == list) or (type(config[item]) == tuple)):
@@ -94,7 +93,7 @@ def draw_cost(ax,cost):
 
 def draw_predictions(ax,predictions,model_config):
     if model_config.configuration['fit_model'] == 'direct_fit_model':
-        labels = list(model_config.states)
+        labels = list(model_config.compartment)
     elif model_config.configuration['fit_model'] == 'net_flux_fit_model':
         labels = ['net incoming/outgoing flux']
     else:
@@ -119,7 +118,7 @@ def draw_model_output(ax,model,model_config):
     T = model_config.configuration['time_evo_max']
     time = np.arange(T,step=dt)
     time = time[:len(model)]
-    labels = list(model_config.states)
+    labels = list(model_config.compartment)
 
     ax.title.set_text('optimized model')
     handles = plt.plot(time,model)
