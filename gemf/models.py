@@ -1,6 +1,7 @@
 import numpy as np
-from . import caller
-from . import worker
+from gemf import caller
+from gemf import worker
+from copy import deepcopy
 
 # Time Evolution
 
@@ -82,8 +83,8 @@ def interaction_model_generator(model_config):
 		for item in model_config.interactions[interaction]:
 			parameters = item['parameters'].copy()
 			for nn,entry in enumerate(parameters):
-				if (type(entry) == str) & (entry in list(model_config.states)):
-					parameters[nn] = model_config.states[entry]['value']
+				if (type(entry) == str) & (entry in list(model_config.compartment)):
+					parameters[nn] = model_config.compartment[entry]['value']
 
 			# updates the matrix
 			## nondiagonal elements
@@ -156,7 +157,7 @@ def direct_fit_model(model_config,integration_scheme,
 			true if stability conditions are met. 
 			See check_convergence() for more details. """
 	
-	F_ij, is_stable = caller.run_time_evo(model_config,
+	F_ij, is_stable = caller.time_evolution(model_config,
 										integration_scheme, time_evo_max,
 										dt_time_evo,ode_state,
 										ode_coeff_model,ode_coeff,
@@ -227,7 +228,7 @@ def net_flux_fit_model(model_config,integration_scheme,
 			true if stability conditions are met. 
 			See check_convergence() for more details. """
 
-	F_ij, is_stable = caller.run_time_evo(model_config,
+	F_ij, is_stable = caller.time_evolution(model_config,
 										  integration_scheme, time_evo_max,
 										  dt_time_evo,ode_state,
 										  ode_coeff_model,ode_coeff,
@@ -335,7 +336,7 @@ def holling_type_I(value,coefficient):
 	""" (co-)linear response """
 	return value*coefficient
 
-def holling_type_II(food_processing_time,hunting_rate,prey_population):
+def holling_type_II(prey_population,food_processing_time,hunting_rate):
 	""" (co-)linear + saturation response """
 	consumption_rate = ((hunting_rate * prey_population)/
 			(1+hunting_rate * food_processing_time * prey_population))
@@ -388,17 +389,64 @@ stress_dependant_exudation = holling_type_I
 class model_class:
 	def __init__(self,path):
 		self.init_sys_config = worker.initialize_ode_system(path)
-		self.states = self.init_sys_config['states']
-		self.interactions = self.init_sys_config['interactions']
-		self.configuration = self.init_sys_config['configuration']
+		self.sanity_check_input()
+		self.compartment = deepcopy(
+			self.init_sys_config['compartment'])
+		self.interactions = deepcopy(
+			self.init_sys_config['interactions'])
+		self.configuration = deepcopy(
+			self.init_sys_config['configuration'])
 		self.fetch_index_of_source_and_sink()
 		
 		self.configuration['model_output_shape'] = \
 			(int(self.configuration['time_evo_max']/
 				self.configuration['dt_time_evo']),
-				len(list(self.init_sys_config['states'])))
+				len(list(self.init_sys_config['compartment'])))
 		self.configuration['prediction_shape'] = \
 			(len(self.configuration['fit_target']),)
+
+
+	def sanity_check_input(self):
+		""" 
+			checks for obvious errors in the configuration file.
+			passing this test doesn't guarante a correct configuration. 
+		"""
+		unit = self.init_sys_config
+
+		# checks if compartment is well defined
+		name = "Model configuration "
+		assert_if_exists_non_empty('compartment',unit,reference='compartment')
+		assert (len(list(unit['compartment'])) > 1), \
+			name + "only contains a single compartment"
+		## check if all compartment are well defined
+		for item in list(unit['compartment']):
+			assert_if_non_empty(item,unit['compartment'],item,reference='state')
+			assert_if_exists('optimise',unit['compartment'][item],item)
+			assert_if_exists_non_empty('value',unit['compartment'][item],
+									   item,'value')
+			assert_if_exists('optimise',unit['compartment'][item],item)
+			
+		# checks if interactions is well defined
+		assert_if_exists_non_empty('interactions',unit,'interactions')
+		## check if all interactions are well defined
+		for item in list(unit['interactions']):
+			for edge in unit['interactions'][item]:
+				assert edge != None, \
+					name + "interaction {} is empty".format(item)
+				assert_if_exists_non_empty('fkt',edge,item,)
+				assert_if_exists_non_empty('sign',edge,item)
+				assert_if_exists('parameters',edge,item)
+				assert_if_exists('optimise',edge,item)
+
+		# checks if configuration is well defined
+		#assert (unit[]) 
+		assert_if_exists_non_empty('configuration', unit)
+		required_elements = ['integration_scheme','time_evo_max',
+			'dt_time_evo','ode_coeff_model', 'stability_rel_tolerance',
+			'tail_length_stability_check','start_stability_check',
+			'fit_model','fit_target']
+		for element in required_elements:
+			assert_if_exists_non_empty(element,unit['configuration'])
 
 
 	def initialize_log(self,n_monte_samples,max_gd_iter):
@@ -411,7 +459,7 @@ class model_class:
 		model_log = np.zeros( (n_monte_samples, max_gd_iter,
 							int(self.configuration['time_evo_max']/
 							self.configuration['dt_time_evo']),
-							len(list(self.states))))
+							len(list(self.compartment))))
 	
 		log_dict = {'parameters': param_log,
 					'predictions': prediction_log,
@@ -426,7 +474,7 @@ class model_class:
 		""" gets the indices in the interaction matrix """
 		## separate row & column
 		interactions = list(self.interactions)
-		compartments = list(self.states)
+		compartments = list(self.compartment)
 		
 		interaction_index = interactions.copy()
 		for index,item in enumerate(interactions):
@@ -447,7 +495,7 @@ class model_class:
 			sources = list(self.configuration['sources'])
 			idx_sources = sources.copy()
 			for ii, item in enumerate(idx_sources):
-				idx_sources[ii] = list(self.states).index(item)
+				idx_sources[ii] = list(self.compartment).index(item)
 		
 		if self.configuration['sinks'] == None:
 			sinks = None
@@ -456,7 +504,7 @@ class model_class:
 			sinks = list(self.configuration['sinks'])
 			idx_sinks = sinks.copy()
 			for ii, item in enumerate(idx_sinks):
-				idx_sinks[ii] = list(self.states).index(item)
+				idx_sinks[ii] = list(self.compartment).index(item)
 			
 		self.configuration['idx_sources'] = idx_sources
 		self.configuration['idx_sinks'] = idx_sinks
@@ -487,14 +535,14 @@ class model_class:
 
 	def from_ode(self,ode_states):
 		""" updates self with the results provided by the ode solver """
-		for ii, item in enumerate(self.states):
-			self.states[item]['value'] = ode_states[ii]
+		for ii, item in enumerate(self.compartment):
+			self.compartment[item]['value'] = ode_states[ii]
 
 
 	def to_ode(self):
 		""" fetches the parameters necessary for the ode solver 
  	       Returns: ode_state,ode_coeff_model,ode_coeff """
-		ode_state = np.array([self.states[ii]['value'] for ii in self.states])
+		ode_state = np.array([self.compartment[ii]['value'] for ii in self.compartment])
 		ode_coeff_model = interaction_model_generator
 		ode_coeff = ode_coeff_model(self)
 		
@@ -508,12 +556,12 @@ class model_class:
 		free_parameters = []
 		constraints = []
 		labels = []
-		for ii in self.states:
-			if self.states[ii]['optimise'] is not None:
+		for ii in self.compartment:
+			if self.compartment[ii]['optimise'] is not None:
 				labels.append('{}'.format(ii))
-				value = self.states[ii]['value']
-				lower_bound = self.states[ii]['optimise']['lower']
-				upper_bound = self.states[ii]['optimise']['upper']
+				value = self.compartment[ii]['value']
+				lower_bound = self.compartment[ii]['optimise']['lower']
+				upper_bound = self.compartment[ii]['optimise']['upper']
 				free_parameters.append(value)
 				constraints.append([lower_bound,upper_bound])
 
@@ -538,11 +586,12 @@ class model_class:
 
 
 	def refresh_to_initial(self):
-		self.states = self.init_sys_config['states']
+		self.compartment = deepcopy(self.init_sys_config['compartment'])
+
 
 	def create_empty_interaction_matrix(self):
 		""" initializes an returns empty interaction matrix """
-		size = len(self.states)
+		size = len(self.compartment)
 		alpha = np.zeros((size,size))
 		return alpha
 
@@ -550,9 +599,9 @@ class model_class:
 	def update_system_with_parameters(self, parameters):
 		values = list(parameters)
 		
-		for ii in self.states:
-			if self.states[ii]['optimise'] is not None:
-				self.states[ii]['value'] = values.pop(0)
+		for ii in self.compartment:
+			if self.compartment[ii]['optimise'] is not None:
+				self.compartment[ii]['value'] = values.pop(0)
 	
 		for ii in self.interactions:
 			#function
@@ -560,7 +609,7 @@ class model_class:
 				#parameters
 				if item['optimise'] is not None:
 					for element in item['optimise']:
-							item['parameters'][element['parameter_no']] = \
+							item['parameters'][element['parameter_no']-1] = \
 								values.pop(0)
 
 	
@@ -596,3 +645,19 @@ class model_class:
 			parameters,constrains,barrier_slope)
 
 		return model_log, prediction, cost, is_stable
+
+
+def assert_if_exists(unit,container,item='',reference='',
+								name="Model configuration "):
+	assert (unit in container), \
+		name + reference + " {} lacks definition of {}".format(item,unit)
+
+def assert_if_non_empty(unit,container,item='',reference='',
+								name="Model configuration "):
+	assert (container[unit] != None), \
+		name + reference + " {} {} is empty".format(item,unit)
+
+def assert_if_exists_non_empty(unit,container,item='',reference='',
+								name="Model configuration "):
+	assert_if_exists(unit,container,item,reference=reference,name=name)
+	assert_if_non_empty(unit,container,item,reference=reference,name=name)
