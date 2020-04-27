@@ -1,0 +1,49 @@
+compartment:
+  NUT:
+    optimise:
+      lower: 0.25
+      upper: 0.75
+    value: 0.5
+  BAC:
+    optimise:
+      lower: 0.25
+      upper: 0.75
+    value: 0.5
+   
+
+interactions:
+  # the functions are automatically multiplied by the value
+  # of the second compartment 
+  NUT:BAC:
+    - fkt: nutrition_limited_growth
+      parameters:
+      - 'NUT'
+      - 0.27
+      - 0.7
+      optimise:
+      - parameter_no: 2
+        lower: 0.1
+        upper: 0.3
+      sign: '-1'
+    - fkt: exudation
+      parameters:
+      - 0.02
+      optimise:
+      - parameter_no: 1
+        lower: 0.01
+        upper: 0.1
+      sign: '+1'
+
+
+configuration:
+  sources: null
+  sinks: null
+  integration_scheme: euler_forward
+  time_evo_max: 500
+  dt_time_evo: 0.01
+  ode_coeff_model: interaction_model_generator
+  stability_rel_tolerance: 1e-3
+  tail_length_stability_check: 10
+  start_stability_check: 100
+  fit_model: direct_fit_model
+  fit_target: [0.4,0.6]
