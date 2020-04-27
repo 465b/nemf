@@ -43,7 +43,7 @@ The relevant information that needs to be defined is:
 In the YAML format this looks like the following:
 
 ``` yaml
-states:           # header of the compartment section
+compartment:           # header of the compartment section
   N:              # name of compartment 
     value: 1.0    # initial value of the compartment
     optimise:     

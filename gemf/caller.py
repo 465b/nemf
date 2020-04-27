@@ -1,16 +1,15 @@
 import numpy as np
-from . import worker
-from . import models
-from . import decorators
+from gemf import worker
+from gemf import models
+from gemf import decorators
 
-import logging
+#import logging
 import warnings
-logging.basicConfig(filename='carbonflux_inverse_model.log',
-					level=logging.DEBUG)
+#logging.basicConfig(filename='carbonflux_inverse_model.log',
+#					level=logging.DEBUG)
 
 
-
-def run_time_evo(model_configuration, integration_scheme, time_evo_max,
+def time_evolution(model_configuration, integration_scheme, time_evo_max,
 				 dt_time_evo, ode_state, ode_coeff_model, ode_coeff=None,
 				 stability_rel_tolerance=1e-5, tail_length_stability_check=10,
 				 start_stability_check=100):
@@ -103,8 +102,7 @@ def gradient_descent(model_config, parameters, constraints,
 					convergence_tail_length = 10, convergence_tolerance=1e-3,
 					verbose=False):
 
-	""" framework for applying a gradient decent approach to a 
-		a model, applying a certain method 
+	""" Applies a gradient decent optimization routine to a model configuration.
 		
 		Parameters
 		----------
@@ -228,9 +226,54 @@ def gradient_descent(model_config, parameters, constraints,
 
 
 ## monte carlo methods
+#@decorators.log_input_output
+def forward_model(model_configuration,
+					seed=137,
+					verbose=False):
 
-@decorators.log_input_output
-def dn_monte_carlo(path_model_configuration,
+	""" Runs the time integration for a provided model configuration.
+			
+		Parameters
+		----------
+		model_configuration : model_class object
+			class object containing the model configuration
+			and its related methods. See load_configuration()
+		seed : positive integer
+			Initializes the random number generator. Used to recreate the
+			same set of pseudo-random numbers. Helpfull when debugging.
+		verbose : bool
+			Flag for extra verbosity during runtime
+
+		Returns
+		-------
+		model_configuration : model_class object
+			class object containing the model configuration, model run results,
+			and its related methods
+	"""
+
+	# seeds random generator to create reproducible runs
+	np.random.seed(seed)
+
+	# initializes model configuration 
+	# (contains information about the optimized model)
+	model_configuration.initialize_log(n_monte_samples=0, max_gd_iter=0)
+	
+	# runs the optimization with the initial values read from file
+	# This option is run if there is no optimization desired,
+	# of if no parameters to optimized are provided
+	model_log, prediction, is_stable = \
+		model_configuration.calc_prediction()
+	cost = worker.cost_function(prediction,
+		model_configuration.configuration['fit_target'])
+	if verbose:
+		print('Is the model stable? {}'.format(is_stable))
+	model_configuration.to_log(np.array([]),model_log,prediction,cost)
+
+	return model_configuration
+
+
+#@decorators.log_input_output
+def inverse_model(model_configuration,
 					gradient_method = models.SGD_basic,
 					barrier_slope=1e-6,
 					sample_sets = 3,
@@ -246,79 +289,60 @@ def dn_monte_carlo(path_model_configuration,
 		their optimized values and the corresponding fit-model and cost-
 		function output 
 	
-	Parameters
-	----------
-	path_model_configuration : string
-		Path to a file containing the coupling coefficients used in 
-		the time evolution. Expects them to be in tab-seperated-format.
-	gradient_method : function
-		{SGD_basic,SGD_momentum}
-		Selects the method used during the gradient descent.
-		They differ in their robustness and convergence speed
-	barrier_slope : positive-float
-		Defines the slope of the barrier used for the soft constrain.
-		Lower numbers, steeper slope. Typically between (0-1].
-	sample_sets : positive integer
-		Amount of randomly generated sample sets used as initial free
-		parameters
-	gd_max_iter : positive integer
-		Maximal amount of iterations allowed in the gradient descent
-		algorithm.
-	pert_scale : positive float
-		Maximal value which the system can be perturbed if necessary
-		(i.e. if instability is found). Actual perturbation ranges
-		from [0-pert_scale) uniformly distributed.
-	grad_scale : positive float
-		Scales the step size in the gradient descent. Often also
-		referred to as learning rate. Necessary to compensate for the
-		"roughness" of the objective function field.
-	seed : positive integer
-		Initializes the random number generator. Used to recreate the
-		same set of pseudo-random numbers. Helpfull when debugging.
-	convergence_tail_length : int
-		number of values counted from the end up that are used to check
-		for convergence of the gradient descent iteration.
-	convergence_tolerance : float
-		maximal allowed relative fluctuation range in the tail of the
-		cost function to test positive for convergence
-	verbose : bool
-		Flag for extra verbosity during runtime
+		Parameters
+		----------
+		model_configuration : model_class object
+			class object containing the model configuration
+			and its related methods. See load_configuration()
+		gradient_method : function
+			{SGD_basic,SGD_momentum}
+			Selects the method used during the gradient descent.
+			They differ in their robustness and convergence speed
+		barrier_slope : positive-float
+			Defines the slope of the barrier used for the soft constrain.
+			Lower numbers, steeper slope. Typically between (0-1].
+		sample_sets : positive integer
+			Amount of randomly generated sample sets used as initial free
+			parameters
+		gd_max_iter : positive integer
+			Maximal amount of iterations allowed in the gradient descent
+			algorithm.
+		pert_scale : positive float
+			Maximal value which the system can be perturbed if necessary
+			(i.e. if instability is found). Actual perturbation ranges
+			from [0-pert_scale) uniformly distributed.
+		grad_scale : positive float
+			Scales the step size in the gradient descent. Often also
+			referred to as learning rate. Necessary to compensate for the
+			"roughness" of the objective function field.
+		seed : positive integer
+			Initializes the random number generator. Used to recreate the
+			same set of pseudo-random numbers. Helpfull when debugging.
+		convergence_tail_length : int
+			number of values counted from the end up that are used to check
+			for convergence of the gradient descent iteration.
+		convergence_tolerance : float
+			maximal allowed relative fluctuation range in the tail of the
+			cost function to test positive for convergence
+		verbose : bool
+			Flag for extra verbosity during runtime
 
-	Returns
-	-------
-	model_configuration : dict
-		contains the configuration of the model including the output log,
-		containing all the intermediate outputs
-		(parameters, model, prediction, cost)
+		Returns
+		-------
+		model_configuration : model_class object
+			class object containing the model configuration, 
+			model run results (parameters, model, prediction, cost),
+			and its related methods
 	"""
 
-	if sample_sets == -1:
-		sample_sets = 0
-		optim_flag = True
-	else: 
-		optim_flag = False
 	# seeds random generator to create reproducible runs
 	np.random.seed(seed)
 
 	# initializes model configuration 
-	# (contains information about the optimized model)
-	model_configuration = models.model_class(path_model_configuration)
 	model_configuration.initialize_log(sample_sets, gd_max_iter)
-	
-	# runs the optimization with the initial values read from file
-	if optim_flag:
-		# This option is run if there is no optimization desired,
-		# of if no parameters to optimized are provided
-		sample_sets = 0
-		model_log, prediction, is_stable = \
-			model_configuration.calc_prediction()
-		cost = worker.cost_function(prediction,
-			model_configuration.configuration['fit_target'])
-		if verbose:
-			print('Is the model stable? {}'.format(is_stable))
-		model_configuration.to_log(np.array([]),model_log,prediction,cost)
 
-	elif sample_sets == 0:	
+
+	if sample_sets == 0:	
 		# This option runs the optimization with the initial parameters
 		# presented in the model configuration
 		
@@ -330,11 +354,7 @@ def dn_monte_carlo(path_model_configuration,
 							+'no parameters to optimise. '
 							+'Falling back to running model without '
 							+'optimization.')
-			return dn_monte_carlo(path_model_configuration,
-				gradient_method=gradient_method,
-				barrier_slope=barrier_slope,
-				sample_sets=-1,gd_max_iter=gd_max_iter,
-				pert_scale=pert_scale,grad_scale=grad_scale,seed=seed)
+			return forward_model(model_configuration,seed=seed)
 		else:
 			# fetches parameters which shall be optimized
 			parameters = model_configuration.to_grad_method()[0] 
@@ -369,11 +389,7 @@ def dn_monte_carlo(path_model_configuration,
 								+'no parameters to optimise. '
 								+'Falling back to running model without '
 								+'optimization.')
-				return dn_monte_carlo(path_model_configuration,
-					gradient_method=gradient_method,
-					barrier_slope=barrier_slope,
-					sample_sets=-1,gd_max_iter=gd_max_iter,
-					pert_scale=pert_scale,grad_scale=grad_scale,seed=seed)
+				return forward_model(model_configuration,seed=seed)
 			else:
 				# fetches parameters which shall be optimized
 				parameters = worker.monte_carlo_sample_generator(constraints)
@@ -390,5 +406,4 @@ def dn_monte_carlo(path_model_configuration,
 				model_configuration.to_log(
 					param_stack,model_stack,prediction_stack, cost_stack)
 				
-
 	return model_configuration
