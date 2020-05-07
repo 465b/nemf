@@ -14,7 +14,7 @@ compartment:
 interactions:
   # the functions are automatically multiplied by the value
   # of the second compartment 
-  NUT:BAC:
+  BAC:NUT:
     - fkt: nutrition_limited_growth
       parameters:
       - 'NUT'
@@ -24,7 +24,7 @@ interactions:
       - parameter_no: 2
         lower: 0.1
         upper: 0.3
-      sign: '-1'
+  NUT:BAC:
     - fkt: exudation
       parameters:
       - 0.02
@@ -32,7 +32,6 @@ interactions:
       - parameter_no: 1
         lower: 0.01
         upper: 0.1
-      sign: '+1'
 
 
 configuration:

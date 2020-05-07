@@ -434,7 +434,6 @@ class model_class:
 				assert edge != None, \
 					name + "interaction {} is empty".format(item)
 				assert_if_exists_non_empty('fkt',edge,item,)
-				assert_if_exists_non_empty('sign',edge,item)
 				assert_if_exists('parameters',edge,item)
 				assert_if_exists('optimise',edge,item)
 
