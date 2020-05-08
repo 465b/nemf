@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.integrate import solve_ivp 
 import logging
 import yaml
 
@@ -392,6 +393,49 @@ def normalize_columns(A):
 
 
 ## Gradient Decent related Helper Functions
+
+def update_param(param, fit_param, fit_idx):
+	
+	fit_states = fit_param[:len(fit_idx)]
+	#print(f'fit_states: {fit_states}')
+	initial_states = param[0]   
+   
+	for ii,[idx,item] in enumerate(zip(fit_idx[0],fit_states)):
+		#print(f'state {idx} to chage to {item}')
+		initial_states[idx] = item
+	
+	fit_args = fit_param[len(fit_idx):]
+	args = param[1]
+	
+	for ii,[idx,item] in enumerate(zip(fit_idx[1],fit_args)):
+		#print(f'args {idx} to chage to {item}')
+		args[idx[0]][idx[1]][idx[2]] = item
+	
+	return [initial_states,args]
+
+
+def construct_objective(differential_equation,ref_data,param,fit_idx):
+	t_eval = ref_data[0]
+	t_min = t_eval[0]
+	t_max = t_eval[-1]
+	t_span = [t_min,t_max]
+	y = ref_data[1]
+	
+	def objective(fit_param):
+		
+		updated_param = update_param(param,fit_param,fit_idx)
+		y0 = updated_param[0]
+		args = [updated_param[1]]
+
+		ode_sol = solve_ivp(differential_equation,t_span,y0,
+							args=args,dense_output=True, t_eval=ref_data[0])
+	   
+		x = ode_sol.y
+		res = np.linalg.norm(x-y)**2
+		return res
+	
+	return objective
+
 
 def perturb(x,pert_scale=1e-4):
     "Adds a small perturbation to input (1D-)array"
