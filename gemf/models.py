@@ -367,9 +367,18 @@ def sloppy_feeding(holling_type,coeff,*args):
 			+"Use one of the following: ['0','I','II','III']")
 	
 
-def nutrition_limited_growth(N,growth_rate,half_saturation):
-	""" reparameterization of holling_II """
-	return growth_rate*(N/(half_saturation+N))
+#def nutrition_limited_growth(N,growth_rate,half_saturation):
+#	""" reparameterization of holling_II """
+#	return growth_rate*(N/(half_saturation+N))
+
+def nutrition_limited_growth(X,idx_A,idx_B,growth_rate,half_saturation):
+    """ reparameterization of holling_II """
+    return growth_rate*(X[idx_B]/(half_saturation+X[idx_B]))*idx_A#reditor
+
+def exudation(X,idx_B,coefficient):
+	""" constant respone (implicit linear),
+		compartment size independent """
+	return coefficient*X[idx_B]	
 
 ## referencing interaction functions
 """ It is helpfull from a mechanistic point of view to not only
@@ -380,7 +389,7 @@ def nutrition_limited_growth(N,growth_rate,half_saturation):
 
 linear_mortality = holling_type_0
 remineralisation = holling_type_0
-exudation = holling_type_0
+#exudation = holling_type_0
 excretion = holling_type_0
 stress_dependant_exudation = holling_type_I
 
