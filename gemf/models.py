@@ -372,8 +372,8 @@ def sloppy_feeding(holling_type,coeff,*args):
 #	return growth_rate*(N/(half_saturation+N))
 
 def nutrition_limited_growth(X,idx_A,idx_B,growth_rate,half_saturation):
-    """ reparameterization of holling_II """
-    return growth_rate*(X[idx_B]/(half_saturation+X[idx_B]))*idx_A#reditor
+	""" reparameterization of holling_II """
+	return growth_rate*(X[idx_B]/(half_saturation+X[idx_B]))*idx_A#reditor
 
 def exudation(X,idx_B,coefficient):
 	""" constant respone (implicit linear),
@@ -394,7 +394,6 @@ excretion = holling_type_0
 stress_dependant_exudation = holling_type_I
 
 # Model_Classes 
-
 class model_class:
 	def __init__(self,path):
 		self.init_sys_config = worker.initialize_ode_system(path)
@@ -654,6 +653,134 @@ class model_class:
 			parameters,constrains,barrier_slope)
 
 		return model_log, prediction, cost, is_stable
+
+	
+	def fetch_index_of_compartment(self,parameters):
+		# add something to make sure all stanges to parameters stay internal
+		compartments = list(self.compartment)
+		for nn,entry in enumerate(parameters):
+			if (type(entry) == str) & (entry in list(self.compartment)):
+				#print(entry, compartments.index(entry))
+				parameters[nn] = compartments.index(entry)
+		return parameters
+
+
+	def fetch_to_optimize_args(self):
+			""" fetches the parameters necessary for the gradient descent method
+			   Returns: free_parameters, constraints """
+
+			labels = []
+			idx_state = []; val_state = []; bnd_state = []
+			
+			for ii,entry in enumerate(self.compartment):
+				if self.compartment[entry]['optimise'] is not None:
+					labels.append('{}'.format(entry))
+					
+					idx_state.append(ii)
+					
+					val_state.append(self.compartment[entry]['value'])
+					
+					lower_bound = self.compartment[entry]['optimise']['lower']
+					upper_bound = self.compartment[entry]['optimise']['upper']
+					bnd_state.append([lower_bound,upper_bound])
+					
+			
+			idx_args = []; val_args = []; bnd_args = []
+			
+			for ii,interaction in enumerate(self.interactions):
+				for jj,function in enumerate(self.interactions[interaction]):
+					
+					if function['optimise'] is not None:
+						for kk,parameter in enumerate(function['optimise']):
+							labels.append('{},fkt: {} #{}'.format(
+								interaction,function['fkt'],
+								parameter['parameter_no']))
+							
+							idx_args.append([ii,jj,parameter['parameter_no']-1])
+							# clean: replace names of compartments 
+							#        with their index
+							
+							current_val_args = self.fetch_index_of_compartment(
+								[function['parameters'][kk]])
+							
+							val_args.append(current_val_args[0])
+							
+							lower_bound = parameter['lower']
+							upper_bound = parameter['upper']
+							bnd_args.append([lower_bound,upper_bound])
+
+
+				fit_indices = [idx_state,idx_args]
+				print(f'fit indices: {fit_indices}')
+
+				fit_param = val_state + val_args
+				print(f'fit_param: {fit_param}')
+
+				bnd_param = bnd_state + bnd_args
+				print(f'bnd_param: {bnd_param}')
+			
+			return [fit_indices,fit_param,bnd_param], labels
+		
+
+	def fetch_states(self):
+		states = []
+		compartment = self.compartment
+		for item in compartment:
+			states.append(compartment[item]['value'])
+		return states
+
+	
+	def fetch_args(self):
+		args = []
+		for interactions in self.interactions:
+			args_edge = []
+			for edges in self.interactions[interactions]:
+				indexed_args = self.fetch_index_of_compartment(edges['parameters'])
+				args_edge.append(indexed_args)
+
+			args.append(args_edge)
+		return args
+
+	
+	def fetch_param(self):
+		states = self.fetch_states()
+		args = self.fetch_args()
+		print(f'initial_states: {states}')
+		print(f'args: {args}')
+		return [states,args]
+
+
+	def de_constructor(self):
+		# the benefit of constructing it like this is that:
+		#    * we are able to get the signature f(x,args)
+		#    * all non-(x,args) related objects are only evaluated once.
+		# however, this for looping is still super inefficient and a more
+		# vectorized object should be intended
+	
+		# args is expected to have the same shape as set_of_functions
+		set_of_function = self.interactions
+		idx_interactions = self.fetch_index_of_interaction()
+		n_compartments = len(self.compartment)
+	
+		def differential_equation(t,x,args): #(t,x) later
+		
+			y = np.zeros((n_compartments,n_compartments))
+	
+			for ii,functions in enumerate(set_of_function):
+				interaction = set_of_function[functions]          
+				for jj,edge in enumerate(interaction):
+					kk,ll = idx_interactions[ii]
+					#print(f'{edge["fkt"]} \t\t flows into '+'
+					# {list(self\.compartment)[kk]} outof {list(self\.compartment)[ll]}')
+	
+					# flows into kk (outof ll)
+					y[kk,ll] += globals()[edge['fkt']](x,kk,*args[ii][jj])
+					# flow outof ll (into kk)
+					y[ll,kk] -= globals()[edge['fkt']](x,kk,*args[ii][jj])
+	
+			return np.sum(y,axis=1)
+	
+		return differential_equation
 
 
 def assert_if_exists(unit,container,item='',reference='',
