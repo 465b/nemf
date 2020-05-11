@@ -312,40 +312,34 @@ def SGD_momentum(free_param,gradient,grad_scale):
 	
 # interaction functions
 
-## Grazing Models
-def J(N,k_N,mu_m):
-	""" Nutrition saturation model"""
-
-	""" we are currently assuming constant, perfect 
-		and homogeneous illumination. Hence, the 
-		f_I factor is currently set to 1 """
-
-	f_N = N/(k_N+N)
-	f_I = 1 #I/(k_I+I)
-	cost_val = mu_m*f_N*f_I
-	return cost_val
-
-
-def holling_type_0(coefficient):
+def holling_type_0(X,idx_A,coefficient):
 	""" constant respone (implicit linear),
 		compartment size independent """
-	return coefficient
+	A = X[idx_A] # quantity of the linearly dependant compartment
+	return coefficient*A
 
 
-def holling_type_I(value,coefficient):
+def holling_type_I(X,idx_A,idx_B,value,coefficient):
 	""" (co-)linear response """
-	return value*coefficient
+	A = X[idx_A] # quantity of compartment A (predator/consumer)
+	B = X[idx_B] # quantity of compartment B (prey/nutrient)
+	return (coefficient*B)*A
 
-def holling_type_II(prey_population,food_processing_time,hunting_rate):
+def holling_type_II(X,idx_A,idx_B,food_processing_time,hunting_rate):
 	""" (co-)linear + saturation response """
-	consumption_rate = ((hunting_rate * prey_population)/
-			(1+hunting_rate * food_processing_time * prey_population))
+	A = X[idx_A] # quantity of compartment A (predator/consumer)
+	B = X[idx_B] # quantity of compartment B (prey/nutrient)
+	consumption_rate = ((hunting_rate * B)/
+			(1+hunting_rate * food_processing_time * B))*A
 	return consumption_rate
 
 
-def holling_type_III(P,epsilon,g):
+def holling_type_III(X,idx_A,idx_B,saturation_rate,consumption_rate_limit):
 	""" quadratic (+ implicit linear) + saturation response """
-	G_val = (g*epsilon*P**2)/(g+(epsilon*P**2))
+	A = X[idx_A] # quantity of compartment A (predator/consumer)
+	B = X[idx_B] # quantity of compartment B (prey/nutrient)
+	G_val = ((consumption_rate_limit*saturation_rate*B**2)/
+				(consumption_rate_limit+(saturation_rate*B**2)))*A
 	return G_val
 
 
@@ -367,18 +361,12 @@ def sloppy_feeding(holling_type,coeff,*args):
 			+"Use one of the following: ['0','I','II','III']")
 	
 
-#def nutrition_limited_growth(N,growth_rate,half_saturation):
-#	""" reparameterization of holling_II """
-#	return growth_rate*(N/(half_saturation+N))
-
 def nutrition_limited_growth(X,idx_A,idx_B,growth_rate,half_saturation):
 	""" reparameterization of holling_II """
-	return growth_rate*(X[idx_B]/(half_saturation+X[idx_B]))*idx_A#reditor
+	A = X[idx_A] # quantity of compartment A (predator/consumer)
+	B = X[idx_B] # quantity of compartment B (prey/nutrient)
 
-def exudation(X,idx_B,coefficient):
-	""" constant respone (implicit linear),
-		compartment size independent """
-	return coefficient*X[idx_B]	
+	return growth_rate*(B/(half_saturation+B))*A#
 
 ## referencing interaction functions
 """ It is helpfull from a mechanistic point of view to not only
@@ -389,9 +377,10 @@ def exudation(X,idx_B,coefficient):
 
 linear_mortality = holling_type_0
 remineralisation = holling_type_0
-#exudation = holling_type_0
+exudation = holling_type_0
 excretion = holling_type_0
 stress_dependant_exudation = holling_type_I
+
 
 # Model_Classes 
 class model_class:
