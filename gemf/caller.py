@@ -230,49 +230,53 @@ def gradient_descent(model_config, parameters, constraints,
 
 ## monte carlo methods
 #@decorators.log_input_output
-def forward_model(model_configuration,
-					seed=137,
-					verbose=False):
+def forward_model(model,verbose=False,t_eval=None):
 
 	""" Runs the time integration for a provided model configuration.
 			
 		Parameters
 		----------
-		model_configuration : model_class object
+		model : model_class object
 			class object containing the model configuration
 			and its related methods. See load_configuration()
-		seed : positive integer
-			Initializes the random number generator. Used to recreate the
-			same set of pseudo-random numbers. Helpfull when debugging.
 		verbose : bool
 			Flag for extra verbosity during runtime
+		t_eval : 1d-array
+			contains time stamps in posix time for which a solution shall be 
+			found and returned.
 
 		Returns
 		-------
-		model_configuration : model_class object
+		model : model_class object
 			class object containing the model configuration, model run results,
 			and its related methods
 	"""
 
-	# seeds random generator to create reproducible runs
-	np.random.seed(seed)
+	[initial_states,args] = model.fetch_param()
+	differential_equation = model.de_constructor()
+	model.initialize_log(max_iter=1)	
 
-	# initializes model configuration 
-	# (contains information about the optimized model)
-	model_configuration.initialize_log(n_monte_samples=0, max_gd_iter=0)
+	if (t_eval != None):
+		t_start = min(t_eval)
+		t_stop = max(t_eval)
+		t = t_eval
+	else:
+		t_start = 0
+		t_stop = model.configuration['time_evo_max']
+		dt = model.configuration['dt_time_evo']
+		t = np.arange(t_start,t_stop,dt)
 	
-	# runs the optimization with the initial values read from file
-	# This option is run if there is no optimization desired,
-	# of if no parameters to optimized are provided
-	model_log, prediction, is_stable = \
-		model_configuration.calc_prediction()
-	cost = worker.cost_function(prediction,
-		model_configuration.configuration['fit_target'])
-	if verbose:
-		print('Is the model stable? {}'.format(is_stable))
-	model_configuration.to_log(np.array([]),model_log,prediction,cost)
+	sol = solve_ivp(differential_equation,[t_start,t_stop],initial_states,
+					args=[args], dense_output=True,)
+	y_t = sol.sol(t).T
 
-	return model_configuration
+	t = np.reshape(t,(len(t),1))
+	time_series = np.concatenate( (t,y_t),axis=1)
+	model.log['time_series'] = time_series
+	
+	# add verbose comment on stability
+
+	return model
 
 
 #@decorators.log_input_output
