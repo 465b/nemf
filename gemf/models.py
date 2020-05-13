@@ -311,6 +311,12 @@ def SGD_momentum(free_param,gradient,grad_scale):
 
 	
 # interaction functions
+def inverse_type_0(X,idx_A,idx_B,coefficients):
+
+	A = X[idx_A] # quantity of compartment A (predator/consumer)
+	B = X[idx_B] # quantity of compartment B (prey/nutrient)
+
+	return coefficients*B
 
 def holling_type_0(X,idx_A,coefficient):
 	""" constant respone (implicit linear),
@@ -319,7 +325,7 @@ def holling_type_0(X,idx_A,coefficient):
 	return coefficient*A
 
 
-def holling_type_I(X,idx_A,idx_B,value,coefficient):
+def holling_type_I(X,idx_A,idx_B,coefficient):
 	""" (co-)linear response """
 	A = X[idx_A] # quantity of compartment A (predator/consumer)
 	B = X[idx_B] # quantity of compartment B (prey/nutrient)
@@ -375,17 +381,17 @@ def nutrition_limited_growth(X,idx_A,idx_B,growth_rate,half_saturation):
 	function which then maps to a standard linear function to better
 	represent its usage and increase readability """
 
-linear_mortality = holling_type_0
-remineralisation = holling_type_0
-exudation = holling_type_0
-excretion = holling_type_0
+linear_mortality = inverse_type_0
+remineralisation = holling_type_I
+exudation = inverse_type_0
+excretion = inverse_type_0
 stress_dependant_exudation = holling_type_I
 
 
 # Model_Classes 
 class model_class:
-	def __init__(self,path):
-		self.init_sys_config = worker.initialize_ode_system(path)
+	def __init__(self,model_path,fit_data_path=None):
+		self.init_sys_config = worker.initialize_ode_system(model_path)
 		self.sanity_check_input()
 		self.compartment = deepcopy(
 			self.init_sys_config['compartment'])
@@ -394,13 +400,31 @@ class model_class:
 		self.configuration = deepcopy(
 			self.init_sys_config['configuration'])
 		self.fetch_index_of_source_and_sink()
-		
 		self.configuration['model_output_shape'] = \
 			(int(self.configuration['time_evo_max']/
 				self.configuration['dt_time_evo']),
 				len(list(self.init_sys_config['compartment'])))
 		self.configuration['prediction_shape'] = \
 			(len(self.configuration['fit_target']),)
+		self.reference_data = self.load_reference_data(fit_data_path)
+
+
+	def load_reference_data(self,fit_data_path):
+		if fit_data_path != None:
+			reference_data = worker.import_fit_data(fit_data_path)
+			if len(np.shape(reference_data)) == 1:
+				reference_data = np.reshape(reference_data,(1,len(reference_data)))
+				print('data_respahed')
+			return reference_data
+		elif 'fit_data_path' in self.configuration:
+			fit_data_path = self.configuration['fit_data_path']
+			reference_data = worker.import_fit_data(fit_data_path)
+			if len(np.shape(reference_data)) == 1:
+				reference_data = np.reshape(reference_data,(1,len(reference_data)))
+				print('data_respahed')
+			return reference_data
+		else:
+			print('no reference data provided')
 
 
 	def sanity_check_input(self):
@@ -437,33 +461,36 @@ class model_class:
 		# checks if configuration is well defined
 		#assert (unit[]) 
 		assert_if_exists_non_empty('configuration', unit)
-		required_elements = ['integration_scheme','time_evo_max',
-			'dt_time_evo','ode_coeff_model', 'stability_rel_tolerance',
-			'tail_length_stability_check','start_stability_check',
-			'fit_model','fit_target']
-		for element in required_elements:
-			assert_if_exists_non_empty(element,unit['configuration'])
+		#required_elements = ['integration_scheme','time_evo_max',
+		#	'dt_time_evo','ode_coeff_model', 'stability_rel_tolerance',
+		#	'tail_length_stability_check','start_stability_check',
+		#	'fit_model','fit_target']
+		#for element in required_elements:
+		#	assert_if_exists_non_empty(element,unit['configuration'])
 
 
-	def initialize_log(self,n_monte_samples,max_gd_iter):
-		parameters = self.to_grad_method()[0]
-		param_log = np.zeros((n_monte_samples,
-									max_gd_iter, len(parameters)))
-		prediction_log = np.zeros( (n_monte_samples, max_gd_iter,
-								len(self.configuration['fit_target'])))
-		cost_log = np.zeros( (n_monte_samples, max_gd_iter) )
-		model_log = np.zeros( (n_monte_samples, max_gd_iter,
-							int(self.configuration['time_evo_max']/
-							self.configuration['dt_time_evo']),
-							len(list(self.compartment))))
-	
+	def initialize_log(self,max_iter):
+		
+		fit_parameter = self.fetch_to_optimize_args()[1]
+
+		param_log = np.full((max_iter,len(fit_parameter)), np.nan)
+		cost_log = np.full( (max_iter), np.nan )
+		
 		log_dict = {'parameters': param_log,
-					'predictions': prediction_log,
-					'cost': cost_log,
-					'model': model_log,
-					'monte_carlo_idx': 0, 'gradient_idx': 0}
+					'cost': cost_log}
 		
 		self.log = log_dict
+
+	
+	def construct_callback(self):
+		model = self
+
+		def callback(xk, opt):# -> bool
+			#self.to_log(xk,opt.)
+			model.to_log(opt.x, opt.fun, opt.niter)
+			
+		return callback
+
 
 
 	def fetch_index_of_interaction(self):
@@ -506,27 +533,10 @@ class model_class:
 		self.configuration['idx_sinks'] = idx_sinks
 
 
-	def to_log(self,parameters,model_data,predictions,cost):
+	def to_log(self,parameters,cost,idx_iter):
 		#current monte sample
-		ii = self.log['monte_carlo_idx']
-
-		if np.shape(predictions) == ():
-			# reshape prediction in case they are zero-dim
-			predictions = np.reshape(predictions,(1,1))
-		
-		if np.shape(self.log['parameters'])[0] == 0:
-			# in case there is only one parameter set
-			self.log['parameters'] = parameters
-			self.log['predictions'] = predictions
-			self.log['model'] = model_data
-			self.log['cost'] = cost
-		else:
-			self.log['parameters'][ii] = parameters
-			self.log['predictions'][ii] = predictions
-			self.log['model'][ii] = model_data
-			self.log['cost'][ii] = cost
-		
-		self.log['gradient_idx'] += 1
+		self.log['parameters'][idx_iter] = parameters
+		self.log['cost'][idx_iter] = cost
 		
 
 	def from_ode(self,ode_states):
@@ -700,15 +710,10 @@ class model_class:
 
 
 				fit_indices = [idx_state,idx_args]
-				print(f'fit indices: {fit_indices}')
-
 				fit_param = val_state + val_args
-				print(f'fit_param: {fit_param}')
-
 				bnd_param = bnd_state + bnd_args
-				print(f'bnd_param: {bnd_param}')
 			
-			return [fit_indices,fit_param,bnd_param], labels
+			return [fit_indices,fit_param,np.array(bnd_param)], labels
 		
 
 	def fetch_states(self):
@@ -734,8 +739,6 @@ class model_class:
 	def fetch_param(self):
 		states = self.fetch_states()
 		args = self.fetch_args()
-		print(f'initial_states: {states}')
-		print(f'args: {args}')
 		return [states,args]
 
 
