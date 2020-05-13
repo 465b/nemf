@@ -414,26 +414,57 @@ def update_param(param, fit_param, fit_idx):
 	return [initial_states,args]
 
 
-def construct_objective(differential_equation,ref_data,param,fit_idx):
-	t_eval = ref_data[0]
-	t_min = t_eval[0]
-	t_max = t_eval[-1]
-	t_span = [t_min,t_max]
-	y = ref_data[1]
+def construct_objective(model,time_series_events=None):
 	
-	def objective(fit_param):
+	differential_equation = model.de_constructor()
+	[fit_indices,initial_param, bnd_param] = model.fetch_to_optimize_args()[0]
+	initial_param = model.fetch_param()
+	ref_data = model.reference_data
+	t_eval = ref_data[:,0]
+	print(t_eval[0])
+	
+	# steady-state solution
+	if t_eval[0] == np.inf:
 		
-		updated_param = update_param(param,fit_param,fit_idx)
-		y0 = updated_param[0]
-		args = [updated_param[1]]
+		t_min = 0
+		t_max = model.configuration['time_evo_max']
+		t_span = [t_min,t_max]
 
-		ode_sol = solve_ivp(differential_equation,t_span,y0,
-							args=args,dense_output=True, t_eval=ref_data[0])
-	   
-		x = ode_sol.y
-		res = np.linalg.norm(x-y)**2
-		return res
+		def objective(fit_param):
+			
+			updated_param = update_param(initial_param,fit_param,fit_indices)
+			y0 = updated_param[0]
+			args = [updated_param[1]]
 	
+			ode_sol = solve_ivp(differential_equation,t_span,y0,
+								args=args,dense_output=True,
+								events=time_series_events)
+		   
+			x = ode_sol.y
+			res = np.linalg.norm(x-y)**2
+			return res
+
+	# non-steady-state solution
+	else:
+
+		t_min = t_eval[0]
+		t_max = t_eval[-1]+abs(t_eval[-1]-t_eval[-2])
+		t_span = [t_min,t_max]
+		y = ref_data[:,1:]
+		
+		def objective(fit_param):
+			
+			updated_param = update_param(initial_param,fit_param,fit_indices)
+			y0 = updated_param[0]
+			args = [updated_param[1]]
+	
+			ode_sol = solve_ivp(differential_equation,t_span,y0,
+								args=args,dense_output=True, t_eval=t_eval)
+		   
+			x = np.swapaxes(ode_sol.y,0,1)
+			res = np.linalg.norm(x-y)**2
+			return res
+		
 	return objective
 
 
