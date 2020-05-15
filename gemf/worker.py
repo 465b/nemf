@@ -3,6 +3,7 @@ from scipy.integrate import solve_ivp
 import logging
 import yaml
 from copy import deepcopy
+from termcolor import colored, cprint
 
 from gemf import models
 
@@ -418,42 +419,67 @@ def update_param(initial_param, fit_param, fit_idx):
 	return [states_t0,args]
 
 
-def construct_objective(model,time_series_events=None):
+def construct_objective(model,time_series_events=None,debug=False):
 	
 	differential_equation = model.de_constructor()
-	[fit_indices,initial_param, bnd_param] = model.fetch_to_optimize_args()[0]
+	fit_indices = model.fetch_to_optimize_args()[0][0]
 	initial_param = model.fetch_param()
 	ref_data = model.reference_data
 	t_eval = ref_data[:,0]
-	print(t_eval[0])
 	
+
 	# steady-state solution
 	if t_eval[0] == np.inf:
-		
+		if debug: cprint('steady_state objective','magenta')		
 		t_min = 0
 		t_max = model.configuration['time_evo_max']
 		t_span = [t_min,t_max]
+		if debug: 
+			cprint(f't_span: ','magenta')
+			print(t_span)
+			cprint(f't_eval: ','magenta')
+			print(t_eval)
+		y = ref_data[:,1:]
 
 		def objective(fit_param):
 			
 			updated_param = update_param(initial_param,fit_param,fit_indices)
 			y0 = updated_param[0]
 			args = [updated_param[1]]
-	
+			if debug:
+				cprint(f'initial_param: ','magenta')	
+				print(initial_param)
+				cprint(f'updated_param: ','magenta')
+				print(updated_param)
 			ode_sol = solve_ivp(differential_equation,t_span,y0,
 								args=args,dense_output=True,
 								events=time_series_events)
 		   
-			x = ode_sol.y
+
+			x = ode_sol.sol(t_span[1]).T
+			x = np.reshape(x,(1,len(x)))
 			res = np.linalg.norm(x-y)**2
+			if debug:
+				cprint(f'solution(time integration): ','magenta')
+				print(x)
+				cprint(f'solution(reference data): ','magenta')
+				print(y)
+				cprint(f'objective function: ','magenta')
+				print(res)
 			return res
 
 	# non-steady-state solution
 	else:
+		if debug: cprint('non_steady_state objective','magenta')		
 
 		t_min = t_eval[0]
-		t_max = t_eval[-1]+abs(t_eval[-1]-t_eval[-2])
+		t_max = t_eval[-1]
 		t_span = [t_min,t_max]
+		if debug: 
+			cprint(f't_span: ','magenta')
+			print(t_span)
+			cprint(f't_eval: ','magenta')
+			print(t_eval)
 		y = ref_data[:,1:]
 		
 		def objective(fit_param):
@@ -461,12 +487,29 @@ def construct_objective(model,time_series_events=None):
 			updated_param = update_param(initial_param,fit_param,fit_indices)
 			y0 = updated_param[0]
 			args = [updated_param[1]]
+			if debug:
+				cprint(f'fit_param: ','magenta')
+				print(fit_param)
+				cprint(f'fit_indices: ','magenta')
+				print(fit_indices)
+				cprint(f'initial_param: ','magenta')
+				print(initial_param)
+				cprint(f'updated_param: ','magenta')
+				print(updated_param)
 	
 			ode_sol = solve_ivp(differential_equation,t_span,y0,
 								args=args,dense_output=True, t_eval=t_eval)
 		   
-			x = np.swapaxes(ode_sol.y,0,1)
+			x = ode_sol.sol(t_eval).T
 			res = np.linalg.norm(x-y)**2
+			if debug:
+				cprint(f'solution(time integration): ','magenta')
+				print(x)
+				cprint(f'solution(reference data): ','magenta')
+				print(y)
+				cprint(f'objective function: ','magenta')
+				print(res)
+				
 			return res
 		
 	return objective
