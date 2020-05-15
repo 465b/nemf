@@ -414,14 +414,12 @@ class model_class:
 			reference_data = worker.import_fit_data(fit_data_path)
 			if len(np.shape(reference_data)) == 1:
 				reference_data = np.reshape(reference_data,(1,len(reference_data)))
-				print('data_respahed')
 			return reference_data
 		elif 'fit_data_path' in self.configuration:
 			fit_data_path = self.configuration['fit_data_path']
 			reference_data = worker.import_fit_data(fit_data_path)
 			if len(np.shape(reference_data)) == 1:
 				reference_data = np.reshape(reference_data,(1,len(reference_data)))
-				print('data_respahed')
 			return reference_data
 		else:
 			print('no reference data provided')

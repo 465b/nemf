@@ -20,6 +20,11 @@ def read_coeff_yaml(path):
 	return data_dict
 
 
+def import_fit_data(path):
+	# add switches for file type parser
+	return np.genfromtxt(path)
+
+
 # Parsers
 
 def initialize_ode_system(path_config):
