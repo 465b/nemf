@@ -2,6 +2,7 @@ import numpy as np
 from scipy.integrate import solve_ivp 
 import logging
 import yaml
+from copy import deepcopy
 
 from gemf import models
 
@@ -399,24 +400,22 @@ def normalize_columns(A):
 
 ## Gradient Decent related Helper Functions
 
-def update_param(param, fit_param, fit_idx):
+def update_param(initial_param, fit_param, fit_idx):
+
+	# states
+	fit_states = fit_param[:len(fit_idx[0])]
+	states_t0 = deepcopy(initial_param[0])
+	for [idx,item] in zip(fit_idx[0],fit_states)):
+		states_t0[idx] = item
 	
-	fit_states = fit_param[:len(fit_idx)]
-	#print(f'fit_states: {fit_states}')
-	initial_states = param[0]   
-   
-	for ii,[idx,item] in enumerate(zip(fit_idx[0],fit_states)):
-		#print(f'state {idx} to chage to {item}')
-		initial_states[idx] = item
+	# args
+	fit_args = fit_param[len(fit_idx[0]):]
+	args = deepcopy(initial_param[1])
 	
-	fit_args = fit_param[len(fit_idx):]
-	args = param[1]
-	
-	for ii,[idx,item] in enumerate(zip(fit_idx[1],fit_args)):
-		#print(f'args {idx} to chage to {item}')
+	for [idx,item] in zip(fit_idx[1],fit_args)):
 		args[idx[0]][idx[1]][idx[2]] = item
 	
-	return [initial_states,args]
+	return [states_t0,args]
 
 
 def construct_objective(model,time_series_events=None):
