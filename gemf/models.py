@@ -467,25 +467,34 @@ class model_class:
 		#	assert_if_exists_non_empty(element,unit['configuration'])
 
 
-	def initialize_log(self,max_iter):
-		
-		fit_parameter = self.fetch_to_optimize_args()[1]
+	def initialize_log(self,maxiter):
+
+		max_iter = maxiter + 1	
+		fit_parameter = self.fetch_to_optimize_args()[0][1]
 
 		param_log = np.full((max_iter,len(fit_parameter)), np.nan)
 		cost_log = np.full( (max_iter), np.nan )
 		
 		log_dict = {'parameters': param_log,
-					'cost': cost_log}
+					'cost': cost_log,
+					'iter_idx': 0}
 		
 		self.log = log_dict
 
 	
-	def construct_callback(self):
+	def construct_callback(self,method='SLSQP',debug=False):
 		model = self
 
-		def callback(xk, opt):# -> bool
-			#self.to_log(xk,opt.)
-			model.to_log(opt.x, opt.fun, opt.niter)
+		if method == 'trust_const':
+			def callback(xk, opt):# -> bool
+				if debug: print(f'xk: \n{xk}')
+				model.to_log(xk,cost=opt.fun)
+		elif method == 'SLSQP':
+			def callback(xk):# -> bool
+				if debug: print(f'xk: \n{xk}')
+				model.to_log(xk)
+		else:
+			raise Exception
 			
 		return callback
 
@@ -531,11 +540,13 @@ class model_class:
 		self.configuration['idx_sinks'] = idx_sinks
 
 
-	def to_log(self,parameters,cost,idx_iter):
+	def to_log(self,parameters,cost=None):
 		#current monte sample
-		self.log['parameters'][idx_iter] = parameters
-		self.log['cost'][idx_iter] = cost
-		
+		idx = self.log['iter_idx']
+		self.log['parameters'][idx] = parameters
+		self.log['cost'][idx] = cost
+		self.log['iter_idx'] += 1
+	
 
 	def from_ode(self,ode_states):
 		""" updates self with the results provided by the ode solver """
