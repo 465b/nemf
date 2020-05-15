@@ -674,55 +674,51 @@ class model_class:
 
 
 	def fetch_to_optimize_args(self):
-			""" fetches the parameters necessary for the gradient descent method
-			   Returns: free_parameters, constraints """
+		""" fetches the parameters necessary for the gradient descent method
+			Returns: free_parameters, constraints """
 
-			labels = []
-			idx_state = []; val_state = []; bnd_state = []
-			
-			for ii,entry in enumerate(self.compartment):
-				if self.compartment[entry]['optimise'] is not None:
-					labels.append('{}'.format(entry))
-					
-					idx_state.append(ii)
-					
-					val_state.append(self.compartment[entry]['value'])
-					
-					lower_bound = self.compartment[entry]['optimise']['lower']
-					upper_bound = self.compartment[entry]['optimise']['upper']
-					bnd_state.append([lower_bound,upper_bound])
-					
-			
-			idx_args = []; val_args = []; bnd_args = []
-			
-			for ii,interaction in enumerate(self.interactions):
-				for jj,function in enumerate(self.interactions[interaction]):
-					
-					if function['optimise'] is not None:
-						for kk,parameter in enumerate(function['optimise']):
-							labels.append('{},fkt: {} #{}'.format(
-								interaction,function['fkt'],
-								parameter['parameter_no']))
-							
-							idx_args.append([ii,jj,parameter['parameter_no']-1])
-							# clean: replace names of compartments 
-							#        with their index
-							
-							current_val_args = self.fetch_index_of_compartment(
-								[function['parameters'][kk]])
-							
-							val_args.append(current_val_args[0])
-							
-							lower_bound = parameter['lower']
-							upper_bound = parameter['upper']
-							bnd_args.append([lower_bound,upper_bound])
+		labels = []
+		idx_state = []; val_state = []; bnd_state = []
+		
+		for ii,entry in enumerate(self.compartment):
+			if self.compartment[entry]['optimise'] is not None:
+				labels.append('{}'.format(entry))
+				
+				idx_state.append(ii)
+				
+				val_state.append(self.compartment[entry]['value'])
+				
+				lower_bound = self.compartment[entry]['optimise']['lower']
+				upper_bound = self.compartment[entry]['optimise']['upper']
+				bnd_state.append([lower_bound,upper_bound])
+				
+		
+		idx_args = []; val_args = []; bnd_args = []
+		
+		for ii,interaction in enumerate(self.interactions):
+			for jj,function in enumerate(self.interactions[interaction]):
+				
+				if function['optimise'] is not None:
+					for kk,parameter in enumerate(function['optimise']):
+						labels.append('{},fkt: {} #{}'.format(
+							interaction,function['fkt'],
+							parameter['parameter_no']))
+						
+						current_idx_args = [ii,jj,parameter['parameter_no']-1]
+						current_val_args = self.fetch_arg_by_idx(current_idx_args)				
+						lower_bound = parameter['lower']
+						upper_bound = parameter['upper']
+						
+						idx_args.append(current_idx_args)
+						val_args.append(current_val_args)
+						bnd_args.append( (lower_bound,upper_bound) )
 
 
-				fit_indices = [idx_state,idx_args]
-				fit_param = val_state + val_args
-				bnd_param = bnd_state + bnd_args
+		fit_indices = [idx_state,idx_args]
+		fit_param = val_state + val_args
+		bnd_param = bnd_state + bnd_args
 			
-			return [fit_indices,fit_param,np.array(bnd_param)], labels
+		return [fit_indices,fit_param,bnd_param], labels
 		
 
 	def fetch_states(self):
@@ -749,6 +745,13 @@ class model_class:
 		states = self.fetch_states()
 		args = self.fetch_args()
 		return [states,args]
+
+
+	def fetch_arg_by_idx(self,index):
+		args = self.fetch_args()
+		idx = index
+		arg = args[idx[0]][idx[1]][idx[2]]
+		return arg
 
 
 	def de_constructor(self):
