@@ -1,4 +1,7 @@
 import numpy as np
+from scipy.integrate import solve_ivp
+from scipy.optimize import minimize
+
 from gemf import worker
 from gemf import models
 from gemf import decorators
@@ -254,27 +257,29 @@ def forward_model(model,verbose=False,t_eval=None):
 
 	[initial_states,args] = model.fetch_param()
 	differential_equation = model.de_constructor()
-	model.initialize_log(max_iter=1)	
+	model.initialize_log(maxiter=1)	
 
-	if (t_eval != None):
-		t_start = min(t_eval)
-		t_stop = max(t_eval)
-		t = t_eval
-	else:
+	if t_eval is None:
 		t_start = 0
 		t_stop = model.configuration['time_evo_max']
 		dt = model.configuration['dt_time_evo']
 		t = np.arange(t_start,t_stop,dt)
+	else:
+		t_start = min(t_eval)
+		t_stop = max(t_eval)
+		t = t_eval
 	
 	sol = solve_ivp(differential_equation,[t_start,t_stop],initial_states,
 					args=[args], dense_output=True,)
 	y_t = sol.sol(t).T
 
+	if verbose:
+		print(f'ode solution: {sol}')
+		print(f't_events: {sol.t_events}')
+
 	t = np.reshape(t,(len(t),1))
 	time_series = np.concatenate( (t,y_t),axis=1)
 	model.log['time_series'] = time_series
-	
-	# add verbose comment on stability
 
 	return model
 
