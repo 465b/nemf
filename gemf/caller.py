@@ -65,6 +65,7 @@ def time_evolution(model_configuration, integration_scheme, time_evo_max,
 		False else
 	"""
 
+
 	# initialize data arrays
 	n_obs = len(ode_state)
 	n_steps = int(time_evo_max/dt_time_evo)
@@ -285,17 +286,12 @@ def forward_model(model,verbose=False,t_eval=None):
 
 
 #@decorators.log_input_output
-def inverse_model(model_configuration,
-					gradient_method = models.SGD_basic,
-					barrier_slope=1e-6,
+def inverse_model(model,method='SLSQP',
 					sample_sets = 3,
-					gd_max_iter=10,
-					pert_scale=1e-4,
-					grad_scale=1e-12,
-					convergence_tail_length = 10,
-					convergence_tolerance=1e-3,
+					maxiter=1000,
 					seed=137,
-					verbose=False):
+					verbose=False,
+					debug=False):
 
 	""" Optimizes a set of randomly generated free parameters and returns
 		their optimized values and the corresponding fit-model and cost-
@@ -310,9 +306,6 @@ def inverse_model(model_configuration,
 			{SGD_basic,SGD_momentum}
 			Selects the method used during the gradient descent.
 			They differ in their robustness and convergence speed
-		barrier_slope : positive-float
-			Defines the slope of the barrier used for the soft constrain.
-			Lower numbers, steeper slope. Typically between (0-1].
 		sample_sets : positive integer
 			Amount of randomly generated sample sets used as initial free
 			parameters
@@ -350,72 +343,31 @@ def inverse_model(model_configuration,
 	# seeds random generator to create reproducible runs
 	np.random.seed(seed)
 
-	# initializes model configuration 
-	model_configuration.initialize_log(sample_sets, gd_max_iter)
+	[fit_param, bnd_param] = model.fetch_to_optimize_args()[0][1:3]
+	convergence = worker.convergence_event_constructor(model)
+	objective_function = worker.construct_objective(model,
+		time_series_events=(convergence),debug=debug)
+	logger = model.construct_callback(method='SLSQP',debug=debug)
+	model.initialize_log(maxiter=maxiter)
 
-
-	if sample_sets == 0:	
-		# This option runs the optimization with the initial parameters
-		# presented in the model configuration
-		
-		# fetches the parameters and their constraints from model config
-		constraints = model_configuration.to_grad_method()[1]
-		# tests if there is anything to optimise
-		if len(constraints) == 0:
-			warnings.warn('Monte Carlo optimization method called with '
-							+'no parameters to optimise. '
-							+'Falling back to running model without '
-							+'optimization.')
-			return forward_model(model_configuration,seed=seed)
-		else:
-			# fetches parameters which shall be optimized
-			parameters = model_configuration.to_grad_method()[0] 
-			
-			# runs the gradient descent for the generated sample set 
-			parameters, model_data, prediction, cost = \
-				gradient_descent(model_configuration, parameters, constraints,
-				gradient_method, barrier_slope, gd_max_iter, pert_scale, 
-				grad_scale, convergence_tail_length = 10,
-				convergence_tolerance=1e-3,verbose=verbose)
-			
-			# updates log with the generated results
-
-			model_configuration.to_log(
-					parameters,model_data,prediction, cost)
 	
-	# runs the optimization with randomly chosen values
-	# values are picked from inside the allowed optimization range
+	if len(fit_param) == 0:
+		warnings.warn('Monte Carlo optimization method called with '
+						+'no parameters to optimise. '
+						+'Falling back to running model without '
+						+'optimization.')
+		return forward_model(model)
 	else:
-		for ii in np.arange(0,sample_sets):
-			if verbose:
-				print('Monte Carlo Sample #{}'.format(ii))
-			
-			# updates the state of the optimization run
-			model_configuration.log['monte_carlo_idx'] = ii
-			
-			# fetches the parameters and their constraints from model config
-			constraints = model_configuration.to_grad_method()[1]
-			# tests is there is anything to optimise
-			if len(constraints) == 0:
-				warnings.warn('Monte Carlo optimization method called with '
-								+'no parameters to optimise. '
-								+'Falling back to running model without '
-								+'optimization.')
-				return forward_model(model_configuration,seed=seed)
-			else:
-				# fetches parameters which shall be optimized
-				parameters = worker.monte_carlo_sample_generator(constraints)
-				
-				# runs the gradient descent for the generated sample set 
-				param_stack, model_stack, prediction_stack, cost_stack = \
-					gradient_descent(model_configuration, 
-						parameters,constraints,gradient_method, barrier_slope,
-						gd_max_iter, pert_scale, grad_scale,
-						convergence_tail_length = 10,
-						convergence_tolerance=1e-3, verbose=verbose)
-				
-				# updates log with the generated results
-				model_configuration.to_log(
-					param_stack,model_stack,prediction_stack, cost_stack)
-				
-	return model_configuration
+		if verbose:
+			verb_min = 2
+		else:
+			verb_min = 0
+		out = minimize(objective_function,fit_param,method='SLSQP',
+						bounds=bnd_param,constraints=(),callback=logger,
+						options={'verbose': verb_min,'maxiter': maxiter})
+		model.update_system_with_parameters(out.x)
+		if verbose:
+			print(out)
+		
+	
+	return model
