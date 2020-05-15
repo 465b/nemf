@@ -37,11 +37,7 @@ def draw_interaction_graph(model_config):
     edges = []; labels = []
     for path in interactions:
         for edge in model_config.interactions[path]:
-            # swap direction depending on the function sign 
-            if edge['sign'] == '+1':
-                edges.append(tuple(path.split(':'))[::-1])
-            else:
-                edges.append(tuple(path.split(':')))
+            edges.append(tuple(path.split(':'))[::-1])
             labels.append(edge['fkt'])
 
     # setting up edge labes dict
