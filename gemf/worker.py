@@ -422,14 +422,14 @@ def update_param(initial_param, fit_param, fit_idx):
 	# states
 	fit_states = fit_param[:len(fit_idx[0])]
 	states_t0 = deepcopy(initial_param[0])
-	for [idx,item] in zip(fit_idx[0],fit_states)):
+	for [idx,item] in zip(fit_idx[0],fit_states):
 		states_t0[idx] = item
 	
 	# args
 	fit_args = fit_param[len(fit_idx[0]):]
 	args = deepcopy(initial_param[1])
 	
-	for [idx,item] in zip(fit_idx[1],fit_args)):
+	for [idx,item] in zip(fit_idx[1],fit_args):
 		args[idx[0]][idx[1]][idx[2]] = item
 	
 	return [states_t0,args]
