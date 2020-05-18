@@ -214,6 +214,22 @@ def barrier_hard_enforcement(free_param,constrains=None,
 
 ## Stability
 
+def convergence_event_constructor(model,threshold=1e-6,):
+	epsilon = threshold
+	differential_equation = model.de_constructor()
+
+	def convergence(t,y,*args):
+		derivative = differential_equation(t,y,*args)
+
+		if (sum(abs(derivative)) < epsilon) and (t != 0):
+			print('Convergence reached')
+			return 0
+		else:
+			return 1
+
+	return convergence
+
+
 def check_convergence(prediction, stability_rel_tolerance=1e-6,
 									tail_length=10):
 	""" checks if the current solution is stable by 
