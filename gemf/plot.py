@@ -10,15 +10,14 @@ sns.set_palette("husl")
 
 # plotting routines
 
-def interaction_graph(model_config):
+def draw_interaction_graph(model_config):
     """ Takes the model configuration and draws a labeled
         directional-multi-graph to illustrate the interactions """
     
-    # define the present nodes/compartments
     nodes = list(model_config.compartment)
-    # fetch the list of interaction paths present
     interactions = list(model_config.interactions)
-    # fetch configuration
+
+    # --- CONFIGURATION DUMP ---
     config = model_config.configuration.copy()
     if 'idx_sinks' in config:
         config.pop('idx_sinks')
@@ -33,6 +32,7 @@ def interaction_graph(model_config):
     comment = yaml.dump(config, default_flow_style=False, line_break=True)
     comment = comment.replace('!!python/tuple','')
 
+    # --- GRAPH ---
     # fetch list of edges and their labels
     edges = []; labels = []
     for path in interactions:
@@ -63,7 +63,8 @@ def interaction_graph(model_config):
     # define node positions
     pos = nx.circular_layout(G)
 
-    # actual plotting
+    # --- PLOTTING ---
+    fig = plt.figure()
     ax = plt.subplot(111)
     # draws nodes
     nx.draw(G, pos,node_size=2000, node_color='pink',
@@ -81,7 +82,12 @@ def interaction_graph(model_config):
     ## Put a legend to the right of the current axis
     ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
     
-    plt.tight_layout()
+    return fig
+
+
+def interaction_graph(model_config):
+    fig = draw_interaction_graph(model_config)
+    fig.tight_layout()
     plt.show()
 
 
@@ -120,14 +126,17 @@ def draw_model_output(ax,model,model_config):
     time = time[:len(model)]
     labels = list(model_config.compartment)
 
+    fig = plt.figure()
     ax.title.set_text('optimized model')
     handles = plt.plot(time,model)
     plt.legend(handles, labels)
     ax.set_ylabel('Model output (a.u.)')
     ax.set_xlabel('Time (a.u.)')
 
+    return fig
 
-def optimization_overview(cost,predictions,parameters,model
+
+def draw_optimization_overview(cost,predictions,parameters,model
                             ,model_config,ii_sample=None): 
 
     if ii_sample is None:
@@ -146,11 +155,10 @@ def optimization_overview(cost,predictions,parameters,model
     ax4 = plt.subplot(2,2,4)
     draw_model_output(ax4, model,model_config)
 
-    plt.tight_layout()
-    plt.show()
+    return fig
 
 
-def output_summary(model_config):
+def draw_output_summary(model_config):
     log = model_config.log
 
     sample_sets_switch = len(np.shape(log['parameters']))
@@ -161,21 +169,29 @@ def output_summary(model_config):
         print(log['predictions'])
         print(log['parameters'])
         ax = plt.subplot(1,1,1)
-        draw_model_output(ax,log['model'],model_config)
-        plt.show()
+        fig = draw_model_output(ax,log['model'],model_config)
     elif sample_sets_switch == 2:
-        optimization_overview(log['cost'],
+        fig = draw_optimization_overview(log['cost'],
                    log['predictions'],
                    log['parameters'],
                    log['model'][0],
                    model_config)
     elif sample_sets_switch == 3:
         for ii in np.arange(np.shape(log['parameters'])[0]):
-            optimization_overview(log['cost'][ii],
+            fig = draw_optimization_overview(log['cost'][ii],
                     log['predictions'][ii],
                     log['parameters'][ii],
                     log['model'][ii][np.where(np.isnan(log['cost'][ii]))[0][0]-1],
                     model_config)
+    
+    return fig
+
+                   
+
+def output_summary(model_config):
+    fig = draw_output_summary(model_config)
+    plt.tight_layout()
+    plt.show()
 
 
 def coupling_matrix(d2_weights,ODE_coeff_weights,names):
