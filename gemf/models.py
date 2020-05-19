@@ -399,13 +399,8 @@ class model_class:
 			self.init_sys_config['interactions'])
 		self.configuration = deepcopy(
 			self.init_sys_config['configuration'])
-		self.fetch_index_of_source_and_sink()
-		self.configuration['model_output_shape'] = \
-			(int(self.configuration['time_evo_max']/
-				self.configuration['dt_time_evo']),
-				len(list(self.init_sys_config['compartment'])))
-		self.configuration['prediction_shape'] = \
-			(len(self.configuration['fit_target']),)
+		if ('sinks' in self.configuration) and ('sources' in self.configuration):
+			self.fetch_index_of_source_and_sink()
 		self.reference_data = self.load_reference_data(fit_data_path)
 
 
@@ -457,14 +452,10 @@ class model_class:
 				assert_if_exists('optimise',edge,item)
 
 		# checks if configuration is well defined
-		#assert (unit[]) 
 		assert_if_exists_non_empty('configuration', unit)
-		#required_elements = ['integration_scheme','time_evo_max',
-		#	'dt_time_evo','ode_coeff_model', 'stability_rel_tolerance',
-		#	'tail_length_stability_check','start_stability_check',
-		#	'fit_model','fit_target']
-		#for element in required_elements:
-		#	assert_if_exists_non_empty(element,unit['configuration'])
+		required_elements = ['time_evo_max']
+		for element in required_elements:
+			assert_if_exists_non_empty(element,unit['configuration'])
 
 
 	def fetch_constraints(self):
