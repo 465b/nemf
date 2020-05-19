@@ -467,6 +467,11 @@ class model_class:
 		#	assert_if_exists_non_empty(element,unit['configuration'])
 
 
+	def fetch_constraints(self):
+		# placeholder for constraints generator
+		return None
+
+
 	def initialize_log(self,maxiter):
 
 		max_iter = maxiter + 1	
