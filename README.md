@@ -39,7 +39,7 @@ See examples.py. For a set of exemplary framework configurations see [configurat
 import gemf as 
 
 # A model configuration is defined in a yaml file. To read this file:
-model = gemf.load_configuration('path/to/model_configuration.yml')
+model = gemf.load_model_configuration('path/to/model_configuration.yml')
 
 # To draw a graph visualizing the model configuration:
 gemf.interaction_graph(model)
