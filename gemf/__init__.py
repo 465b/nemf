@@ -6,6 +6,7 @@ import gemf.models
 import gemf.plot
 
 from gemf.models import model_class as model_class
+from gemf.models import model_class as load_model_configuration
 
 from gemf.caller import forward_model as forward_model 
 from gemf.caller import inverse_model as inverse_model

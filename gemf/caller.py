@@ -160,6 +160,9 @@ def gradient_descent(model_config, parameters, constraints,
 
 	# initialize variabale space
 	param_stack = np.full((gd_max_iter,len(parameters)), np.nan)
+	for nn,entry in enumerate(parameters):
+		if (entry in list(model_config.compartment)):
+			parameters[nn] = model_config.compartment[entry]['value']
 	param_stack[0] = parameters
 	cost_stack = np.full((gd_max_iter), np.nan)
 	## fetches ode-model/fit-model shape from model configuration

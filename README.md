@@ -11,8 +11,20 @@ For simplicity, the current version of the framework is limited to non-spatially
 
 ## Installation
 
+### On Linux
+Python and its package manger (pip) should be preinstalled.
+Hence, it can simply be installed through:
 ``` bash
 pip install gemf
+```
+
+### On Windows:
+Get the latest python version from here.
+For example the 3.8.3 version installer
+This also installs pythons integrated package manager (pip).  
+Then, the following install command can be used in windows "powershell":
+``` powershell
+python -m pip install gemf
 ```
 
 ## Quick Start
@@ -27,12 +39,15 @@ See examples.py. For a set of exemplary framework configurations see [configurat
 import gemf as 
 
 # A model configuration is defined in a yaml file. To read this file:
-model_config = gemf.load_configuration('path/to/model_configuration.yml')
+model = gemf.load_model_configuration('path/to/model_configuration.yml')
+
+# To draw a graph visualizing the model configuration:
+gemf.interaction_graph(model)
 
 # To solve the time integration of this model call:
-forward_results = gemf.forward_model(model_config)
+forward_results = gemf.forward_model(model)
 # To also solve the inverse problem as defined in the configuration, call:
-inverse_results = gemf.inverse_model(model_config)
+inverse_results = gemf.inverse_model(model)
 
 # To plot the results call 
 gemf.plot.output_summary(inverse_results)
