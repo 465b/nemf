@@ -485,7 +485,7 @@ class model_class:
 	def construct_callback(self,method='SLSQP',debug=False):
 		model = self
 
-		if method == 'trust_const':
+		if method == 'trust-constr':
 			def callback(xk, opt):# -> bool
 				if debug: print(f'xk: \n{xk}')
 				model.to_log(xk,cost=opt.fun)
