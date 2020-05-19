@@ -27,12 +27,15 @@ See examples.py. For a set of exemplary framework configurations see [configurat
 import gemf as 
 
 # A model configuration is defined in a yaml file. To read this file:
-model_config = gemf.load_configuration('path/to/model_configuration.yml')
+model = gemf.load_configuration('path/to/model_configuration.yml')
+
+# To draw a graph visualizing the model configuration:
+gemf.interaction_graph(model)
 
 # To solve the time integration of this model call:
-forward_results = gemf.forward_model(model_config)
+forward_results = gemf.forward_model(model)
 # To also solve the inverse problem as defined in the configuration, call:
-inverse_results = gemf.inverse_model(model_config)
+inverse_results = gemf.inverse_model(model)
 
 # To plot the results call 
 gemf.plot.output_summary(inverse_results)
