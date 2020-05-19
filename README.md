@@ -11,8 +11,20 @@ For simplicity, the current version of the framework is limited to non-spatially
 
 ## Installation
 
+### On Linux
+Python and its package manger (pip) should be preinstalled.
+Hence, it can simply be installed through:
 ``` bash
 pip install gemf
+```
+
+### On Windows:
+Get the latest python version from here.
+For example the 3.8.3 version installer
+This also installs pythons integrated package manager (pip).  
+Then, the following install command can be used in windows "powershell":
+``` powershell
+python -m pip install gemf
 ```
 
 ## Quick Start
