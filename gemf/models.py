@@ -417,7 +417,8 @@ class model_class:
 				reference_data = np.reshape(reference_data,(1,len(reference_data)))
 			return reference_data
 		else:
-			print('no reference data provided')
+			print('No reference data has been provided')
+			return None
 
 
 	def sanity_check_input(self):
