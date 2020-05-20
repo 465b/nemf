@@ -3,6 +3,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import networkx as nx
 import yaml
+import gemf
+from copy import deepcopy
 
 sns.set_style('whitegrid')
 sns.set_context('paper')
@@ -188,6 +190,24 @@ def output_summary(model_config):
     fig = draw_output_summary(model_config)
     plt.tight_layout()
     plt.show()
+
+
+def initial_guess(model):
+    ax = plt.subplot(111)
+
+    t_ref =  model.reference_data[:,0]
+    y_ref =  model.reference_data[:,1:]
+
+    plt.title('Initial model behavior and reference')
+    
+    plt.plot(t_ref,y_ref,ls='--',linewidth=2)
+    initial_model = deepcopy(gemf.forward_model(model,t_eval=t_ref))
+    ax = draw_model_output(ax, initial_model)
+    ax.title.set_text('Initial model guess')
+
+    plt.show()
+
+    return ax
 
 
 def coupling_matrix(d2_weights,ODE_coeff_weights,names):
