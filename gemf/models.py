@@ -311,41 +311,41 @@ def SGD_momentum(free_param,gradient,grad_scale):
 
 	
 # interaction functions
+def inverse_type_0(X,idx_A,idx_B,coefficients):
 
-## Grazing Models
-def J(N,k_N,mu_m):
-	""" Nutrition saturation model"""
+	A = X[idx_A] # quantity of compartment A (predator/consumer)
+	B = X[idx_B] # quantity of compartment B (prey/nutrient)
 
-	""" we are currently assuming constant, perfect 
-		and homogeneous illumination. Hence, the 
-		f_I factor is currently set to 1 """
+	return coefficients*B
 
-	f_N = N/(k_N+N)
-	f_I = 1 #I/(k_I+I)
-	cost_val = mu_m*f_N*f_I
-	return cost_val
-
-
-def holling_type_0(coefficient):
+def holling_type_0(X,idx_A,coefficient):
 	""" constant respone (implicit linear),
 		compartment size independent """
-	return coefficient
+	A = X[idx_A] # quantity of the linearly dependant compartment
+	return coefficient*A
 
 
-def holling_type_I(value,coefficient):
+def holling_type_I(X,idx_A,idx_B,coefficient):
 	""" (co-)linear response """
-	return value*coefficient
+	A = X[idx_A] # quantity of compartment A (predator/consumer)
+	B = X[idx_B] # quantity of compartment B (prey/nutrient)
+	return (coefficient*B)*A
 
-def holling_type_II(prey_population,food_processing_time,hunting_rate):
+def holling_type_II(X,idx_A,idx_B,food_processing_time,hunting_rate):
 	""" (co-)linear + saturation response """
-	consumption_rate = ((hunting_rate * prey_population)/
-			(1+hunting_rate * food_processing_time * prey_population))
+	A = X[idx_A] # quantity of compartment A (predator/consumer)
+	B = X[idx_B] # quantity of compartment B (prey/nutrient)
+	consumption_rate = ((hunting_rate * B)/
+			(1+hunting_rate * food_processing_time * B))*A
 	return consumption_rate
 
 
-def holling_type_III(P,epsilon,g):
+def holling_type_III(X,idx_A,idx_B,saturation_rate,consumption_rate_limit):
 	""" quadratic (+ implicit linear) + saturation response """
-	G_val = (g*epsilon*P**2)/(g+(epsilon*P**2))
+	A = X[idx_A] # quantity of compartment A (predator/consumer)
+	B = X[idx_B] # quantity of compartment B (prey/nutrient)
+	G_val = ((consumption_rate_limit*saturation_rate*B**2)/
+				(consumption_rate_limit+(saturation_rate*B**2)))*A
 	return G_val
 
 
@@ -367,9 +367,12 @@ def sloppy_feeding(holling_type,coeff,*args):
 			+"Use one of the following: ['0','I','II','III']")
 	
 
-def nutrition_limited_growth(N,growth_rate,half_saturation):
+def nutrition_limited_growth(X,idx_A,idx_B,growth_rate,half_saturation):
 	""" reparameterization of holling_II """
-	return growth_rate*(N/(half_saturation+N))
+	A = X[idx_A] # quantity of compartment A (predator/consumer)
+	B = X[idx_B] # quantity of compartment B (prey/nutrient)
+
+	return growth_rate*(B/(half_saturation+B))*A#
 
 ## referencing interaction functions
 """ It is helpfull from a mechanistic point of view to not only
@@ -378,17 +381,17 @@ def nutrition_limited_growth(N,growth_rate,half_saturation):
 	function which then maps to a standard linear function to better
 	represent its usage and increase readability """
 
-linear_mortality = holling_type_0
-remineralisation = holling_type_0
-exudation = holling_type_0
-excretion = holling_type_0
+linear_mortality = inverse_type_0
+remineralisation = holling_type_I
+exudation = inverse_type_0
+excretion = inverse_type_0
 stress_dependant_exudation = holling_type_I
 
-# Model_Classes 
 
+# Model_Classes 
 class model_class:
-	def __init__(self,path):
-		self.init_sys_config = worker.initialize_ode_system(path)
+	def __init__(self,model_path,fit_data_path=None):
+		self.init_sys_config = worker.initialize_ode_system(model_path)
 		self.sanity_check_input()
 		self.compartment = deepcopy(
 			self.init_sys_config['compartment'])
@@ -396,14 +399,26 @@ class model_class:
 			self.init_sys_config['interactions'])
 		self.configuration = deepcopy(
 			self.init_sys_config['configuration'])
-		self.fetch_index_of_source_and_sink()
-		
-		self.configuration['model_output_shape'] = \
-			(int(self.configuration['time_evo_max']/
-				self.configuration['dt_time_evo']),
-				len(list(self.init_sys_config['compartment'])))
-		self.configuration['prediction_shape'] = \
-			(len(self.configuration['fit_target']),)
+		if ('sinks' in self.configuration) and ('sources' in self.configuration):
+			self.fetch_index_of_source_and_sink()
+		self.reference_data = self.load_reference_data(fit_data_path)
+
+
+	def load_reference_data(self,fit_data_path):
+		if fit_data_path != None:
+			reference_data = worker.import_fit_data(fit_data_path)
+			if len(np.shape(reference_data)) == 1:
+				reference_data = np.reshape(reference_data,(1,len(reference_data)))
+			return reference_data
+		elif 'fit_data_path' in self.configuration:
+			fit_data_path = self.configuration['fit_data_path']
+			reference_data = worker.import_fit_data(fit_data_path)
+			if len(np.shape(reference_data)) == 1:
+				reference_data = np.reshape(reference_data,(1,len(reference_data)))
+			return reference_data
+		else:
+			print('No reference data has been provided')
+			return None
 
 
 	def sanity_check_input(self):
@@ -434,40 +449,52 @@ class model_class:
 				assert edge != None, \
 					name + "interaction {} is empty".format(item)
 				assert_if_exists_non_empty('fkt',edge,item,)
-				assert_if_exists_non_empty('sign',edge,item)
 				assert_if_exists('parameters',edge,item)
 				assert_if_exists('optimise',edge,item)
 
 		# checks if configuration is well defined
-		#assert (unit[]) 
 		assert_if_exists_non_empty('configuration', unit)
-		required_elements = ['integration_scheme','time_evo_max',
-			'dt_time_evo','ode_coeff_model', 'stability_rel_tolerance',
-			'tail_length_stability_check','start_stability_check',
-			'fit_model','fit_target']
+		required_elements = ['time_evo_max']
 		for element in required_elements:
 			assert_if_exists_non_empty(element,unit['configuration'])
 
 
-	def initialize_log(self,n_monte_samples,max_gd_iter):
-		parameters = self.to_grad_method()[0]
-		param_log = np.zeros((n_monte_samples,
-									max_gd_iter, len(parameters)))
-		prediction_log = np.zeros( (n_monte_samples, max_gd_iter,
-								len(self.configuration['fit_target'])))
-		cost_log = np.zeros( (n_monte_samples, max_gd_iter) )
-		model_log = np.zeros( (n_monte_samples, max_gd_iter,
-							int(self.configuration['time_evo_max']/
-							self.configuration['dt_time_evo']),
-							len(list(self.compartment))))
-	
+	def fetch_constraints(self):
+		# placeholder for constraints generator
+		return None
+
+
+	def initialize_log(self,maxiter):
+
+		max_iter = maxiter + 1	
+		fit_parameter = self.fetch_to_optimize_args()[0][1]
+
+		param_log = np.full((max_iter,len(fit_parameter)), np.nan)
+		cost_log = np.full( (max_iter), np.nan )
+		
 		log_dict = {'parameters': param_log,
-					'predictions': prediction_log,
 					'cost': cost_log,
-					'model': model_log,
-					'monte_carlo_idx': 0, 'gradient_idx': 0}
+					'iter_idx': 0}
 		
 		self.log = log_dict
+
+	
+	def construct_callback(self,method='SLSQP',debug=False):
+		model = self
+
+		if method == 'trust-constr':
+			def callback(xk, opt):# -> bool
+				if debug: print(f'xk: \n{xk}')
+				model.to_log(xk,cost=opt.fun)
+		elif method == 'SLSQP':
+			def callback(xk):# -> bool
+				if debug: print(f'xk: \n{xk}')
+				model.to_log(xk)
+		else:
+			raise Exception
+			
+		return callback
+
 
 
 	def fetch_index_of_interaction(self):
@@ -510,28 +537,13 @@ class model_class:
 		self.configuration['idx_sinks'] = idx_sinks
 
 
-	def to_log(self,parameters,model_data,predictions,cost):
+	def to_log(self,parameters,cost=None):
 		#current monte sample
-		ii = self.log['monte_carlo_idx']
-
-		if np.shape(predictions) == ():
-			# reshape prediction in case they are zero-dim
-			predictions = np.reshape(predictions,(1,1))
-		
-		if np.shape(self.log['parameters'])[0] == 0:
-			# in case there is only one parameter set
-			self.log['parameters'] = parameters
-			self.log['predictions'] = predictions
-			self.log['model'] = model_data
-			self.log['cost'] = cost
-		else:
-			self.log['parameters'][ii] = parameters
-			self.log['predictions'][ii] = predictions
-			self.log['model'][ii] = model_data
-			self.log['cost'][ii] = cost
-		
-		self.log['gradient_idx'] += 1
-		
+		idx = self.log['iter_idx']
+		self.log['parameters'][idx] = parameters
+		self.log['cost'][idx] = cost
+		self.log['iter_idx'] += 1
+	
 
 	def from_ode(self,ode_states):
 		""" updates self with the results provided by the ode solver """
@@ -646,6 +658,130 @@ class model_class:
 			parameters,constrains,barrier_slope)
 
 		return model_log, prediction, cost, is_stable
+
+	
+	def fetch_index_of_compartment(self,parameters):
+		# add something to make sure all stanges to parameters stay internal
+		compartments = list(self.compartment)
+		for nn,entry in enumerate(parameters):
+			if (type(entry) == str) & (entry in list(self.compartment)):
+				#print(entry, compartments.index(entry))
+				parameters[nn] = compartments.index(entry)
+		return parameters
+
+
+	def fetch_to_optimize_args(self):
+		""" fetches the parameters necessary for the gradient descent method
+			Returns: free_parameters, constraints """
+
+		labels = []
+		idx_state = []; val_state = []; bnd_state = []
+		
+		for ii,entry in enumerate(self.compartment):
+			if self.compartment[entry]['optimise'] is not None:
+				labels.append('{}'.format(entry))
+				
+				idx_state.append(ii)
+				
+				val_state.append(self.compartment[entry]['value'])
+				
+				lower_bound = self.compartment[entry]['optimise']['lower']
+				upper_bound = self.compartment[entry]['optimise']['upper']
+				bnd_state.append([lower_bound,upper_bound])
+				
+		
+		idx_args = []; val_args = []; bnd_args = []
+		
+		for ii,interaction in enumerate(self.interactions):
+			for jj,function in enumerate(self.interactions[interaction]):
+				
+				if function['optimise'] is not None:
+					for kk,parameter in enumerate(function['optimise']):
+						labels.append('{},fkt: {} #{}'.format(
+							interaction,function['fkt'],
+							parameter['parameter_no']))
+						
+						current_idx_args = [ii,jj,parameter['parameter_no']-1]
+						current_val_args = self.fetch_arg_by_idx(current_idx_args)				
+						lower_bound = parameter['lower']
+						upper_bound = parameter['upper']
+						
+						idx_args.append(current_idx_args)
+						val_args.append(current_val_args)
+						bnd_args.append( (lower_bound,upper_bound) )
+
+
+		fit_indices = [idx_state,idx_args]
+		fit_param = val_state + val_args
+		bnd_param = bnd_state + bnd_args
+			
+		return [fit_indices,fit_param,bnd_param], labels
+		
+
+	def fetch_states(self):
+		states = []
+		compartment = self.compartment
+		for item in compartment:
+			states.append(compartment[item]['value'])
+		return states
+
+	
+	def fetch_args(self):
+		args = []
+		for interactions in self.interactions:
+			args_edge = []
+			for edges in self.interactions[interactions]:
+				indexed_args = self.fetch_index_of_compartment(edges['parameters'])
+				args_edge.append(indexed_args)
+
+			args.append(args_edge)
+		return args
+
+	
+	def fetch_param(self):
+		states = self.fetch_states()
+		args = self.fetch_args()
+		return [states,args]
+
+
+	def fetch_arg_by_idx(self,index):
+		args = self.fetch_args()
+		idx = index
+		arg = args[idx[0]][idx[1]][idx[2]]
+		return arg
+
+
+	def de_constructor(self):
+		# the benefit of constructing it like this is that:
+		#    * we are able to get the signature f(x,args)
+		#    * all non-(x,args) related objects are only evaluated once.
+		# however, this for looping is still super inefficient and a more
+		# vectorized object should be intended
+	
+		# args is expected to have the same shape as set_of_functions
+		set_of_function = self.interactions
+		idx_interactions = self.fetch_index_of_interaction()
+		n_compartments = len(self.compartment)
+	
+		def differential_equation(t,x,args): #(t,x) later
+		
+			y = np.zeros((n_compartments,n_compartments))
+	
+			for ii,functions in enumerate(set_of_function):
+				interaction = set_of_function[functions]          
+				for jj,edge in enumerate(interaction):
+					kk,ll = idx_interactions[ii]
+					#print(f'{edge["fkt"]} \t\t flows into '+'
+					# {list(self\.compartment)[kk]} outof {list(self\.compartment)[ll]}')
+	
+					# flows into kk (outof ll)
+					y[kk,ll] += globals()[edge['fkt']](x,kk,*args[ii][jj])
+					# flow outof ll (into kk)
+					y[ll,kk] -= globals()[edge['fkt']](x,kk,*args[ii][jj])
+	
+			return np.sum(y,axis=1)
+	
+		return differential_equation
 
 
 def assert_if_exists(unit,container,item='',reference='',

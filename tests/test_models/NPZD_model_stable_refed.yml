@@ -9,87 +9,92 @@
 # List of all present compartments in the model.
 compartment:
   N:              # name of the compartment
-    value: 1.0    # initial value of the compartment
+    value:  1.0    # initial value of the compartment
     optimise:     # if the above value shall not be optimized, this remains empty
-      lower: 0    # if not, lower and
+      lower: 1.0e-9    # if not, lower and
       upper: 2    # upper constraints must be defined 
   P:
     value: 1.0
     optimise:
-      lower: 0
+      lower: 1.0e-9
       upper: 2
   Z:
-    value: 1.0
+    value: 1.5
     optimise:
-      lower: 0
+      lower: 1.0e-9
       upper: 2
   D:
-    value: 0
+    value: 1.0
     optimise:
-      lower: 0
-      upper: 2
+      lower: 1.0e-9
+      upper: 3
+
 
 # List of all interactions/flows between compartments
 interactions:
   # Note, that the functions are automatically multiplied by the current value
   # of the secondly named compartment 
   
-  N:P:                              # names of the interacting compartments
+  P:N:                              # names of the interacting compartments
   - fkt: nutrition_limited_growth   # name of the type of interaction 
-    sign: '-1'                      # direction of flow (from P to N in this case)
     parameters:                     # list of parameters required for interaction
     - 'N'                           # Parameters can also be other compartments
     - 0.27
     - 0.7
     optimise:                       # whether or not some of these parameters
                                     # shall be optimized
-  P:Z:
+  Z:P:
   - fkt: holling_type_III
-    sign: '-1'
     parameters:
     - 'P'
-    - 1.6
-    - 1.575 
+    - 0.1
+    - 0.1 
     optimise:
+      - parameter_no: 2
+        lower: 0.05
+        upper: 0.2
+      - parameter_no: 3
+        lower: 0.05
+        upper: 0.2
   D:P:
   - fkt: linear_mortality
-    sign: '+1'
     parameters:
-    - 0.04
+    - 'P'
+    - 0.15
     optimise:
   D:Z:
   - fkt: linear_mortality
-    sign: '+1'
     parameters:
-    - 0.01
+    - 'Z'
+    - 0.03
     optimise:
   N:D:
   - fkt: remineralisation
-    sign: '+1'
     parameters:
-    - 0.048
+    - 'D'
+    - 0.148
     optimise:
 
 
 # list of details for the forward and inverse modelling modules
 configuration:
   # time evolution / forward modelling
-  integration_scheme: euler_forward
-  time_evo_max: 300
-  dt_time_evo: 0.1
-  ode_coeff_model: interaction_model_generator
-  # convergence criteria for forward and inverse modelling
-  stability_rel_tolerance: 1.0e-3
-  tail_length_stability_check: 10
-  start_stability_check: 50
+  time_evo_max: 1000
+  dt_time_evo: 1
+  
+  # optional keys:
+  # --------------
+
+  # integration_scheme: euler_forward
+  
   # fitting - details for the inverse modelling
-  fit_model: direct_fit_model
-  fit_target: [1.,0.5,1.,0.1]
-  # sinks and sources 
-  ## models are expected to conserve their model currency/quantity.
-  ## if something enters or leave the model they should be labled here
-  sources: null
-  sinks: null
-  ## if not null then this may look for example like:
-  ## sources: 'N'
-  ## sinks: 'D'
+  fit_data_path: tests/test_data/NPZD_steady_state_sampled.csv
+  
+  ## sinks and sources 
+  # models are expected to conserve their model currency/quantity.
+  # if something enters or leave the model they should be labled here
+  # if not null then this may look for example like:
+  # sources: 'N'
+  # sinks: 'D'
+  # sources: null
+  # sinks: null

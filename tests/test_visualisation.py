@@ -7,17 +7,17 @@ def load_model_from_pickle(path='tests/pickles/test_module.pkl'):
     return model
 
 
-def test_graph_visualization():
-    model = load_model_from_pickle('tests/pickles/test_module.pkl')
-    gemf.plot.draw_interaction_graph(model)
+def test_graph_visualization(model_npzd_osci_pkl):
+    gemf.plot.draw_interaction_graph(model_npzd_osci_pkl)
 
 
-def test_forward_visualization():
-    model = load_model_from_pickle('tests/pickles/forward_out.pkl')
-    gemf.plot.draw_output_summary(model)
+def test_forward_visualization(forward_osci_pkl):
+    gemf.plot.draw_output_summary(forward_osci_pkl)
 
 
-def test_inverse_visualization():
-    model = load_model_from_pickle('tests/pickles/inverse_out.pkl')
-    gemf.plot.draw_output_summary(model)
+def test_inverse_visualization_v1(inverse_osci_SLSQP_pkl):
+    gemf.plot.draw_output_summary(inverse_osci_SLSQP_pkl)
 
+
+def test_inverse_visualization_v2(inverse_osci_trust_pkl):
+    gemf.plot.draw_output_summary(inverse_osci_trust_pkl)
