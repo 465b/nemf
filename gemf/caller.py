@@ -12,7 +12,7 @@ import warnings
 #					level=logging.DEBUG)
 
 
-def forward_model(model,verbose=False,t_eval=None):
+def forward_model(model,method='RK45',verbose=False,t_eval=None):
 
 	""" Runs the time integration for a provided model configuration.
 			
@@ -49,7 +49,7 @@ def forward_model(model,verbose=False,t_eval=None):
 		t = t_eval
 	
 	sol = solve_ivp(differential_equation,[t_start,t_stop],initial_states,
-					args=[args], dense_output=True,)
+					method=method,args=[args], dense_output=True)
 	y_t = sol.sol(t).T
 
 	if verbose:
