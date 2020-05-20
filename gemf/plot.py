@@ -3,6 +3,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import networkx as nx
 import yaml
+import gemf
+from copy import deepcopy
 
 sns.set_style('whitegrid')
 sns.set_context('paper')
@@ -37,11 +39,7 @@ def draw_interaction_graph(model_config):
     edges = []; labels = []
     for path in interactions:
         for edge in model_config.interactions[path]:
-            # swap direction depending on the function sign 
-            if edge['sign'] == '+1':
-                edges.append(tuple(path.split(':'))[::-1])
-            else:
-                edges.append(tuple(path.split(':')))
+            edges.append(tuple(path.split(':'))[::-1])
             labels.append(edge['fkt'])
 
     # setting up edge labes dict
@@ -117,73 +115,102 @@ def draw_parameters(ax,parameters,model_config):
     handles = plt.plot(parameters)
     ax.set_ylabel('optimized parameters (a.u.)')
     ax.set_xlabel('Iteration Step')
-    plt.legend(handles, labels)
+    plt.legend(handles, labels, loc='upper left',bbox_to_anchor=(1.0, 1.0))
+    
 
-def draw_model_output(ax,model,model_config):
-    dt = model_config.configuration['dt_time_evo']
-    T = model_config.configuration['time_evo_max']
-    time = np.arange(T,step=dt)
-    time = time[:len(model)]
-    labels = list(model_config.compartment)
+def draw_model_output(ax,model):
+    time_series = model.log['time_series']
+    t = time_series[:,0]
+    y_t = time_series[:,1:]
+    labels = list(model.compartment)
 
-    fig = plt.figure()
-    ax.title.set_text('optimized model')
-    handles = plt.plot(time,model)
+    handles = plt.plot(t,y_t)
+    
     plt.legend(handles, labels)
     ax.set_ylabel('Model output (a.u.)')
     ax.set_xlabel('Time (a.u.)')
+    plt.legend(handles, labels, loc='upper left',bbox_to_anchor=(1.0, 1.0))
 
-    return fig
+    return ax
 
 
-def draw_optimization_overview(cost,predictions,parameters,model
-                            ,model_config,ii_sample=None): 
+def draw_optimization_overview(model): 
 
-    if ii_sample is None:
-        ii_sample = ''
-    else:
-        ii_sample = '#{}'.format(ii_sample)
     fig = plt.figure()
-    fig.suptitle('Results of optimization run'+ii_sample)
+    fig.suptitle('Results of optimization run')
     
-    ax1 = plt.subplot(2,2,1)
-    draw_cost(ax1,cost[:-1])
-    ax2 = plt.subplot(2,2,2)
-    draw_predictions(ax2,predictions[:-1],model_config)
-    ax3 = plt.subplot(2,2,3)
-    draw_parameters(ax3,parameters[:-1],model_config)
-    ax4 = plt.subplot(2,2,4)
-    draw_model_output(ax4, model,model_config)
+    if model.reference_data[:,0][0] == np.inf:
+        non_steady_state = False
+    else:
+        non_steady_state = True
+    
+    if not np.isnan(model.log['cost'][0]): 
+
+        ax1 = plt.subplot(221)
+        draw_cost(ax1,model.log['cost'])
+        ax2 = plt.subplot(222)
+        draw_parameters(ax2,model.log['parameters'],model)
+        ax3 = plt.subplot(212)
+
+        if non_steady_state:
+            t_ref =  model.reference_data[:,0]
+            y_ref =  model.reference_data[:,1:]
+            plt.plot(t_ref,y_ref,ls='--',linewidth=2)
+            time_series = gemf.forward_model(model,t_eval=t_ref)
+            time_series_model = time_series.log['time_series']
+            ax2 = draw_model_output(ax2, model)
+            ax2.title.set_text('optimized model')
+
+        else: # steady-state
+            t_max = model.configuration['max_time_evo']
+            t_ref = np.linspace(0,t_max,1000)
+            y_ref =  model.reference_data[:,1:]
+            plt.hlines(y_ref,t_ref[0],t_ref[-1],ls='--')
+            
+            time_series_model = gemf.forward_model(model,t_eval=t_ref)
+            ax3 = draw_model_output(ax3, time_series_model)
+            ax3.title.set_text('optimized model')
+
+    else:
+        ax1 = plt.subplot(211)
+        draw_parameters(ax1,model.log['parameters'],model)
+        ax2 = plt.subplot(212)
+
+        if non_steady_state:
+            t_ref =  model.reference_data[:,0]
+            y_ref =  model.reference_data[:,1:]
+            plt.plot(t_ref,y_ref,ls='--',linewidth=2)
+            time_series = gemf.forward_model(model,t_eval=t_ref)
+            time_series_model = time_series.log['time_series']
+            ax2 =  draw_model_output(ax2, model)
+            ax2.title.set_text('optimized model')
+        else: # steady-state
+            t_max = model.configuration['max_time_evo']
+            dt = model.configuration['dt_time_evo']
+            t_ref = np.arange(0,t_max,dt)
+            y_ref =  model.reference_data[:,1:]
+            plt.hlines(y_ref,t_ref[0],t_ref[-1],ls='--')
+            
+            time_series_model = gemf.forward_model(model,t_eval=t_ref)
+            draw_model_output(ax2, time_series_model)
+            ax2.title.set_text('optimized model')
 
     return fig
 
 
-def draw_output_summary(model_config):
-    log = model_config.log
+def draw_output_summary(model):
 
-    sample_sets_switch = len(np.shape(log['parameters']))
-    if sample_sets_switch == 1:
+    if 'time_series' in model.log:
         # no optimization has happend.
         # hence, cost/predictions/parameters is 0-dim
-        print(log['cost'])
-        print(log['predictions'])
-        print(log['parameters'])
+        fig = plt.figure()
         ax = plt.subplot(1,1,1)
-        fig = draw_model_output(ax,log['model'],model_config)
-    elif sample_sets_switch == 2:
-        fig = draw_optimization_overview(log['cost'],
-                   log['predictions'],
-                   log['parameters'],
-                   log['model'][0],
-                   model_config)
-    elif sample_sets_switch == 3:
-        for ii in np.arange(np.shape(log['parameters'])[0]):
-            fig = draw_optimization_overview(log['cost'][ii],
-                    log['predictions'][ii],
-                    log['parameters'][ii],
-                    log['model'][ii][np.where(np.isnan(log['cost'][ii]))[0][0]-1],
-                    model_config)
-    
+        ax = draw_model_output(ax,model)
+        ax.title.set_text('Model Output')
+
+    else:
+        fig = draw_optimization_overview(model)
+
     return fig
 
                    
@@ -192,6 +219,24 @@ def output_summary(model_config):
     fig = draw_output_summary(model_config)
     plt.tight_layout()
     plt.show()
+
+
+def initial_guess(model):
+    ax = plt.subplot(111)
+
+    t_ref =  model.reference_data[:,0]
+    y_ref =  model.reference_data[:,1:]
+
+    plt.title('Initial model behavior and reference')
+    
+    plt.plot(t_ref,y_ref,ls='--',linewidth=2)
+    initial_model = deepcopy(gemf.forward_model(model,t_eval=t_ref))
+    ax = draw_model_output(ax, initial_model)
+    ax.title.set_text('Initial model guess')
+
+    plt.show()
+
+    return ax
 
 
 def coupling_matrix(d2_weights,ODE_coeff_weights,names):
