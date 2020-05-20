@@ -120,20 +120,19 @@ def inverse_model(model,method='SLSQP',
 	# seeds random generator to create reproducible runs
 	np.random.seed(seed)
 
-	[fit_param, bnd_param] = model.fetch_to_optimize_args()[0][1:3]
-	objective_function = worker.construct_objective(model,debug=debug)
-	logger = model.construct_callback(method=method,debug=debug)
-	model.initialize_log(maxiter=maxiter)
-
-
-	if len(fit_param) == 0:
+	if model.reference_data is None:
 		warnings.warn('Monte Carlo optimization method called with '
 						+'no parameters to optimise. '
 						+'Falling back to running model without '
 						+'optimization.')
 		return forward_model(model)
-
+	
 	else:
+		[fit_param, bnd_param] = model.fetch_to_optimize_args()[0][1:3]
+		objective_function = worker.construct_objective(model,debug=debug)
+		logger = model.construct_callback(method=method,debug=debug)
+		model.initialize_log(maxiter=maxiter)
+
 		cons = model.fetch_constraints()
 		if cons ==  None:
 			out = minimize(objective_function,fit_param,method=method,
