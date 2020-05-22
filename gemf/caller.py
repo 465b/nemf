@@ -21,6 +21,18 @@ def forward_model(model,method='RK45',verbose=False,t_eval=None):
 		model : model_class object
 			class object containing the model configuration
 			and its related methods. See load_configuration()
+		method : string
+			Integration method to use:
+				‘RK45’ (default): Explicit Runge-Kutta method of order 5(4).
+				‘RK23’: Explicit Runge-Kutta method of order 3(2).
+				‘DOP853’: Explicit Runge-Kutta method of order 8. 
+				‘Radau’: Implicit Runge-Kutta method of the Radau IIA family of
+						 order 5. 
+				‘BDF’: Implicit multi-step variable-order (1 to 5) method based
+					   on a backward differentiation formula for the derivative
+					   approximation.
+				‘LSODA’: Adams/BDF method with automatic stiffness detection 
+						 and switching.
 		verbose : bool
 			Flag for extra verbosity during runtime
 		t_eval : 1d-array
@@ -46,7 +58,7 @@ def forward_model(model,method='RK45',verbose=False,t_eval=None):
 	else:
 		t_start = min(t_eval)
 		t_stop = max(t_eval)
-		t = t_eval
+		t = np.linspace(t_start,t_stop,num=1000)
 	
 	sol = solve_ivp(differential_equation,[t_start,t_stop],initial_states,
 					method=method,args=[args], dense_output=True)
@@ -76,42 +88,28 @@ def inverse_model(model,method='SLSQP',
 	
 		Parameters
 		----------
-		model_configuration : model_class object
+		model : model_class object
 			class object containing the model configuration
 			and its related methods. See load_configuration()
-		gradient_method : function
-			{SGD_basic,SGD_momentum}
-			Selects the method used during the gradient descent.
-			They differ in their robustness and convergence speed
+		method : string
+			Type of solver. Should be one of:
+				‘trust-constr’
+				‘SLSQP’
 		sample_sets : positive integer
 			Amount of randomly generated sample sets used as initial free
 			parameters
-		gd_max_iter : positive integer
+		maxiter : positive integer
 			Maximal amount of iterations allowed in the gradient descent
 			algorithm.
-		pert_scale : positive float
-			Maximal value which the system can be perturbed if necessary
-			(i.e. if instability is found). Actual perturbation ranges
-			from [0-pert_scale) uniformly distributed.
-		grad_scale : positive float
-			Scales the step size in the gradient descent. Often also
-			referred to as learning rate. Necessary to compensate for the
-			"roughness" of the objective function field.
 		seed : positive integer
 			Initializes the random number generator. Used to recreate the
 			same set of pseudo-random numbers. Helpfull when debugging.
-		convergence_tail_length : int
-			number of values counted from the end up that are used to check
-			for convergence of the gradient descent iteration.
-		convergence_tolerance : float
-			maximal allowed relative fluctuation range in the tail of the
-			cost function to test positive for convergence
 		verbose : bool
 			Flag for extra verbosity during runtime
 
 		Returns
 		-------
-		model_configuration : model_class object
+		model : model_class object
 			class object containing the model configuration, 
 			model run results (parameters, model, prediction, cost),
 			and its related methods
