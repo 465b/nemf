@@ -1,0 +1,99 @@
+# This is an example of a configuration for the 
+# General Ecosystem Modelling Framework (GEMF).
+# For details see:
+# https://github.com/465b/General-Ecosystem-Modeling-Framework/blob/master/README_YAML.md
+# We present a simple NPZD model in this example, see
+# https://doi.org/10.1016/j.ecolmodel.2013.01.012
+
+
+# List of all present compartments in the model.
+compartment:
+  N:              # name of the compartment
+    value:  1     # initial value of the compartment
+    optimise:     # if the above value shall not be optimized, this remains empty
+      lower: 1.0e-9    # if not, lower and
+      upper: 2    # upper constraints must be defined 
+  P:
+    value: 1 #.20835024e+00
+    optimise:
+      lower: 1.0e-9
+      upper: 2
+  Z:
+    value: 1 #8.84333950e-01
+    optimise:
+      lower: 1.0e-9
+      upper: 2
+  D:
+    value: 1 # 8.57333742e-01
+    optimise:
+      lower: 1.0e-9
+      upper: 2
+
+# List of all interactions/flows between compartments
+interactions:
+  # Note, that the functions are automatically multiplied by the current value
+  # of the secondly named compartment 
+  
+  P:N:                              # names of the interacting compartments
+  - fkt: nutrition_limited_growth   # name of the type of interaction 
+    parameters:                     # list of parameters required for interaction
+    - 'N'                           # Parameters can also be other compartments
+    - 0.27
+    - 0.7
+    optimise:                       # whether or not some of these parameters
+                                    # shall be optimized
+  Z:P:
+  - fkt: holling_type_III
+    parameters:
+    - 'P'
+    - 0.02
+    - 0.575 
+    optimise:
+      - parameter_no: 2
+        lower: 0.015
+        upper: 0.025
+      - parameter_no: 3
+        lower: 0.5
+        upper: 0.6
+  D:P:
+  - fkt: linear_mortality
+    parameters:
+    - 'P'
+    - 0.04
+    optimise:
+  D:Z:
+  - fkt: linear_mortality
+    parameters:
+    - 'Z'
+    - 0.01
+    optimise:
+  N:D:
+  - fkt: remineralisation
+    parameters:
+    - 'D'
+    - 0.148
+    optimise:
+
+
+# list of details for the forward and inverse modelling modules
+configuration:
+  # time evolution / forward modelling
+  time_evo_max: 1000
+  dt_time_evo: 1
+  
+  # optional keys:
+  # --------------
+
+  # integration_scheme: euler_forward
+  
+  # fitting - details for the inverse modelling
+  fit_data_path: tests/test_data/NPZD_oscillation_on_1990.csv
+  
+  ## sinks and sources 
+  # models are expected to conserve their model currency/quantity.
+  # if something enters or leave the model they should be labled here
+  # if not null then this may look for example like:
+  # sources: 'N'
+  # sinks: 'D'
+  # sources: null
+  # sinks: null
