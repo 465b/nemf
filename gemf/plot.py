@@ -73,13 +73,14 @@ def draw_interaction_graph(model):
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels,
         label_pos=0.35, font_size=10,font_color='tab:red',rotate=False)
 
-    # adds configuration
-    plt.legend(title=comment,loc='center left', bbox_to_anchor=(1., 0.5))
-    # positions legends
-    ## Shrink current axis by 20%
-    box = ax.get_position()
-    ## Put a legend to the right of the current axis
-    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    # # adds configuration
+    # plt.legend(title=comment,loc='center left', bbox_to_anchor=(1., 0.5))
+    # 
+    # # positions legends
+    # ## Shrink current axis by 20%
+    # box = ax.get_position()
+    # ## Put a legend to the right of the current axis
+    # ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
     
     return fig
 
