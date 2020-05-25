@@ -12,15 +12,16 @@ sns.set_palette("husl")
 
 # plotting routines
 
-def draw_interaction_graph(model_config):
+
+def draw_interaction_graph(model):
     """ Takes the model configuration and draws a labeled
         directional-multi-graph to illustrate the interactions """
     
-    nodes = list(model_config.compartment)
-    interactions = list(model_config.interactions)
+    nodes = list(model.compartment)
+    interactions = list(model.interactions)
 
     # --- CONFIGURATION DUMP ---
-    config = model_config.configuration.copy()
+    config = model.configuration.copy()
     if 'idx_sinks' in config:
         config.pop('idx_sinks')
         config.pop('idx_sources')
@@ -38,7 +39,7 @@ def draw_interaction_graph(model_config):
     # fetch list of edges and their labels
     edges = []; labels = []
     for path in interactions:
-        for edge in model_config.interactions[path]:
+        for edge in model.interactions[path]:
             edges.append(tuple(path.split(':'))[::-1])
             labels.append(edge['fkt'])
 
@@ -72,19 +73,21 @@ def draw_interaction_graph(model_config):
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels,
         label_pos=0.35, font_size=10,font_color='tab:red',rotate=False)
 
-    # adds configuration
-    plt.legend(title=comment,loc='center left', bbox_to_anchor=(1., 0.5))
-    # positions legends
-    ## Shrink current axis by 20%
-    box = ax.get_position()
-    ## Put a legend to the right of the current axis
-    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    # # adds configuration
+    # plt.legend(title=comment,loc='center left', bbox_to_anchor=(1., 0.5))
+    # 
+    # # positions legends
+    # ## Shrink current axis by 20%
+    # box = ax.get_position()
+    # ## Put a legend to the right of the current axis
+    # ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
     
     return fig
 
 
-def interaction_graph(model_config):
-    fig = draw_interaction_graph(model_config)
+def interaction_graph(model):
+    """ shows a graph/network of all compartments and their interactions """
+    fig = draw_interaction_graph(model)
     fig.tight_layout()
     plt.show()
 
@@ -95,10 +98,10 @@ def draw_cost(ax,cost):
     ax.set_xlabel('Iteration Step')
     plt.plot(cost)
 
-def draw_predictions(ax,predictions,model_config):
-    if model_config.configuration['fit_model'] == 'direct_fit_model':
-        labels = list(model_config.compartment)
-    elif model_config.configuration['fit_model'] == 'net_flux_fit_model':
+def draw_predictions(ax,predictions,model):
+    if model.configuration['fit_model'] == 'direct_fit_model':
+        labels = list(model.compartment)
+    elif model.configuration['fit_model'] == 'net_flux_fit_model':
         labels = ['net incoming/outgoing flux']
     else:
         labels = []    
@@ -109,8 +112,8 @@ def draw_predictions(ax,predictions,model_config):
     plt.legend(handles, labels)
 
 
-def draw_parameters(ax,parameters,model_config):
-    labels = model_config.to_grad_method()[2]
+def draw_parameters(ax,parameters,model):
+    labels = model.to_grad_method()[2]
     ax.title.set_text('parameters')
     handles = plt.plot(parameters)
     ax.set_ylabel('optimized parameters (a.u.)')
@@ -135,6 +138,8 @@ def draw_model_output(ax,model):
 
 
 def draw_optimization_overview(model): 
+    """ reads the data saved in the model class and depending on this data 
+        chooses a visualization method to present the results """
 
     fig = plt.figure()
     fig.suptitle('Results of optimization run')
@@ -199,7 +204,10 @@ def draw_optimization_overview(model):
 
 
 def draw_output_summary(model):
-
+    """ reads the data saved in the model class and depending on this data 
+        chooses a visualization method to present the results with the help
+        of draw_optimization_overview """
+    
     if 'time_series' in model.log:
         # no optimization has happend.
         # hence, cost/predictions/parameters is 0-dim
@@ -213,10 +221,13 @@ def draw_output_summary(model):
 
     return fig
 
-                   
 
-def output_summary(model_config):
-    fig = draw_output_summary(model_config)
+def output_summary(model):
+    """ reads the data saved in the model class and depending on this data 
+        chooses a visualization method with the help of draw_output_summary
+        to present the results """
+    
+    fig = draw_output_summary(model)
     plt.tight_layout()
     plt.show()
 
