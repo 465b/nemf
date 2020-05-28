@@ -32,20 +32,22 @@ def import_fit_data(path):
 def initialize_ode_system(path_config):
 	""" Initializes the dictionary containing the 'state' and 'interactions'
 
-		Parameters:
-		-----------
-		path_config : string
-			Path to the yaml file containing the ode model configuration.
-			The configuration contains the compartments, initial values
-			and optimization constrains - as well as - interactions paths, 
-			interaction directions (sign),interaction functions,
-			initial parameter values and optimization constrains.
+	Parameters
+	----------
+	path_config : string
+		Path to the yaml file containing the ode model configuration.
+		The configuration contains the compartments, initial values
+		and optimization constrains - as well as - interactions paths, 
+		interaction directions (sign),interaction functions,
+		initial parameter values and optimization constrains.
 
-		Returns:
-		--------
-		ode_system_configuration : dict
-			Contains the state and interaction configuration
-			in a similar structure as provided by the yaml files."""
+	Returns
+	-------
+	ode_system_configuration : dict
+		Contains the state and interaction configuration
+		in a similar structure as provided by the yaml files.
+		
+	"""
 
 	system_config = read_coeff_yaml(path_config)
 
@@ -470,19 +472,21 @@ def read_coeff_constrains(path):
 
 
 def monte_carlo_sample_generator(constrains):
-	""" Constructs a set of homogenously distributed random values 
-		in the value range provided by 'constrains'.
-		Returns an array of the length of 'constrains' 
-		Caution: Samples the FULL float search space if an inf value is provided! 
+	""" Creates randomly distributed samples inside the constraints
+
+	Constructs a set of homogenously distributed random values 
+	in the value range provided by 'constrains'.
+	Returns an array of the length of 'constrains' 
+	Caution: Samples the FULL float search space if an inf value is provided! 
 		
-	Parameter:
+	Parameters
 	----------
 	constrains : numpy.array
 		2D-array containing the upper and lower limit of every free input
 		parameter in the shape (len(free_param),2).
 		
-	Returns:
-	--------
+	Returns
+	-------
 	sample_set : numpy.array 
 		1D-array containing a random vector in the range of constrains """
 

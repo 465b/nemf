@@ -15,35 +15,36 @@ import warnings
 def forward_model(model,method='RK45',verbose=False,t_eval=None):
 
 	""" Runs the time integration for a provided model configuration.
-			
-		Parameters
-		----------
-		model : model_class object
-			class object containing the model configuration
-			and its related methods. See load_configuration()
-		method : string
-			Integration method to use:
-				‘RK45’ (default): Explicit Runge-Kutta method of order 5(4).
-				‘RK23’: Explicit Runge-Kutta method of order 3(2).
-				‘DOP853’: Explicit Runge-Kutta method of order 8. 
-				‘Radau’: Implicit Runge-Kutta method of the Radau IIA family of
-						 order 5. 
-				‘BDF’: Implicit multi-step variable-order (1 to 5) method based
-					   on a backward differentiation formula for the derivative
-					   approximation.
-				‘LSODA’: Adams/BDF method with automatic stiffness detection 
-						 and switching.
-		verbose : bool
-			Flag for extra verbosity during runtime
-		t_eval : 1d-array
-			contains time stamps in posix time for which a solution shall be 
-			found and returned.
+		
+	Parameters
+	----------
+	model : model_class object
+		class object containing the model configuration
+		and its related methods. See load_configuration
+	method : string, optional
+		Integration method to use. Available optins are:
+		
+			* 'RK45': (default) Explicit Runge-Kutta method of order 5(4).
+			* ‘RK23’: Explicit Runge-Kutta method of order 3(2).
+			* ‘DOP853’: Explicit Runge-Kutta method of order 8.
+			* ‘Radau’: Implicit Runge-Kutta method of the Radau IIA family of order 5. 
+			* ‘BDF’: Implicit multi-step variable-order (1 to 5) method based
+			  on a backward differentiation formula for the derivative approximation.
+			* ‘LSODA’: Adams/BDF method with automatic stiffness detection 
+			  and switching.
 
-		Returns
-		-------
-		model : model_class object
-			class object containing the model configuration, model run results,
-			and its related methods
+	verbose : bool, optional
+		Flag for extra verbosity during runtime
+	t_eval : 1d-array, optional
+		contains time stamps in posix time for which a solution shall be 
+		found and returned.
+
+	Returns
+	-------
+	model : model_class object
+		class object containing the model configuration, model run results,
+		and its related methods
+
 	"""
 
 	[initial_states,args] = model.fetch_param()
@@ -82,37 +83,40 @@ def inverse_model(model,method='SLSQP',
 					verbose=False,
 					debug=False):
 
-	""" Optimizes a set of randomly generated free parameters and returns
-		their optimized values and the corresponding fit-model and cost-
-		function output 
-	
-		Parameters
-		----------
-		model : model_class object
-			class object containing the model configuration
-			and its related methods. See load_configuration()
-		method : string
-			Type of solver. Should be one of:
-				‘trust-constr’
-				‘SLSQP’
-		sample_sets : positive integer
-			Amount of randomly generated sample sets used as initial free
-			parameters
-		maxiter : positive integer
-			Maximal amount of iterations allowed in the gradient descent
-			algorithm.
-		seed : positive integer
-			Initializes the random number generator. Used to recreate the
-			same set of pseudo-random numbers. Helpfull when debugging.
-		verbose : bool
-			Flag for extra verbosity during runtime
+	""" Fits the model to data.
 
-		Returns
-		-------
-		model : model_class object
-			class object containing the model configuration, 
-			model run results (parameters, model, prediction, cost),
-			and its related methods
+	Optimizes a set of randomly generated free parameters and returns
+	their optimized values and the corresponding fit-model and cost-
+	function output 
+
+	Parameters
+	----------
+	model : model_class object
+		class object containing the model configuration
+		and its related methods. See load_configuration()
+	method : string, optional
+		Type of solver. Should be one of:
+			‘trust-constr’
+			‘SLSQP’
+	sample_sets : positive integer, optional
+		Amount of randomly generated sample sets used as initial free
+		parameters
+	maxiter : positive integer, optional
+		Maximal amount of iterations allowed in the gradient descent
+		algorithm.
+	seed : positive integer, optional
+		Initializes the random number generator. Used to recreate the
+		same set of pseudo-random numbers. Helpfull when debugging.
+	verbose : boo, optional
+		Flag for extra verbosity during runtime
+
+	Returns
+	-------
+	model : model_class object
+		class object containing the model configuration, 
+		model run results (parameters, model, prediction, cost),
+		and its related methods
+	
 	"""
 
 	# seeds random generator to create reproducible runs
