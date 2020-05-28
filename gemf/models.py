@@ -50,33 +50,35 @@ class model_class:
 
 		# checks if compartment is well defined
 		name = "Model configuration "
-		assert_if_exists_non_empty('compartment',unit,reference='compartment')
+		worker.assert_if_exists_non_empty(
+			'compartment',unit,reference='compartment')
 		assert (len(list(unit['compartment'])) > 1), \
 			name + "only contains a single compartment"
 		## check if all compartment are well defined
 		for item in list(unit['compartment']):
-			assert_if_non_empty(item,unit['compartment'],item,reference='state')
-			assert_if_exists('optimise',unit['compartment'][item],item)
-			assert_if_exists_non_empty('value',unit['compartment'][item],
+			worker.assert_if_non_empty(
+				item,unit['compartment'],item,reference='state')
+			worker.assert_if_exists('optimise',unit['compartment'][item],item)
+			worker.assert_if_exists_non_empty('value',unit['compartment'][item],
 									   item,'value')
-			assert_if_exists('optimise',unit['compartment'][item],item)
+			worker.assert_if_exists('optimise',unit['compartment'][item],item)
 			
 		# checks if interactions is well defined
-		assert_if_exists_non_empty('interactions',unit,'interactions')
+		worker.assert_if_exists_non_empty('interactions',unit,'interactions')
 		## check if all interactions are well defined
 		for item in list(unit['interactions']):
 			for edge in unit['interactions'][item]:
 				assert edge != None, \
 					name + "interaction {} is empty".format(item)
-				assert_if_exists_non_empty('fkt',edge,item,)
-				assert_if_exists('parameters',edge,item)
-				assert_if_exists('optimise',edge,item)
+				worker.assert_if_exists_non_empty('fkt',edge,item,)
+				worker.assert_if_exists('parameters',edge,item)
+				worker.assert_if_exists('optimise',edge,item)
 
 		# checks if configuration is well defined
-		assert_if_exists_non_empty('configuration', unit)
+		worker.assert_if_exists_non_empty('configuration', unit)
 		required_elements = ['time_evo_max']
 		for element in required_elements:
-			assert_if_exists_non_empty(element,unit['configuration'])
+			worker.assert_if_exists_non_empty(element,unit['configuration'])
 
 
 	def fetch_constraints(self):
@@ -402,19 +404,3 @@ class model_class:
 			return np.sum(y,axis=1)
 	
 		return differential_equation
-
-
-def assert_if_exists(unit,container,item='',reference='',
-								name="Model configuration "):
-	assert (unit in container), \
-		name + reference + " {} lacks definition of {}".format(item,unit)
-
-def assert_if_non_empty(unit,container,item='',reference='',
-								name="Model configuration "):
-	assert (container[unit] != None), \
-		name + reference + " {} {} is empty".format(item,unit)
-
-def assert_if_exists_non_empty(unit,container,item='',reference='',
-								name="Model configuration "):
-	assert_if_exists(unit,container,item,reference=reference,name=name)
-	assert_if_non_empty(unit,container,item,reference=reference,name=name)

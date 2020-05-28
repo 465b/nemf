@@ -252,3 +252,21 @@ def monte_carlo_sample_generator(constrains):
 	sample_set = constrains_width*np.random.rand(len(constrains))+constrains[:,0]
 
 	return sample_set
+
+
+# checks to test if element in dict is defined
+
+def assert_if_exists(unit,container,item='',reference='',
+								name="Model configuration "):
+	assert (unit in container), \
+		name + reference + " {} lacks definition of {}".format(item,unit)
+
+def assert_if_non_empty(unit,container,item='',reference='',
+								name="Model configuration "):
+	assert (container[unit] != None), \
+		name + reference + " {} {} is empty".format(item,unit)
+
+def assert_if_exists_non_empty(unit,container,item='',reference='',
+								name="Model configuration "):
+	assert_if_exists(unit,container,item,reference=reference,name=name)
+	assert_if_non_empty(unit,container,item,reference=reference,name=name)
