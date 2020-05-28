@@ -10,3 +10,4 @@
 *.egg-info
 *dist
 example_files/
+doc/_build
