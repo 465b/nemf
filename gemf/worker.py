@@ -1,13 +1,12 @@
 import numpy as np
-from scipy.integrate import solve_ivp 
-import logging
 import yaml
+
+# ode solver
+from scipy.integrate import solve_ivp 
+# to avoid overwriting of class objects
 from copy import deepcopy
+# for debugging output
 from termcolor import colored, cprint
-
-from gemf import models
-
-logging.basicConfig(filename='carbonflux_inverse_model.log',level=logging.DEBUG)
 
 
 # Data reading
