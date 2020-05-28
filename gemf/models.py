@@ -20,9 +20,11 @@ class model_class:
 			self.init_sys_config['interactions'])
 		self.configuration = deepcopy(
 			self.init_sys_config['configuration'])
+		self.reference_data = self.load_reference_data(fit_data_path)
 		if ('sinks' in self.configuration) and ('sources' in self.configuration):
 			self.fetch_index_of_source_and_sink()
-		self.reference_data = self.load_reference_data(fit_data_path)
+		#if 'constraints_path' in self.configuration:
+		#	worker.load_constraints(self.configuration['constraints_path'])
 
 
 	def load_reference_data(self,fit_data_path):
@@ -82,11 +84,6 @@ class model_class:
 			worker.assert_if_exists_non_empty(element,unit['configuration'])
 
 
-	def fetch_constraints(self):
-		# placeholder for constraints generator
-		return None
-
-
 	def initialize_log(self,maxiter):
 
 		max_iter = maxiter + 1	
@@ -102,6 +99,8 @@ class model_class:
 		self.log = log_dict
 
 	
+	# Logging
+
 	def construct_callback(self,method='SLSQP',debug=False):
 		model = self
 
@@ -118,6 +117,79 @@ class model_class:
 			
 		return callback
 
+
+
+	def to_log(self,parameters,cost=None):
+		#current monte sample
+		idx = self.log['iter_idx']
+		self.log['parameters'][idx] = parameters
+		self.log['cost'][idx] = cost
+		self.log['iter_idx'] += 1
+
+
+	# Parsing
+
+	def to_grad_method(self):
+		""" fetches the parameters necessary for the gradient descent method
+ 	       Returns: free_parameters, constraints """
+		
+		free_parameters = []
+		constraints = []
+		labels = []
+		for ii in self.compartment:
+			if self.compartment[ii]['optimise'] is not None:
+				labels.append('{}'.format(ii))
+				value = self.compartment[ii]['value']
+				lower_bound = self.compartment[ii]['optimise']['lower']
+				upper_bound = self.compartment[ii]['optimise']['upper']
+				free_parameters.append(value)
+				constraints.append([lower_bound,upper_bound])
+
+		for ii in self.interactions:
+			#function
+			for item in self.interactions[ii]:
+				#parameters
+				if item['optimise'] is not None:
+					for jj,elements in enumerate(item['optimise']):
+						labels.append('{},fkt: {} #{}'.format(
+							ii,item['fkt'],elements['parameter_no']))
+						value = item['parameters'][jj]
+						lower_bound = elements['lower']
+						upper_bound = elements['upper']
+
+						free_parameters.append(value)
+						constraints.append([lower_bound,upper_bound])
+			
+		free_parameters = np.array(free_parameters)
+		constraints = np.array(constraints)
+
+		return free_parameters, constraints, labels
+
+
+	def update_system_with_parameters(self, parameters):
+		values = list(parameters)
+		
+		for ii in self.compartment:
+			if self.compartment[ii]['optimise'] is not None:
+				self.compartment[ii]['value'] = values.pop(0)
+	
+		for ii in self.interactions:
+			#function
+			for item in self.interactions[ii]:
+				#parameters
+				if item['optimise'] is not None:
+					for element in item['optimise']:
+							item['parameters'][element['parameter_no']-1] = \
+								values.pop(0)
+
+
+	# Fetching
+	# they retrieve some information from the model and output them in a certain
+	# form. They mostly look through dicts to extract a subset of them
+	
+	def fetch_constraints(self):
+		# placeholder for constraints generator
+		return None
 
 
 	def fetch_index_of_interaction(self):
@@ -160,129 +232,6 @@ class model_class:
 		self.configuration['idx_sinks'] = idx_sinks
 
 
-	def to_log(self,parameters,cost=None):
-		#current monte sample
-		idx = self.log['iter_idx']
-		self.log['parameters'][idx] = parameters
-		self.log['cost'][idx] = cost
-		self.log['iter_idx'] += 1
-	
-
-	def from_ode(self,ode_states):
-		""" updates self with the results provided by the ode solver """
-		for ii, item in enumerate(self.compartment):
-			self.compartment[item]['value'] = ode_states[ii]
-
-
-	def to_ode(self):
-		""" fetches the parameters necessary for the ode solver 
- 	       Returns: ode_state,ode_coeff_model,ode_coeff """
-		ode_state = np.array([self.compartment[ii]['value'] for ii in self.compartment])
-		ode_coeff_model = interaction_model_generator
-		ode_coeff = ode_coeff_model(self)
-		
-		return ode_state,ode_coeff_model, ode_coeff
-
-
-	def to_grad_method(self):
-		""" fetches the parameters necessary for the gradient descent method
- 	       Returns: free_parameters, constraints """
-		
-		free_parameters = []
-		constraints = []
-		labels = []
-		for ii in self.compartment:
-			if self.compartment[ii]['optimise'] is not None:
-				labels.append('{}'.format(ii))
-				value = self.compartment[ii]['value']
-				lower_bound = self.compartment[ii]['optimise']['lower']
-				upper_bound = self.compartment[ii]['optimise']['upper']
-				free_parameters.append(value)
-				constraints.append([lower_bound,upper_bound])
-
-		for ii in self.interactions:
-			#function
-			for item in self.interactions[ii]:
-				#parameters
-				if item['optimise'] is not None:
-					for jj,elements in enumerate(item['optimise']):
-						labels.append('{},fkt: {} #{}'.format(
-							ii,item['fkt'],elements['parameter_no']))
-						value = item['parameters'][jj]
-						lower_bound = elements['lower']
-						upper_bound = elements['upper']
-
-						free_parameters.append(value)
-						constraints.append([lower_bound,upper_bound])
-			
-		free_parameters = np.array(free_parameters)
-		constraints = np.array(constraints)
-
-		return free_parameters, constraints, labels
-
-
-	def refresh_to_initial(self):
-		self.compartment = deepcopy(self.init_sys_config['compartment'])
-
-
-	def create_empty_interaction_matrix(self):
-		""" initializes an returns empty interaction matrix """
-		size = len(self.compartment)
-		alpha = np.zeros((size,size))
-		return alpha
-
-
-	def update_system_with_parameters(self, parameters):
-		values = list(parameters)
-		
-		for ii in self.compartment:
-			if self.compartment[ii]['optimise'] is not None:
-				self.compartment[ii]['value'] = values.pop(0)
-	
-		for ii in self.interactions:
-			#function
-			for item in self.interactions[ii]:
-				#parameters
-				if item['optimise'] is not None:
-					for element in item['optimise']:
-							item['parameters'][element['parameter_no']-1] = \
-								values.pop(0)
-
-	
-	def calc_prediction(self):
-		ode_states,ode_coeff_model, ode_coeff = self.to_ode()
-		fit_model = globals()[self.configuration['fit_model']]
-		
-		model_log, prediction,is_stable = fit_model(self,
-			globals()[self.configuration['integration_scheme']], 
-			self.configuration['time_evo_max'],
-			self.configuration['dt_time_evo'],
-			self.configuration['idx_sources'],
-			self.configuration['idx_sinks'],
-			ode_states,
-			ode_coeff,	
-			ode_coeff_model,
-			float(self.configuration['stability_rel_tolerance']),
-			self.configuration['tail_length_stability_check'],
-			self.configuration['start_stability_check'])
-		
-		return model_log, prediction, is_stable
-	
-	
-	def calc_cost(self, parameters, barrier_slope):
-
-		self.refresh_to_initial()
-		self.update_system_with_parameters(parameters)	
-		constrains = self.to_grad_method()[1]		
-		model_log, prediction, is_stable = self.calc_prediction()
-		cost = worker.cost_function(
-			prediction,self.configuration['fit_target'])
-		cost += worker.barrier_function(
-			parameters,constrains,barrier_slope)
-
-		return model_log, prediction, cost, is_stable
-
-	
 	def fetch_index_of_compartment(self,parameters):
 		# add something to make sure all stanges to parameters stay internal
 		compartments = list(self.compartment)
