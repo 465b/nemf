@@ -18,6 +18,12 @@ For simplicity, the current version of the framework is limited to non-spatially
    :maxdepth: 2
    :caption: Contents:
 
+   README_concept.md
+   README_YAML.md
+   README_interaction_functions.md
+   README_reference_data.md
+   releases.md
+   modules.rst
 
 
 Indices and tables
