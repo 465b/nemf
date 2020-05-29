@@ -1,5 +1,7 @@
 import numpy as np
 import yaml
+import sys
+import os
 
 # ode solver
 from scipy.integrate import solve_ivp 
@@ -24,6 +26,28 @@ def read_coeff_yaml(path):
 def import_fit_data(path):
 	# add switches for file type parser
 	return np.genfromtxt(path)
+
+
+def import_constraints(path):
+	""" import constraints from a python file 
+	
+	The file at the end of path needs to contain a variable named
+	constraints that contains the constraints.
+	
+	Parameters
+	----------
+	
+	path : string
+		path to file.py containing the constraints definition"""
+
+	path = os.path.abspath(path)
+	sys.path.insert(0,path)
+	file_name = os.path.basename(path)
+	# strip extension
+	file_name = file_name[:-3]
+	module = __import__(file_name)
+	return module.constraints
+
 
 
 # Parsers

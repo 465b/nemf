@@ -25,8 +25,8 @@ class model_class:
 			self.fetch_index_of_source_and_sink()
 		if ('alternative_interaction_functions' in self.configuration):
 			self.init_alternative_interaction_names()
-		#if 'constraints_path' in self.configuration:
-		#	worker.load_constraints(self.configuration['constraints_path'])
+		if 'constraints_path' in self.configuration:
+			self.load_constraints(self.configuration['constraints_path'])
 
 
 	def load_reference_data(self,fit_data_path):
@@ -44,6 +44,11 @@ class model_class:
 		else:
 			print('No reference data has been provided')
 			return None
+
+
+	def load_constraints(self,path):
+		self.configuration['constraints'] = \
+			worker.import_constraints(path)
 
 
 	def sanity_check_input(self):
@@ -199,7 +204,10 @@ class model_class:
 	
 	def fetch_constraints(self):
 		# placeholder for constraints generator
-		return None
+		if 'constraints' in self.configuration:
+			return self.configuration['constraints']
+		else:
+			return None
 
 
 	def fetch_index_of_interaction(self):
