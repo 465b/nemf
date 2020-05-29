@@ -364,3 +364,19 @@ class model_class:
 			return np.sum(y,axis=1)
 	
 		return differential_equation
+
+
+def import_interaction_functions(func):
+	""" Adds the functions from 'func' to the globals in models 
+
+	func : list
+		List containing the functions that will be added to globals
+
+	"""
+	for item in func:
+		name = item.__name__
+		if name in globals():
+			print(f'Warning! A function with the same name as interaction ' 
+				+ 'function {name} is already known in globals!\n'
+				+ 'Function will be overwritten!')
+		globals()[name] = item
