@@ -23,6 +23,8 @@ class model_class:
 		self.reference_data = self.load_reference_data(fit_data_path)
 		if ('sinks' in self.configuration) and ('sources' in self.configuration):
 			self.fetch_index_of_source_and_sink()
+		if ('alternative_interaction_functions' in self.configuration):
+			self.init_alternative_interaction_names()
 		#if 'constraints_path' in self.configuration:
 		#	worker.load_constraints(self.configuration['constraints_path'])
 
@@ -82,6 +84,14 @@ class model_class:
 		required_elements = ['time_evo_max']
 		for element in required_elements:
 			worker.assert_if_exists_non_empty(element,unit['configuration'])
+
+
+	def init_alternative_interaction_names(self):
+		""" add renamed copies defined in the yaml config to globals() """
+		alt_names = self.configuration['alternative_interaction_names']
+		for new_func in list(alt_names):
+			orig_func = globals()[alt_names[new_func]]
+			globals()[new_func] = orig_func
 
 
 	def initialize_log(self,maxiter):
