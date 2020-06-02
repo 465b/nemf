@@ -82,7 +82,6 @@ class model_class:
 					name + "interaction {} is empty".format(item)
 				worker.assert_if_exists_non_empty('fkt',edge,item,)
 				worker.assert_if_exists('parameters',edge,item)
-				worker.assert_if_exists('optimise',edge,item)
 
 		# checks if configuration is well defined
 		worker.assert_if_exists_non_empty('configuration', unit)
@@ -164,16 +163,17 @@ class model_class:
 			#function
 			for item in self.interactions[ii]:
 				#parameters
-				if item['optimise'] is not None:
-					for jj,elements in enumerate(item['optimise']):
-						labels.append('{},fkt: {} #{}'.format(
-							ii,item['fkt'],elements['parameter_no']))
-						value = item['parameters'][jj]
-						lower_bound = elements['lower']
-						upper_bound = elements['upper']
+				if 'optimise' in item:
+					if item['optimise'] is not None:
+						for jj,elements in enumerate(item['optimise']):
+							labels.append('{},fkt: {} #{}'.format(
+								ii,item['fkt'],elements['parameter_no']))
+							value = item['parameters'][jj]
+							lower_bound = elements['lower']
+							upper_bound = elements['upper']
 
-						free_parameters.append(value)
-						constraints.append([lower_bound,upper_bound])
+							free_parameters.append(value)
+							constraints.append([lower_bound,upper_bound])
 			
 		free_parameters = np.array(free_parameters)
 		constraints = np.array(constraints)
@@ -192,8 +192,9 @@ class model_class:
 			#function
 			for item in self.interactions[ii]:
 				#parameters
-				if item['optimise'] is not None:
-					for element in item['optimise']:
+				if 'optmise' in item:
+					if item['optimise'] is not None:
+						for element in item['optimise']:
 							item['parameters'][element['parameter_no']-1] = \
 								values.pop(0)
 
@@ -284,21 +285,23 @@ class model_class:
 		
 		for ii,interaction in enumerate(self.interactions):
 			for jj,function in enumerate(self.interactions[interaction]):
-				
-				if function['optimise'] is not None:
-					for kk,parameter in enumerate(function['optimise']):
-						labels.append('{},fkt: {} #{}'.format(
-							interaction,function['fkt'],
-							parameter['parameter_no']))
-						
-						current_idx_args = [ii,jj,parameter['parameter_no']-1]
-						current_val_args = self.fetch_arg_by_idx(current_idx_args)				
-						lower_bound = parameter['lower']
-						upper_bound = parameter['upper']
-						
-						idx_args.append(current_idx_args)
-						val_args.append(current_val_args)
-						bnd_args.append( (lower_bound,upper_bound) )
+				if 'optimise' in function:
+					if function['optimise'] is not None:
+						for kk,parameter in enumerate(function['optimise']):
+							labels.append('{},fkt: {} #{}'.format(
+								interaction,function['fkt'],
+								parameter['parameter_no']))
+							
+							current_idx_args = \
+								[ii,jj,parameter['parameter_no']-1]
+							current_val_args = \
+								self.fetch_arg_by_idx(current_idx_args)				
+							lower_bound = parameter['lower']
+							upper_bound = parameter['upper']
+							
+							idx_args.append(current_idx_args)
+							val_args.append(current_val_args)
+							bnd_args.append( (lower_bound,upper_bound) )
 
 
 		fit_indices = [idx_state,idx_args]
