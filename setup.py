@@ -7,7 +7,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name="gemf",
-    version="0.3.0",
+    version="0.3.1",
     packages=find_packages(),
 
     # install_requires=[""],
@@ -30,5 +30,5 @@ setup(
     ],
     license='BSD',
     install_requires=[
-        'numpy','seaborn','matplotlib','networkx','pyyaml']
+        'numpy','seaborn','matplotlib','networkx','pyyaml', 'termcolor']
 )

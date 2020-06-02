@@ -1,13 +1,14 @@
 import numpy as np
-from scipy.integrate import solve_ivp 
-import logging
 import yaml
+import sys
+import os
+
+# ode solver
+from scipy.integrate import solve_ivp 
+# to avoid overwriting of class objects
 from copy import deepcopy
+# for debugging output
 from termcolor import colored, cprint
-
-from gemf import models
-
-logging.basicConfig(filename='carbonflux_inverse_model.log',level=logging.DEBUG)
 
 
 # Data reading
@@ -27,25 +28,58 @@ def import_fit_data(path):
 	return np.genfromtxt(path)
 
 
+def import_constraints(path):
+	""" Import constraints from a python file 
+	
+	The file at the end of path needs to contain a variable named
+	constraints that contains the constraints.
+	
+	Parameters
+	----------
+	
+	path : string
+		path to file.py containing the constraints definition
+		
+	Returns
+	-------
+
+	constraints : list or scipy constraints type 
+		containts all contraints that shall be used in the model
+	"""
+
+	path = os.path.abspath(path)
+	sys.path.insert(0,path)
+	file_name = os.path.basename(path)
+	# strip extension
+	file_name = file_name[:-3]
+	module = __import__(file_name)
+	constraints = module.constraints
+
+	return constraints
+
+
+
 # Parsers
 
 def initialize_ode_system(path_config):
 	""" Initializes the dictionary containing the 'state' and 'interactions'
 
-		Parameters:
-		-----------
-		path_config : string
-			Path to the yaml file containing the ode model configuration.
-			The configuration contains the compartments, initial values
-			and optimization constrains - as well as - interactions paths, 
-			interaction directions (sign),interaction functions,
-			initial parameter values and optimization constrains.
+	Parameters
+	----------
+	path_config : string
+		Path to the yaml file containing the ode model configuration.
+		The configuration contains the compartments, initial values
+		and optimization constrains - as well as - interactions paths, 
+		interaction directions (sign),interaction functions,
+		initial parameter values and optimization constrains.
 
-		Returns:
-		--------
-		ode_system_configuration : dict
-			Contains the state and interaction configuration
-			in a similar structure as provided by the yaml files."""
+	Returns
+	-------
+	ode_system_configuration : dict
+		Contains the state and interaction configuration
+		in a similar structure as provided by the yaml files.
+		
+	"""
 
 	system_config = read_coeff_yaml(path_config)
 
@@ -77,251 +111,6 @@ def cost_function(prediction,y):
 
 	cost = (1/len(y))*np.sum( (prediction - y)**2 )
 	return cost
-
-
-def barrier_function(free_param,constrains=np.array([None]),barrier_slope=1):
-	""" Constructs the additional cost that is added closer to constrains.
-		This is helpfull to keep the optimization process from trying to 
-		exceed the search space. However, also distorts the optimal output
-		slightly.
-
-		Parameters
-		----------
-		free_param : numpy.array
-			1D-array of length n containing the current set of optimized free
-			paratmers
-		constrains : numpy.array
-			2D-array of shape (n,2) containing the constraints limits
-		barrier_slope : positive-float
-			Defines the slope of the barrier used for the soft constrain.
-
-		Returns
-		-------
-		cost_barrier : float
-			additional cost created from beeing close to a constraints
-			barrier. """
-
-	# checks if contains are defined. else sets them to +/- inf
-	if (constrains == None).all():
-		constrains = np.zeros((len(free_param),2))
-		constrains[:,0] = -np.inf
-		constrains[:,1] = +np.inf
-
-	# checks if constrains has the correct length
-	if len(constrains) != len(free_param):
-		raise ValueError('List of constrains must have'+
-						 'the same length as free_param ({},{})'.format(
-							 len(constrains),(len(free_param))))
-
-	# checks if barrier_slope is positive
-	if barrier_slope <= 0:
-		raise ValueError('barrier_slope must be a positive value.')
-
-	# initializes arrays containing the additional cost
-	cost_barrier_left = np.zeros(len(free_param))
-	cost_barrier_right = np.zeros(len(free_param))
-	cost_barrier = np.zeros(len(free_param))
-	
-	# calculates the additional cost
-	""" note that we always apply the cost of both sides.
-		We assume that if one of them is non-negligible,
-		the other one is """
-	for ii,[left,right] in enumerate(constrains):
-		#left constrain
-		if (left == -np.inf):
-			cost_barrier_left[ii] = 0
-		else:
-			cost_barrier_left[ii] = -np.log(free_param[ii]-left)
-
-		# right constrain
-		if (right == np.inf):
-			cost_barrier_right[ii] = 0
-		else:
-			cost_barrier_right[ii] = -np.log(-free_param[ii]+right)
-
-	cost_barrier = cost_barrier_left + cost_barrier_right
-	cost_barrier = np.sum(cost_barrier)*barrier_slope
-	
-	return cost_barrier
-
-
-def barrier_hard_enforcement(free_param,constrains=None,
-							 pert_scale=1e-2,seed=137):
-	""" if outside the search space we enforce a 'in-constrain'
-		search space by ignoring the recommended step and
-		moving it back into the search space
-
-	Parameters
-	----------
-	free_param : numpy.array
-		1D-array containing the set of optimized free parameter.
-	jj : positive integer
-		Index of the iteration step in which the function is called.
-		This is logged for debugging purposes.
-	constrains : numpy.array
-		2D-array containing the upper and lower limit of every free input
-		parameter in the shape (len(free_param),2)
-	pert_scale : positive float
-		Maximal value which the system can be perturbed if necessary
-		(i.e. if instability is found). Actual perturbation ranges
-		from [0-pert_scale) uniformly distributed.
-	seed : positive integer
-		Initializes the random number generator. Used to recreate the
-		same set of pseudo-random numbers. Helpfull when debugging.
-	
-	Returns
-	-------
-	free_param : numpy.array
-		1D-array containing the set of optimized free parameter.
-		Now, guaranteed to be inside of the search space.
-	"""
-
-	# initializes constrains from plus to minus inf if not provied
-	if (constrains == None).all():
-		constrains = np.zeros((len(free_param),2))
-		constrains[:,0] = -np.inf
-		constrains[:,1] = +np.inf
-
-	# tests if constrains is provided for all free_parameters
-	if len(constrains) != len(free_param):
-		raise ValueError('List of constrains must have'+
-						 'the same length as free_param')
-
-	# applies the actual enforcement
-	for ii,[left,right] in enumerate(constrains):
-		""" we add a small perturbation to avoid 
-			that the we remain on the boarder """
-		if (free_param[ii] <= left):
-			buffer = left + np.random.rand()*pert_scale
-			warn_string = ( 'Left  barrier enforcement'+
-							'Value shifted from {:+8.2E} to {:+8.2E}'.format(
-								free_param[ii],buffer))
-			logging.debug(warn_string)
-			free_param[ii] = buffer
-
-		if (free_param[ii] >= right):
-			buffer = right - np.random.rand()*pert_scale
-			warn_string = ( 'Right barrier enforcement'+
-							'Value shifted from {:+8.2E} to {:+8.2E}'.format(
-								free_param[ii],buffer))
-			logging.debug(warn_string)
-			free_param[ii] = buffer
-			
-	return free_param
-
-
-# Time Evolution
-
-## Stability
-
-def convergence_event_constructor(model,threshold=1e-6,):
-	epsilon = threshold
-	differential_equation = model.de_constructor()
-
-	def convergence(t,y,*args):
-		derivative = differential_equation(t,y,*args)
-
-		if (sum(abs(derivative)) < epsilon) and (t != 0):
-			print('Convergence reached')
-			return 0
-		else:
-			return 1
-
-	return convergence
-
-
-def check_convergence(prediction, stability_rel_tolerance=1e-6,
-									tail_length=10):
-	""" checks if the current solution is stable by 
-		comparing the relative fluctuations in the 
-		last tail_length model outputs to a stability_rel_tolerance value
-		returns true if all values are below that threshold.
-		
-	Parameters
-	----------
-	prediction : numpy.array
-		1D-array containing the output of the time evolution for every time
-		integration step.
-	stability_rel_tolerance : positive float
-		Defines the maximal allowed relative fluctuation range in the tail
-		of the time evolution. If below, system is called stable.
-	tail_length_stability_check : positive integer
-		Defines the length of the tail used for the stability calculation.
-		Tail means the amount of elements counted from the back of the
-		array.
-	
-	Returns
-	-------
-	is_stable : bool
-		true if stability conditions are met
-	"""
-
-	# gets relevant data slice    
-	prediction_tail = prediction[-tail_length-1:-1]
-
-	# computes local average and spread
-	average = np.average(prediction_tail,axis=0)
-	spread = np.max(prediction_tail,axis=0) -np.min(prediction_tail,axis=0)
-	
-	# compares spread to the provided conditions 
-	rel_spread = spread/average
-	rel_condition = (rel_spread <= float(stability_rel_tolerance)).all() 
-	# also evaluates positive if the spread is smaller in absolute values
-	# then the provided conditions. This avoid instability due to float
-	# rounding errors
-	abs_condition = (spread <= float(stability_rel_tolerance)).all()
-	
-	is_stable = rel_condition or abs_condition
-	
-	return is_stable
-
-
-# Helper Functions
-
-## General Helper Function
-
-def division_scalar_vector_w_zeros(a,b):
-	""" Divides an an array (a/b) while catching divisions by zero
-		and sets them to zero """
-	free_param = np.divide(a, b, out=np.zeros_like(b), where=b!=0)
-	
-	return free_param
-
-
-## PDE-weights related Helper Functions
-def normalize_columns(A):
-	""" Enforces that all columns of A are normalized to 1.
-		Otherwise an carbon mass transport amplification would occur.
-		Does so by perserving the ratios between the values in a single column. 
-	
-	Parameters:
-	-----------
-	A : numpy.array
-		can be any square-matrix containing scalars.
-	
-	Returns:
-	--------
-	A : numpy.array
-		normalized version of the input """
-	
-	overshoot = np.sum(A,axis=0)    
-	for ii,truth_val in enumerate(abs(overshoot) > 1e-16):
-		if truth_val : 
-			diag_val = A[ii,ii]
-			if diag_val == overshoot[ii]:
-				# only the diagonal entry is filled
-				# hence, its the dump.
-				pass
-			elif (diag_val == 0): 
-				overshoot[ii] -= 1
-				if (abs(overshoot[ii]) > 1e-16):
-					A[:,ii] -= A[:,ii]/(overshoot[ii]+1)*overshoot[ii]
-					A[ii,ii] = diag_val
-			else:
-				A[:,ii] -= A[:,ii]/(overshoot[ii]-diag_val)*overshoot[ii]
-				A[ii,ii] = diag_val
-
-	return A
 
 
 ## Gradient Decent related Helper Functions
@@ -470,19 +259,21 @@ def read_coeff_constrains(path):
 
 
 def monte_carlo_sample_generator(constrains):
-	""" Constructs a set of homogenously distributed random values 
-		in the value range provided by 'constrains'.
-		Returns an array of the length of 'constrains' 
-		Caution: Samples the FULL float search space if an inf value is provided! 
+	""" Creates randomly distributed samples inside the constraints
+
+	Constructs a set of homogenously distributed random values 
+	in the value range provided by 'constrains'.
+	Returns an array of the length of 'constrains' 
+	Caution: Samples the FULL float search space if an inf value is provided! 
 		
-	Parameter:
+	Parameters
 	----------
 	constrains : numpy.array
 		2D-array containing the upper and lower limit of every free input
 		parameter in the shape (len(free_param),2).
 		
-	Returns:
-	--------
+	Returns
+	-------
 	sample_set : numpy.array 
 		1D-array containing a random vector in the range of constrains """
 
@@ -494,3 +285,21 @@ def monte_carlo_sample_generator(constrains):
 	sample_set = constrains_width*np.random.rand(len(constrains))+constrains[:,0]
 
 	return sample_set
+
+
+# checks to test if element in dict is defined
+
+def assert_if_exists(unit,container,item='',reference='',
+								name="Model configuration "):
+	assert (unit in container), \
+		name + reference + " {} lacks definition of {}".format(item,unit)
+
+def assert_if_non_empty(unit,container,item='',reference='',
+								name="Model configuration "):
+	assert (container[unit] != None), \
+		name + reference + " {} {} is empty".format(item,unit)
+
+def assert_if_exists_non_empty(unit,container,item='',reference='',
+								name="Model configuration "):
+	assert_if_exists(unit,container,item,reference=reference,name=name)
+	assert_if_non_empty(unit,container,item,reference=reference,name=name)
