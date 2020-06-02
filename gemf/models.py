@@ -23,7 +23,7 @@ class model_class:
 		self.reference_data = self.load_reference_data(fit_data_path)
 		if ('sinks' in self.configuration) and ('sources' in self.configuration):
 			self.fetch_index_of_source_and_sink()
-		if ('alternative_interaction_functions' in self.configuration):
+		if ('alternative_interaction_names' in self.configuration):
 			self.init_alternative_interaction_names()
 		if 'constraints_path' in self.configuration:
 			self.load_constraints(self.configuration['constraints_path'])
