@@ -19,6 +19,8 @@ gemf.output_summary(output_dict)
 
 
 # if the model shall be fitted as well call:
-output_dict = gemf.inverse_model(model_config)
+model = gemf.inverse_model(model_config)
 # to plot the results:
-gemf.output_summary(output_dict)
+gemf.output_summary(model)
+# writes optimized  model to file
+model.export_to_yaml(path='optimized_model.yml')

@@ -3,6 +3,7 @@ from gemf import caller
 from gemf import worker
 from gemf.interaction_functions import *
 from copy import deepcopy
+import yaml
 
 
 # Model_Classes 
@@ -79,6 +80,45 @@ class model_class:
 
 		self.configuration['constraints'] = \
 			worker.import_constraints(path)
+
+
+	## Export 
+
+	def export_to_yaml(self,path='current_model.yml'):
+		""" Writes model compartments and interaction configuration to yaml-file 
+		
+		Parameters
+		----------
+		
+		path : string (optional)
+			Path to output file. Writes into 'current_model.yml if no path is 
+			given.
+			
+		"""
+
+		# reduces the model to the minimum
+		export_model = {}
+		export_model['compartment'] = deepcopy(self.compartment)
+		export_model['interactions'] = deepcopy(self.interactions)
+		
+		# transforms numpy objects to regular python types.
+		# this is necessary as the numpy object are dumped with all the extra
+		# unnecessary class information.
+		compart = export_model['compartment']
+		for item in compart:
+			compart[item]['value'] = float(compart[item]['value'])
+		inter = export_model['interactions']
+		for item in list(inter):
+			for ii,fkt in enumerate(list(inter[item])):
+				for jj,val in enumerate(fkt['parameters']):
+					if type(val) != int:
+						inter[item][ii]['parameters'][jj] = float(val)
+						
+		# writes dict to file
+		with open(path, 'w') as yaml_file:
+		    dump = yaml.dump(export_model,
+			default_flow_style = False,sort_keys=False)
+		    yaml_file.write(dump)
 
 
 	def sanity_check_input(self):
