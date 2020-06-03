@@ -87,5 +87,55 @@ However, to keep the models simple and avoid further confusion in the choice of 
 An example of such a shared unit might be carbon mass in kg, in contrast to a wet weight of a certain species. 
 
 
+## Renaming or providing user-defined interaction functions 
 
+Even a simple model can contain many different interactions. 
+However, often many of those interaction share the same underlying behavior.
+I.e. a natural mortality might scale linearly with the total population just as
+a exudation process might scale linearly as well.
+For model simplicity we recommend using the same function to represent these 
+interactions. Nevertheless, it might be helpful to distinguish the processes 
+with different names. This is especially helpful when drawing a larger model as
+ a network, as it helps to identify the actual processes one wants to describe.
 
+For this reason, the model allows to rename existing interaction functions 
+easily by the user.
+This can be achieved by two different ways:
+
+* The first option is to define a list of the alternative names in the yaml
+  configuration file. An example of this might look like:
+  
+  ``` yaml
+  configuration:
+    [...]
+    alternative_interaction_names:
+      'alternative_name_one': 'existing_function'
+      'alternative_name_two': 'existing_function'
+  ```
+
+* The second option is to define them in the python script that is executed to run
+  the model.
+  In that case the newly written or renamed functions
+  need to be past to the function *import_interaction_functions([func1,func2,...])*
+  
+  To give an example:
+  * In the case of renaming a existing function
+    ``` python
+    import gemf
+    alternative_name_one = existing_function
+    alternative_name_two = existing_function
+    
+    gemf.model.import_interaction_functions([alternative_name_one,alternative_name_two])
+    ```
+
+  * When a new interaction function is written, it has to use the same signature
+    as the existing ones. See [interaction functions code documentation](https://general-ecosystem-modeling-framework.readthedocs.io/en/latest/gemf.html#module-gemf.interaction_functions)
+    
+    Currently something like this would be expected:
+    ```python
+    def new_function(X, ii, jj, args):
+        [...] # calculates the changes per time step
+        return df
+    
+    import gemf
+    gemf.model.import_interaction_functions([new_function])

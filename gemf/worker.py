@@ -29,7 +29,7 @@ def import_fit_data(path):
 
 
 def import_constraints(path):
-	""" import constraints from a python file 
+	""" Import constraints from a python file 
 	
 	The file at the end of path needs to contain a variable named
 	constraints that contains the constraints.
@@ -38,7 +38,14 @@ def import_constraints(path):
 	----------
 	
 	path : string
-		path to file.py containing the constraints definition"""
+		path to file.py containing the constraints definition
+		
+	Returns
+	-------
+
+	constraints : list or scipy constraints type 
+		containts all contraints that shall be used in the model
+	"""
 
 	path = os.path.abspath(path)
 	sys.path.insert(0,path)
@@ -46,7 +53,9 @@ def import_constraints(path):
 	# strip extension
 	file_name = file_name[:-3]
 	module = __import__(file_name)
-	return module.constraints
+	constraints = module.constraints
+
+	return constraints
 
 
 

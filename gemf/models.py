@@ -23,13 +23,34 @@ class model_class:
 		self.reference_data = self.load_reference_data(fit_data_path)
 		if ('sinks' in self.configuration) and ('sources' in self.configuration):
 			self.fetch_index_of_source_and_sink()
-		if ('alternative_interaction_functions' in self.configuration):
+		if ('alternative_interaction_names' in self.configuration):
 			self.init_alternative_interaction_names()
 		if 'constraints_path' in self.configuration:
 			self.load_constraints(self.configuration['constraints_path'])
 
 
-	def load_reference_data(self,fit_data_path):
+	def load_reference_data(self,fit_data_path=None):
+		""" Loads reference data used in model optimization from file 
+
+		Either, the path to the reference data is provided in the yaml 
+		configuration file or passed to this function.
+		Latter overwrites the path in the configuration file.
+
+		Parameters
+		----------
+
+		fit_data_path : string (optional)
+			path to the file containing the reference data
+
+		Returns
+		-------
+
+		reference_data : np.array or None
+			if reference data was found returns it in a numpy array or if not
+			or no path provided returns None
+
+		"""
+
 		if fit_data_path != None:
 			reference_data = worker.import_fit_data(fit_data_path)
 			if len(np.shape(reference_data)) == 1:
@@ -47,6 +68,15 @@ class model_class:
 
 
 	def load_constraints(self,path):
+		""" Loads constraints from python file 
+		
+		Parameters
+		----------
+		path : string
+			path to python file
+			
+		"""
+
 		self.configuration['constraints'] = \
 			worker.import_constraints(path)
 
