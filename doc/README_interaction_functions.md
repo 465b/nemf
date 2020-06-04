@@ -129,7 +129,7 @@ This can be achieved by two different ways:
     ```
 
   * When a new interaction function is written, it has to use the same signature
-    as the existing ones. See [interaction functions code documentation](https://general-ecosystem-modeling-framework.readthedocs.io/en/latest/nemf.html#module-nemf.interaction_functions)
+    as the existing ones. See [interaction functions code documentation](https://nemf.readthedocs.io/en/latest/nemf.html#module-nemf.interaction_functions)
     
     Currently something like this would be expected:
     ```python
