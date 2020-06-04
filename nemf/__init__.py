@@ -1,12 +1,31 @@
 
-""" Main package for NEMF the network-based ecosystem modelling framework """
+# Main package for NEMF the network-based ecosystem modelling framework 
 
 import nemf.caller
 import nemf.models
 import nemf.plot
 
 from nemf.models import model_class as model_class
-from nemf.models import model_class as load_model_configuration
+
+def load_model(path):
+	""" Loads a model by reading its model configuration from from file
+
+	Parameters
+	----------
+	
+	path : string
+		path to yaml file containing the model
+
+	Returns
+	-------
+
+	model : nemf_model class
+		class objects that contains the model
+	
+	"""
+
+	return model_class(path)
+
 
 from nemf.caller import forward_model as forward_model 
 from nemf.caller import inverse_model as inverse_model
