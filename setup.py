@@ -6,7 +6,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     readme_as_long_description = f.read()
 
 setup(
-    name="gemf",
+    name="nemf",
     version="0.3.1",
     packages=find_packages(),
 
@@ -15,7 +15,7 @@ setup(
     # metadata to display on PyPI
     author="Laurin Steidle",
     author_email="laurin.steidle@uni-hamburg.de",
-    description="General Ecosystem Modelling Framework",
+    description="Network-based ecosystem Modelling Framework",
     long_description=readme_as_long_description,
     long_description_content_type="text/markdown",
     keywords="ecosystem modelling framework inverse-modelling",

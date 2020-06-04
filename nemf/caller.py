@@ -2,9 +2,9 @@ import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.optimize import minimize
 
-from gemf import worker
-from gemf import models
-from gemf import decorators
+from nemf import worker
+from nemf import models
+from nemf import decorators
 
 #import logging
 import warnings

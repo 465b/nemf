@@ -1,12 +1,12 @@
-.. gemf documentation master file, created by
+.. nemf documentation master file, created by
    sphinx-quickstart on Tue May 26 14:51:46 2020.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-General Ecosystem Modeling Framework (GEMF)
+Network-based ecosystem Modeling Framework (NEMF)
 ===========================================
 
-GEMF is a ecosystem modelling framework written in python.
+NEMF is a ecosystem modelling framework written in python.
 It is designed to offer an easy to use method for modelling ecosystems with low- to intermediate complexity.  
 The framework offers the functionality to handle non-equilibrium, non-linear interactions.
 For the typical use-cases, user do need to write any code but only provide a model configuration.

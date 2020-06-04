@@ -1,39 +1,39 @@
-gemf.caller module
+nemf.caller module
 ------------------
 
-.. automodule:: gemf.caller
+.. automodule:: nemf.caller
    :members:
    :undoc-members:
    :show-inheritance:
 
-gemf.interaction\_functions module
+nemf.interaction\_functions module
 ----------------------------------
 
-.. automodule:: gemf.interaction_functions
+.. automodule:: nemf.interaction_functions
    :members:
    :undoc-members:
    :show-inheritance:
 
-gemf.models module
+nemf.models module
 ------------------
 
-.. automodule:: gemf.models
+.. automodule:: nemf.models
    :members:
    :undoc-members:
    :show-inheritance:
 
-gemf.plot module
+nemf.plot module
 ----------------
 
-.. automodule:: gemf.plot
+.. automodule:: nemf.plot
    :members:
    :undoc-members:
    :show-inheritance:
 
-gemf.worker module
+nemf.worker module
 ------------------
 
-.. automodule:: gemf.worker
+.. automodule:: nemf.worker
    :members:
    :undoc-members:
    :show-inheritance:

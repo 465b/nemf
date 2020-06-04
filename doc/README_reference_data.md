@@ -1,7 +1,7 @@
 # Reference Data
 
 ## Why?
-A major part of the GEMF framework is its capability to inverse model or fit a
+A major part of the NEMF framework is its capability to inverse model or fit a
 designed model output to data.
 These data sets might for example be measurements take in the field.
 They could also be some sort of expected behavior by the modeler.

@@ -1,7 +1,7 @@
 import numpy as np
-from gemf import caller
-from gemf import worker
-from gemf.interaction_functions import *
+from nemf import caller
+from nemf import worker
+from nemf.interaction_functions import *
 from copy import deepcopy
 import yaml
 

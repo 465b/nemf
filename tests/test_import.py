@@ -1,4 +1,4 @@
-import gemf
+import nemf
 import pickle
 
 def test_import(model_minimal_yml,model_minimal_pkl):

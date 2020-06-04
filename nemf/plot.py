@@ -3,7 +3,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import networkx as nx
 import yaml
-import gemf
+import nemf
 from copy import deepcopy
 
 sns.set_style('whitegrid')
@@ -161,7 +161,7 @@ def draw_optimization_overview(model):
             t_ref =  model.reference_data[:,0]
             y_ref =  model.reference_data[:,1:]
             plt.plot(t_ref,y_ref,ls='--',linewidth=2)
-            time_series = gemf.forward_model(model,t_eval=t_ref)
+            time_series = nemf.forward_model(model,t_eval=t_ref)
             time_series_model = time_series.log['time_series']
             ax2 = draw_model_output(ax2, model)
             ax2.title.set_text('optimized model')
@@ -172,7 +172,7 @@ def draw_optimization_overview(model):
             y_ref =  model.reference_data[:,1:]
             plt.hlines(y_ref,t_ref[0],t_ref[-1],ls='--')
             
-            time_series_model = gemf.forward_model(model,t_eval=t_ref)
+            time_series_model = nemf.forward_model(model,t_eval=t_ref)
             ax3 = draw_model_output(ax3, time_series_model)
             ax3.title.set_text('optimized model')
 
@@ -185,7 +185,7 @@ def draw_optimization_overview(model):
             t_ref =  model.reference_data[:,0]
             y_ref =  model.reference_data[:,1:]
             plt.plot(t_ref,y_ref,ls='--',linewidth=2)
-            time_series = gemf.forward_model(model,t_eval=t_ref)
+            time_series = nemf.forward_model(model,t_eval=t_ref)
             time_series_model = time_series.log['time_series']
             ax2 =  draw_model_output(ax2, model)
             ax2.title.set_text('optimized model')
@@ -196,7 +196,7 @@ def draw_optimization_overview(model):
             y_ref =  model.reference_data[:,1:]
             plt.hlines(y_ref,t_ref[0],t_ref[-1],ls='--')
             
-            time_series_model = gemf.forward_model(model,t_eval=t_ref)
+            time_series_model = nemf.forward_model(model,t_eval=t_ref)
             draw_model_output(ax2, time_series_model)
             ax2.title.set_text('optimized model')
 
@@ -241,7 +241,7 @@ def initial_guess(model):
     plt.title('Initial model behavior and reference')
     
     plt.plot(t_ref,y_ref,ls='--',linewidth=2)
-    initial_model = deepcopy(gemf.forward_model(model,t_eval=t_ref))
+    initial_model = deepcopy(nemf.forward_model(model,t_eval=t_ref))
     ax = draw_model_output(ax, initial_model)
     ax.title.set_text('Initial model guess')
 

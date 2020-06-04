@@ -1,7 +1,7 @@
-GEMF Code References
+NEMF Code References
 ====================
 
 .. toctree::
    :maxdepth: 4
 
-   gemf
+   nemf
