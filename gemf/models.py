@@ -262,7 +262,7 @@ class model_class:
 			#function
 			for item in self.interactions[ii]:
 				#parameters
-				if 'optmise' in item:
+				if 'optimise' in item:
 					if item['optimise'] is not None:
 						for element in item['optimise']:
 							item['parameters'][element['parameter_no']-1] = \
