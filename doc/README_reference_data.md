@@ -1,7 +1,7 @@
 # Reference Data
 
 ## Why?
-A major part of the GEMF framework is its capability to inverse model or fit a
+A major part of the NEMF framework is its capability to inverse model or fit a
 designed model output to data.
 These data sets might for example be measurements take in the field.
 They could also be some sort of expected behavior by the modeler.
@@ -59,4 +59,4 @@ This suppress non-steady-states solutions in the model optimization.
 Currently we only implemented parsers for plain text files, like *csv* or *tsv* 
 files. Parsers for i.e. excel files are in development.
 
-An example of such a file can be found in the [GitHub Repository](https://github.com/465b/General-Ecosystem-Modeling-Framework/blob/master/example_files/NPZD_oscillation_on_1990.csv)
+An example of such a file can be found in the [GitHub Repository](https://github.com/465b/nemf/blob/master/example_files/NPZD_oscillation_on_1990.csv)

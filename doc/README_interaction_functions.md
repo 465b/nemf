@@ -121,15 +121,15 @@ This can be achieved by two different ways:
   To give an example:
   * In the case of renaming a existing function
     ``` python
-    import gemf
+    import nemf
     alternative_name_one = existing_function
     alternative_name_two = existing_function
     
-    gemf.model.import_interaction_functions([alternative_name_one,alternative_name_two])
+    nemf.model.import_interaction_functions([alternative_name_one,alternative_name_two])
     ```
 
   * When a new interaction function is written, it has to use the same signature
-    as the existing ones. See [interaction functions code documentation](https://general-ecosystem-modeling-framework.readthedocs.io/en/latest/gemf.html#module-gemf.interaction_functions)
+    as the existing ones. See [interaction functions code documentation](https://nemf.readthedocs.io/en/latest/nemf.html#module-nemf.interaction_functions)
     
     Currently something like this would be expected:
     ```python
@@ -137,5 +137,5 @@ This can be achieved by two different ways:
         [...] # calculates the changes per time step
         return df
     
-    import gemf
-    gemf.model.import_interaction_functions([new_function])
+    import nemf
+    nemf.model.import_interaction_functions([new_function])

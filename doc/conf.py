@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'gemf'
+project = 'nemf'
 copyright = '2020, Laurin Steidle'
 author = 'Laurin Steidle'
 
@@ -68,7 +68,7 @@ html_static_path = ['_static']
  
 # Sphinx error:master file 
 # /home/docs/checkouts/readthedocs.org/user_builds/ ...
-#  ... general-ecosystem-modeling-framework/checkouts/latest/doc/
+#  ... nemf/checkouts/latest/doc/
 #  ... contents.rst not found
 # to fix the error
 

@@ -1,4 +1,4 @@
-import gemf
+import nemf
 import pickle
 
 
@@ -16,37 +16,37 @@ def write_pickle(model,name):
 def model_pickler(model,name):
 	if type(model) == str:
 		path = model
-	model = gemf.model_class(path)
+	model = nemf.model_class(path)
 	write_pickle(model,name)
 
 def forward_pickler(path,name):
 	model = load_model(path)
-	model = gemf.forward_model(model)
+	model = nemf.forward_model(model)
 	write_pickle(model,name)
 	
 	
 def inverse_pickler(path,name,method):
 	model = load_model(path)
-	model = gemf.inverse_model(model,method=method)
+	model = nemf.inverse_model(model,method=method)
 	write_pickle(model,name)
 	
 
 #def pickle_model():
-#	model = gemf.model_class('test_models/minimal_model_example.yml')
+#	model = nemf.model_class('test_models/minimal_model_example.yml')
 #	with open('test_module.pkl','wb') as f:
 #		pickle.dump(model,f)
 #
 #
 #def pickle_forward():
 #	model = load_model_from_pickle()
-#	model = gemf.forward_model(model)
+#	model = nemf.forward_model(model)
 #	with open('forward_out.pkl','wb') as f:
 #		pickle.dump(model,f)
 #
 #
 #def pickle_inverse():
 #	model = load_model_from_pickle()
-#	model = gemf.inverse_model(model,gd_max_iter=3+1,sample_sets=1)
+#	model = nemf.inverse_model(model,gd_max_iter=3+1,sample_sets=1)
 #	with open('inverse_out.pkl','wb') as f:
 #		pickle.dump(model,f)
 
