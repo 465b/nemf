@@ -4,7 +4,7 @@ Manual
 Manual 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    README_concept.md
    README_YAML.md

@@ -30,6 +30,8 @@ author = 'Laurin Steidle'
 extensions = [
 	# For conversion from markdown to html
 	'recommonmark',
+	# For tables in markdown
+	'sphinx_markdown_tables',
 	# For auto generating documentation from docstrings
 	'sphinx.ext.autodoc',
 	# For numpy style docstrings
@@ -56,8 +58,9 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 
-html_theme = 'alabaster'
-#html_theme = 'sphinx_rtd_theme'
+#html_theme = 'alabaster'
+#html_theme = 'classic'
+html_theme = 'sphinx_rtd_theme'
 #import sphinx_bootstrap_theme
 #html_theme = 'bootstrap'
 #html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
@@ -66,6 +69,7 @@ html_theme = 'alabaster'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+html_logo = 'figures/logo.png'
 
 # -- Laurin added this -------------------------------------------------------
  

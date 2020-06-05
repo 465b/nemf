@@ -4,6 +4,7 @@
 import nemf.caller
 import nemf.models
 import nemf.plot
+import nemf.interaction_functions
 
 from nemf.models import model_class as model_class
 
