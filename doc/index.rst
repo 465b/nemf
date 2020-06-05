@@ -10,6 +10,18 @@ NEMF is a ecosystem modelling framework written in python.
 It is designed to offer an easy to use method for modelling ecosystems with 
 low- to intermediate complexity. It consists of three conceptual parts:
 
+|fig1| |fig2| |fig3|
+
+.. |fig1| image:: figures/model_graph_small_square.png
+   :width: 30%
+
+.. |fig2| image:: figures/model_forecast_small_square.png
+   :width: 30%
+
+.. |fig3| image:: figures/model_fit_small_square.png
+   :width: 30%
+
+
 1. *Network-based model description*
 2. *Forward modelling*
 3. *Inverse modelling*  
