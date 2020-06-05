@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Network-based ecosystem Modeling Framework (NEMF)
+Network-based Ecosystem Modeling Framework (NEMF)
 =================================================
 
 NEMF is a ecosystem modelling framework written in python.
@@ -51,6 +51,15 @@ You can browse the :doc:`examples <examples>` to see what you can do with NEMF.
 You can find more detailed description of certain parts of the library in the
 :doc:`Manual <manual>`,
 and detailed description on the code in :doc:`API reference <api>`.
+
+
+To see the code, please visit the `github repository
+<https://github.com/465b/nemf>`_.
+To report a bug, please raise a "issue" in `githubs issue tracker
+<https://github.com/465b/nemf/issues>`_.
+Please feel free to contact laurin.steidle@uni-hamburg.de with general 
+issues (i.e. if the installation fails) with [NEMF] in the subject 
+line.
 
 
 .. toctree::
