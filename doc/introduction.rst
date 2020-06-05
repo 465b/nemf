@@ -242,12 +242,12 @@ Next steps
 ----------
 
 You have a few options for where to go next. You might first want to learn how 
-to :doc:`installation.md<install nemf>`. 
-Once that’s done, you can browse the :doc:`examples.md<examples>` to get a 
+to :doc:`install name<installation>`. 
+Once that’s done, you can browse the :doc:`examples<examples>` to get a 
 broader sense for what kind problems nemf is designed for. 
 Or you can read through the manual for a deeper discussion of the 
 different parts of the library and how they are designed.
 If you want to know specifics of the nemf functions implementations, 
-you could check out the :doc:`API reference<api.rst>`, which documents each 
+you could check out the :doc:`API reference<api>`, which documents each 
 function and its parameters.
 

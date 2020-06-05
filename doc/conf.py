@@ -27,11 +27,11 @@ author = 'Laurin Steidle'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
+
+
 extensions = [
 	# For conversion from markdown to html
 	'recommonmark',
-	# For tables in markdown
-	'sphinx_markdown_tables',
 	# For auto generating documentation from docstrings
 	'sphinx.ext.autodoc',
 	# For numpy style docstrings
