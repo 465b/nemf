@@ -8,15 +8,49 @@ pip install nemf
 ```
 
 ## On Windows:
-Get the latest python version from here.
-For example the 3.8.3 version installer
+
+### Using pip
+If you haven't installed python already,
+get the latest python version from 
+[here](https://www.python.org/downloads/windows/).
 This also installs pythons integrated package manager (pip).  
-Then, the following install command can be used in windows "powershell":
+Then, the following install command can be used in windows *powershell*:
 ``` powershell
 python -m pip install nemf
 ```
 
-* [include conda install]
+### Using Anaconda
+Alternatively, you can use *Anaconda* to manage both the python installation 
+and your python packages.
+
+To do so, download and install Anaconda from their 
+[homepage](https://www.anaconda.com/products/individual)
+
+After Anaconda is installed you can use *Anaconda Prompt* to install the package
+by executing
+``` powershell
+conda install nemf
+```
 
 ## On Mac
-[include mac install]
+If you haven't installed python already,
+get the latest python version from 
+[here](https://www.python.org/downloads/mac-osx/)
+This also installs pythons integrated package manager (pip).  
+Then, the following install command can be used in the *terminal*:
+``` powershell
+python -m pip install nemf
+```
+
+### Using Anaconda
+Alternatively, you can use *Anaconda* to manage both the python installation 
+and your python packages.
+
+To do so, download and install Anaconda from their 
+[homepage](https://www.anaconda.com/products/individual)
+
+After Anaconda is installed you can use *Anaconda Prompt* to install the package
+by executing
+``` powershell
+conda install nemf
+```

@@ -33,11 +33,12 @@ The framework offers the functionality to handle *non-equilibrium*,
 For the typical use-cases, user do need to write any code but only provide a 
 model configuration.
 
-Without needing to change any of the framework code, the range of use-cases can 
-easily be extended with simple 
-:doc:`user-written functions<README_interaction_functions>`.
+The range of use-cases can easily be extended with simple 
+:doc:`user-written functions<README_interaction_functions>` without needing to 
+change any of the framework code.
 NEMF offers an easy to use method to *fit any model parameter* such that the 
 model mimics the studied system.
+
 For simplicity, the current version of the framework is limited to 
 *non-spatially resolved models* (box-models).
 
@@ -48,18 +49,17 @@ A more detailed description can be found in the :doc:`paper <paper>`.
 Visit the :doc:`installation page <installation>` to see how you can download 
 the package. 
 You can browse the :doc:`examples <examples>` to see what you can do with NEMF.
-You can find more detailed description of certain parts of the library in the
-:doc:`Manual <manual>`,
-and detailed description on the code in :doc:`API reference <api>`.
+A more detailed description of the parts the library can be found in the
+:doc:`manual <manual>`,
+while the code is documented in the :doc:`API reference <api>` section.
 
 
 To see the code, please visit the `github repository
 <https://github.com/465b/nemf>`_.
-To report a bug, please raise a "issue" in `githubs issue tracker
+To report a bug, please raise a 'Issue' in `githubs issue tracker
 <https://github.com/465b/nemf/issues>`_.
 Please feel free to contact laurin.steidle@uni-hamburg.de with general 
-issues (i.e. if the installation fails) with [NEMF] in the subject 
-line.
+issues (i.e. if the installation fails).
 
 
 .. toctree::

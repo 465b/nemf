@@ -1,18 +1,25 @@
 An introduction to NEMF
 =======================
 
-The network-based ecosystem modelling framework (NEMF) is a framework
-for general ecosystem modelling problems. It consists of three
-conceptual parts:
+The network-based ecosystem modelling framework (NEMF) is a python software 
+tool to model ecosystems.
+From a modelling perspective, it consists of three conceptual parts:
 
-1. *Network-based model description*
-2. *Forward modelling*
-   (By this we mean, numerically solving the differential equations
-   implicitly defined by the network. Hence, providing forecasts how the
-   model behaves.)
-3. *Inverse modelling*
-   (Meaning the fitting of model forecasts to observational or other
-   reference data.)
+1. **Network-based model description:**  
+   Each model is described by a network. A network consists of two components.
+   Nodes, which describe ecosystem compartments, and edges, which link two 
+   compartments together through some interaction.
+
+2. **Forward modelling:**  
+   A model is defined by a set of differential equations implicitly defined by 
+   the network structure. 
+   Theses differential equations can be solved  numerically for a certain 
+   initial state. 
+   Hence, providing forecasts for how the model behave over time.
+
+3. **Inverse modelling:**   
+   Fitting of model forecast to to observational or other reference data,
+   by varying model parameters.
 
 It aims to keep the configuration complexity minimal for the user such
 that it can be quickly learned and applied for i.e. rapid prototyping of
@@ -22,7 +29,15 @@ can only applied to non-spatially-resolved, also known as box-models.
 Network and Forward
 ~~~~~~~~~~~~~~~~~~~
 
-An example of what we mean by that:
+We will now go over the the first two parts of the model with the help of a 
+simple NPZD type model. 
+NPZD stands for the 
+**N**\utrient- **P**\hytoplankton- **Z**\ooplanktion-**D**\etritus model, 
+which is a simple well studied marine ecosystem model. The details of it
+are not important here, as it is solely used as placeholder for any sort of 
+ecosystem model.
+
+To calculate the forecast of a model we run the following few lines of code:
 
 .. code:: python
 
@@ -31,17 +46,6 @@ An example of what we mean by that:
    nemf.interaction_graph(model)
    results = nemf.forward_model(model)
    nemf.output_summary(results)
-
-
-.. list-table::
-
-  * - .. figure:: figures/network_diagram.png
-
-         Network diagram of the ecosystem model.
-    
-    - .. figure:: figures/time_evo.png
-         
-         Time evolution of the modeled system.
 
 
 Let’s go through the lines one by one to see what happened:
@@ -55,6 +59,7 @@ Let’s go through the lines one by one to see what happened:
    This tells python that we want to us this library and because not
    stated otherwise that we will address it as *nemf*
 
+
 2. We tell the nemf library which model we want to use.
 
    .. code:: python
@@ -64,22 +69,28 @@ Let’s go through the lines one by one to see what happened:
    Models are typically defined in an extra file. This file contains the
    description of the model in a humon-readable standard called YAML.
    Hence, the file extension *.yml* More on the yml standard and how it
-   is used to define models can be found *here* [placeholer]
+   is used to define models can be found :doc:`here<REAME_YAML.md>`.
 
-3. We visualize the network defined in the model, as shown in the left
-   figure.
+
+3. We visualize the network defined in the model configuration by
 
    .. code:: python
 
       nemf.interaction_graph(model)
 
-   NEMF offers the option to draw up the network defined in the model
+   which returns the following plot: 
+   
+   .. figure:: figures/network_diagram.png
+
+   NEMF offers the option to draw the network defined in the model
    configuration. This is helps to catch errors that might have happened
    during the configuration and gives a nice overview over the model.
-   Each knot represents a compartment in the model, i.e. population of
-   chemical quantities. The arrows between them show what flows from one
+   Each node represents a compartment in the model, i.e. a population or
+   a chemical quantity. The arrows between them show what flows from one
    compartment to another while the label on the arrow describes how it
    does that.
+
+
 
 4. We solve the differential equations underlying the model numerically
    with:
@@ -88,26 +99,30 @@ Let’s go through the lines one by one to see what happened:
 
       results = nemf.forward_model(model)
 
-   The network with its flows between compartments implicitly defines a
-   set of differential equation that couples the compartments to each
-   other. The framework solves these differential equations to give a
+   The network implicitly defines a set of differential equation that couples 
+   the compartments to each other, through the interactions between them.
+   The framework solves these differential equations to give a
    forecast how the model is expected to evolve over time.
+   This is often also called 'time evolution'.
 
-5. The result of the forecasting are visulized by calling:
+5. The result of the time evolution are visualized by calling
 
    .. code:: python
 
       nemf.output_summary(results)
 
-   This is shown in the right hand side figure above. Each line
-   represents one compartment and how its associated quantity (i.e. a
+   which generates the following plot:
+   
+   .. figure:: figures/time_evo.png
+         
+   Each line represents one compartment and how its associated quantity (i.e. a
    population size) changes over time.
-
+    
 
 Model description via YAML configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In the example above, we assumed that a model (*exemplary_npzd_model*) has 
+In the example above, we assumed that a model (*'exemplary_npzd_model'*) has 
 already been defined.
 If we want to construct a new model, we need to write our own configuration 
 file.
@@ -115,7 +130,7 @@ file.
 There are three major parts of the configuration file:
 
 1. **Compartments**
-   contains a list of all model compartments, like species population pools or 
+   contain a list of all model compartments, like species population pools or 
    nutrition pools.
 
 2. **Interactions**
@@ -159,8 +174,8 @@ Interactions are defined similarly: ::
     - 0.01          # natural mortality rate
 
 
-A description of how this works in detail can be found in section 
-:doc:`YAML manual<README_YAML>`.
+A description of how this works in detail can be found in the 
+:doc:`YAML section of the manual<README_YAML>`.
 
 
 Inverse modelling
@@ -195,7 +210,7 @@ However, for this to work we implicitly provided some additional information in
 the yaml configuration file.
 There are two things we need to provide:
 
-1. Reference Data (i.e observational data)
+1. Reference data (i.e observational data)
 2. Optimized parameters
 
 The reference data is expected do be in a separate file.
@@ -216,8 +231,8 @@ which the method tries to find the best solution.
          lower: 0    # lower and
          upper: 2    # upper bound during the fitting process
 
-Detail on the configuration of the YAML file can be found in the YAML section 
-the :doc:`yaml manual<README_YAML>`.
+Detail on the configuration of the YAML file can be found in the 
+:doc:`yaml section of the manual<README_YAML>`.
 
 The results are then visualized with:
 
@@ -231,7 +246,6 @@ Which creates the following figure:
 .. figure:: figures/fit_results.png
    :alt: Visualization of model fit
 
-   This is the caption of the figure (a simple paragraph).
    Visualization of the results of the model fit.
    The upper figure shows the tested parameter during the fitting process,
    while the lower figure shows the "optimally" fitted model.
@@ -242,10 +256,10 @@ Next steps
 ----------
 
 You have a few options for where to go next. You might first want to learn how 
-to :doc:`install name<installation>`. 
+to :doc:`install namf on your machine<installation>`. 
 Once that’s done, you can browse the :doc:`examples<examples>` to get a 
-broader sense for what kind problems nemf is designed for. 
-Or you can read through the manual for a deeper discussion of the 
+broader sense for what kind problems nemf is designed for.
+You can read through the manual for a deeper discussion of the 
 different parts of the library and how they are designed.
 If you want to know specifics of the nemf functions implementations, 
 you could check out the :doc:`API reference<api>`, which documents each 
