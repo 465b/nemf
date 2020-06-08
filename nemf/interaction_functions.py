@@ -2,7 +2,7 @@
 
 
 def inverse_type_0(X,idx_A,idx_B,coefficient):
-	""" linear response with respect to *source/prey* compartment
+	""" linear response with respect to *origin/prey* compartment
 
 	Parameters
 	----------
@@ -64,7 +64,7 @@ def holling_type_0(X,idx_A,coefficient):
 
 
 def holling_type_I(X,idx_A,idx_B,coefficient):
-	""" linear response with respect to both *source/pray* and 
+	""" linear response with respect to both *origin/pray* and 
 		*destination/predator* compartment.
 	
 	For examples see:
@@ -99,7 +99,8 @@ def holling_type_I(X,idx_A,idx_B,coefficient):
 
 
 def holling_type_II(X,idx_A,idx_B,food_processing_time,hunting_rate):
-	""" non-linear response with respect to *destination/predator* compartment
+	""" non-linear response with respect to *origin/pray* with linear response
+	    with respect to *destination/predator* compartment
 	
 	The response with respect to the origin compartment 'B' is approximately 
 	linear for small 'B' and converges towards an upper limit governed by the
@@ -139,7 +140,8 @@ def holling_type_II(X,idx_A,idx_B,food_processing_time,hunting_rate):
 
 
 def holling_type_III(X,idx_A,idx_B,saturation_rate,consumption_rate_limit):
-	""" non-linear response with respect to *destination/predator* compartment
+	""" non-linear response with respect to *origin/pray* with linear response
+	    with respect to *destination/predator* compartment
 	
 	The response with respect to the origin compartment 'B' is approximately 
 	quadratic for small 'B' and converges towards an upper limit governed by the
@@ -197,7 +199,8 @@ def sloppy_feeding(holling_type,coeff,*args):
 	
 
 def nutrition_limited_growth(X,idx_A,idx_B,growth_rate,half_saturation):
-	""" non-linear response with respect to *destination/predator* compartment
+	""" non-linear response with respect to *origin/pray* with linear response
+	    with respect to *destination/predator* compartment
 
 	Similar to holling_type_II and is a reparameterization of holling II.
 	The response with respect to the origin compartment 'B' is approximately 
