@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import yaml
 import sys
 import os
@@ -13,6 +14,117 @@ from termcolor import colored, cprint
 
 # Data reading
 
+def parse_from_excel(df):
+	""" parses data from a pandas.dataframe into the correct data format 
+
+	Takes a dataframe and returns its content as a numpy.array and its headers 
+	as a list. The first column of the data frame is expected to be the 
+	observation time in some timestamp format with the header 'Datetime'. It is 
+	transformed into the universal posix standard.
+
+	Parameters
+	----------
+
+	df : pandas.dataframe
+		pandas data frame with column headers and the first column being 
+		timestemps with the name 'Datetime'
+
+	Returns
+	-------
+
+	da : numpy.array
+		Array containing reference data.
+	column_names : list of strings
+		List containing the names of the columns used as compartment names.
+
+	"""
+
+	# headers
+	headers = list(df.columns)
+	if headers[0] != 'Datetime':
+		print("Warning! First Column is not 'Datetime'."
+			  +"Data frame might be corrupt" )
+	column_names = headers[1:]
+	
+	# time column
+	for ii,item in enumerate(df['Datetime']):
+		# turns timestamp into posix
+		df['Datetime'][ii] = item.timestamp()
+		
+	da = np.array(df)
+	return da, column_names
+
+
+def import_ref_from_excel(path):
+	""" Uses pandas to import data from excel file and return it as a np.array
+
+	Parameters
+	----------
+
+	path : string
+		path pointing to the file
+
+	Returns
+	-------
+
+	da : numpy.array
+		Array containing reference data.
+	column_names : list of strings
+		List containing the names of the columns used as compartment names.
+
+	"""
+
+	df = pd.read_excel(path)
+	da, names = parse_from_excel(df)
+	return da, names
+
+
+def import_ref_from_csv(path,*args):
+
+	if 'delimiter' in list(args):
+		data = np.genfromtxt(path,skip_header=1,*args,)
+		names = np.genfromtxt(path,names=True,delimiter=',',*args).dtype.names
+	else:
+		data = np.genfromtxt(path,skip_header=1,delimiter=',',*args)
+		names = np.genfromtxt(path,names=True,delimiter=',',*args).dtype.names
+	names = list(names)
+	return data, names
+
+
+def import_reference_data(path,*args):
+	""" Main function to import reference data of different formats.
+
+
+	Parameters
+	----------
+
+	path : string
+		path pointing to the file
+	args : list of arguments
+		arguments passed to the respective import function depending on its 
+		file type
+
+	Returns
+	-------
+
+	da : numpy.array
+		Array containing reference data.
+	column_names : list of strings
+		List containing the names of the columns used as compartment names.
+
+	"""
+	file_suffix = path.split('.')[-1]
+	excel_suffixes = ['xls','xlsx']
+	if file_suffix in excel_suffixes:
+		# excel import
+		da, names = import_ref_from_excel(path,*args)
+	else:
+		# numpy import
+		da, names = import_ref_from_csv(path,*args)
+		
+	return da, names
+
+
 def read_coeff_yaml(path):
 	"Reads a yaml file and returns its as a dictionary"
 	
@@ -21,11 +133,6 @@ def read_coeff_yaml(path):
 	data_dict = yaml.safe_load(stream)
 	
 	return data_dict
-
-
-def import_fit_data(path):
-	# add switches for file type parser
-	return np.genfromtxt(path)
 
 
 def import_constraints(path):
@@ -138,9 +245,8 @@ def construct_objective(model,time_series_events=None,debug=False):
 	differential_equation = model.de_constructor()
 	fit_indices = model.fetch_to_optimize_args()[0][0]
 	initial_param = model.fetch_param()
-	ref_data = model.reference_data
+	ref_data, idx_refed_compart = model.prep_ref_data()
 	t_eval = ref_data[:,0]
-	
 
 	# steady-state solution
 	if t_eval[0] == np.inf:
@@ -172,6 +278,7 @@ def construct_objective(model,time_series_events=None,debug=False):
 
 			x = ode_sol.sol(t_span[1]).T
 			x = np.reshape(x,(1,len(x)))
+			x = x[:,idx_refed_compart]
 			res = np.linalg.norm(x-y)**2
 			if debug:
 				cprint(f'solution(time integration): ','magenta')
@@ -215,6 +322,7 @@ def construct_objective(model,time_series_events=None,debug=False):
 								args=args,dense_output=True, t_eval=t_eval)
 		   
 			x = ode_sol.sol(t_eval).T
+			x = x[:,idx_refed_compart]
 			res = np.linalg.norm(x-y)**2
 			if debug:
 				cprint(f'solution(time integration): ','magenta')

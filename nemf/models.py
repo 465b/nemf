@@ -15,22 +15,34 @@ class model_class:
 	def __init__(self,model_path,fit_data_path=None):
 		self.init_sys_config = worker.initialize_ode_system(model_path)
 		self.sanity_check_input()
+		
+		# makes a copy of the system config for further usage
 		self.compartment = deepcopy(
 			self.init_sys_config['compartment'])
 		self.interactions = deepcopy(
 			self.init_sys_config['interactions'])
 		self.configuration = deepcopy(
 			self.init_sys_config['configuration'])
-		self.reference_data = self.load_reference_data(fit_data_path)
+		
+		# imports reference data
+		ref_data, ref_headers = self.load_reference_data(fit_data_path)
+		self.reference_data = ref_data
+		self.reference_headers = ref_headers
+
+		# imports sinks and sources
 		if ('sinks' in self.configuration) and ('sources' in self.configuration):
 			self.fetch_index_of_source_and_sink()
+		
+		# imports alternative interaction names and adds them to the namespace
 		if ('alternative_interaction_names' in self.configuration):
 			self.init_alternative_interaction_names()
+		
+		# imports constraints used in the fitting process
 		if 'constraints_path' in self.configuration:
 			self.load_constraints(self.configuration['constraints_path'])
 
 
-	def load_reference_data(self,fit_data_path=None):
+	def load_reference_data(self,ref_data_path=None,*args):
 		""" Loads reference data used in model optimization from file 
 
 		Either, the path to the reference data is provided in the yaml 
@@ -52,20 +64,76 @@ class model_class:
 
 		"""
 
-		if fit_data_path != None:
-			reference_data = worker.import_fit_data(fit_data_path)
-			if len(np.shape(reference_data)) == 1:
-				reference_data = np.reshape(reference_data,(1,len(reference_data)))
-			return reference_data
-		elif 'fit_data_path' in self.configuration:
-			fit_data_path = self.configuration['fit_data_path']
-			reference_data = worker.import_fit_data(fit_data_path)
-			if len(np.shape(reference_data)) == 1:
-				reference_data = np.reshape(reference_data,(1,len(reference_data)))
-			return reference_data
+		if ref_data_path != None:
+			ref_data,ref_headers = \
+				worker.import_reference_data(ref_data_path,*args)
+			if len(np.shape(ref_data)) == 1:
+				ref_data = np.reshape(ref_data,(1,len(ref_data)))
+			return ref_data, ref_headers
+		elif 'ref_data_path' in self.configuration:
+			ref_data_path = self.configuration['fit_data_path']
+			ref_data,ref_headers = worker.import_reference_data(ref_data_path)
+			if len(np.shape(ref_data)) == 1:
+				ref_data = np.reshape(ref_data,(1,len(ref_data)))
+			return ref_data, ref_headers
 		else:
 			print('No reference data has been provided')
-			return None
+			return None, None
+
+
+	def prep_ref_data(self):
+		""" prepares the reference data set for use in the objective funtion
+
+		Returns
+		-------
+		da : numpy.array (DataArray)
+			first column contains the posix time stamps for each observation
+			the remaining column contain the data point for the corrosponding
+			compartments
+		compart_of_interest : list of integers
+			contains the indices of the compartments in the model which are also
+			represented in the reference data
+
+		"""
+
+		ref_data = self.reference_data
+		ref_names = self.reference_headers
+
+		# datetime stamp column of the reference data
+		ref_timestamps = ref_data[:,0]
+		t_eval = list(ref_timestamps)
+		t_eval = np.reshape(t_eval,(len(t_eval),1))
+
+		if ref_names[0] != 'Datetime':
+			print("First column in reference data is not named 'Datetime'. "
+				  + "Is the date formated correctly?")
+		
+		# clean integers from data names (those can't be compartments)
+		for ii,item in enumerate(ref_names):
+			delete_columns = []
+			if type(item) == int:
+				delete_columns.append(ii)	
+		ref_data = np.delete(ref_data,delete_columns,axis=1)
+		ref_names = \
+		  [item for ii,item in enumerate(ref_names) if ii not in delete_columns]
+		
+		
+		# fetching the indexes of those compartments that are also modelled 
+		ref_idx = self.fetch_index_of_compartment(ref_names)
+		# fetching the columns out of the ref. data set are also modelled
+		columns_of_interest = \
+			[ii for (ii,item) in enumerate(ref_idx) if type(item) == int]
+		# fetching indices of compartments that are present in the ref. data set
+		compart_of_interest = \
+			[item for (ii,item) in enumerate(ref_idx) if type(item) == int]
+		
+		# reference data sliced down to the columns that contain the reference data
+		# of the compartments that are modelled
+		ref_data = ref_data[:,columns_of_interest]
+
+		da = np.concatenate((t_eval,ref_data),axis=1)
+
+		return da, compart_of_interest
 
 
 	def load_constraints(self,path):
