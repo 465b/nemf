@@ -35,10 +35,17 @@ conda install nemf
 ## On Mac
 If you haven't installed python already,
 get the latest python version from 
-[here](https://www.python.org/downloads/mac-osx/)
-This also installs pythons integrated package manager (pip).  
+[here](https://www.python.org/downloads/mac-osx/).
+Scroll down to get the *"macOS 64-bit installer"*
+
+To installs pythons integrated package manager (pip).
+``` terminal
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python get-pip.py
+```
+
 Then, the following install command can be used in the *terminal*:
-``` powershell
+``` terminal
 python -m pip install nemf
 ```
 
