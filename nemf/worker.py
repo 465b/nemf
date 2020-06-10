@@ -43,13 +43,17 @@ def parse_from_excel(df):
 	headers = list(df.columns)
 	if headers[0] != 'Datetime':
 		print("Warning! First Column is not 'Datetime'."
-			  +"Data frame might be corrupt" )
+			  + "Is the first (datetime) column of the reference data "
+			  + "formated correctly?" )
 	column_names = headers[1:]
 	
 	# time column
-	for ii,item in enumerate(df['Datetime']):
+	if np.issubdtype(df['Datetime'],np.integer):
+		pass
+	else:
 		# turns timestamp into posix
-		df['Datetime'][ii] = item.timestamp()
+		for ii,item in enumerate(df['Datetime']):
+			df['Datetime'][ii] = item.timestamp()
 		
 	da = np.array(df)
 	return da, column_names

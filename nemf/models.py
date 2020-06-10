@@ -104,10 +104,6 @@ class model_class:
 		t_eval = list(ref_timestamps)
 		t_eval = np.reshape(t_eval,(len(t_eval),1))
 
-		if ref_names[0] != 'Datetime':
-			print("First column in reference data is not named 'Datetime'. "
-				  + "Is the date formated correctly?")
-		
 		# clean integers from data names (those can't be compartments)
 		for ii,item in enumerate(ref_names):
 			delete_columns = []
