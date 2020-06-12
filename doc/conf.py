@@ -84,6 +84,7 @@ master_doc = 'index'
 autodoc_mock_imports = [
 	'numpy',
 	'seaborn',
+	'pandas',
 	'matplotlib',
 	'networkx',
 	'termcolor',

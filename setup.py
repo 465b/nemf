@@ -30,5 +30,6 @@ setup(
     ],
     license='BSD',
     install_requires=[
-        'numpy','seaborn','matplotlib','networkx','pyyaml', 'termcolor']
+        'numpy','seaborn','pandas','matplotlib','networkx','pyyaml', 
+        'termcolor']
 )
