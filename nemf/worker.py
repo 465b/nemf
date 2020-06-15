@@ -40,12 +40,8 @@ def parse_from_excel(df):
 	"""
 
 	# headers
-	headers = list(df.columns)
-	if headers[0] != 'Datetime':
-		print("Warning! First Column is not 'Datetime'."
-			  + "Is the first (datetime) column of the reference data "
-			  + "formated correctly?" )
-	column_names = headers[1:]
+	
+	headers = check_n_drop_datetime(list(df.columns))
 	
 	# time column
 	if np.issubdtype(df['Datetime'],np.integer):
@@ -56,7 +52,14 @@ def parse_from_excel(df):
 			df['Datetime'][ii] = item.timestamp()
 		
 	da = np.array(df)
-	return da, column_names
+	return da, headers
+
+def check_n_drop_datetime(headers):
+	if headers[0] != 'Datetime':
+		print("Warning! First Column is not 'Datetime'."
+			  + "Is the first (datetime) column of the reference data "
+			  + "formated correctly?" )
+	return headers[1:]
 
 
 def import_ref_from_excel(path):
@@ -91,7 +94,9 @@ def import_ref_from_csv(path,*args):
 	else:
 		data = np.genfromtxt(path,skip_header=1,delimiter=',',*args)
 		names = np.genfromtxt(path,names=True,delimiter=',',*args).dtype.names
-	names = list(names)
+	
+	names = check_n_drop_datetime(names)
+	
 	return data, names
 
 
