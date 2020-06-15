@@ -6,7 +6,7 @@ Manual
 .. toctree::
    :maxdepth: 1
 
-   README_concept.md
-   README_YAML.md
-   README_interaction_functions.md
-   README_reference_data.rst
+   manual/concept.md
+   manual/YAML.md
+   manual/interaction_functions.md
+   manual/reference_data.rst
