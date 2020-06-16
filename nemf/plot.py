@@ -112,27 +112,80 @@ def draw_predictions(ax,predictions,model):
     plt.legend(handles, labels)
 
 
-def draw_parameters(ax,parameters,model):
+def draw_parameters(ax,parameters,model,colors=None):
+    
+    if colors == None:
+        colors = sns.color_palette('husl',len(model.compartment))
+
     labels = model.to_grad_method()[2]
+    
+    filled_param = parameters[~np.isnan(parameters)]
+    shape = np.shape(parameters)
+    shape = (int(np.shape(filled_param)[0]/shape[1]),shape[1])
+    parameters = np.reshape(filled_param, shape)
+                            
     ax.title.set_text('parameters')
-    handles = plt.plot(parameters)
+
+    print(np.shape(parameters))
+    if np.shape(parameters)[0] == 1:
+        
+        y = np.ones(shape[1])
+        for ii in np.arange(shape[1]):
+            handles = ax.scatter(y[ii],parameters[:,ii])
+        handles = ax.collections
+        
+    else:
+        for ii in np.arange(shape[1]):
+            plt.plot(parameters[:,ii])
+        handles = ax.get_lines()
+    
     ax.set_ylabel('optimized parameters (a.u.)')
     ax.set_xlabel('Iteration Step')
     plt.legend(handles, labels, loc='upper left',bbox_to_anchor=(1.0, 1.0))
+
+    return ax    
     
 
-def draw_model_output(ax,model):
+def draw_model_output(ax,model,colors=None):
+    
+    if colors == None:
+        colors = sns.color_palette('husl',len(model.compartment))
+    
     time_series = model.log['time_series']
     t = time_series[:,0]
     y_t = time_series[:,1:]
     labels = list(model.compartment)
-
-    handles = plt.plot(t,y_t)
     
-    plt.legend(handles, labels)
+    handles = []
+    for ii in np.arange(np.shape(y_t)[1]):
+        plt.plot(t,y_t[:,ii],color=colors[ii])
+    
     ax.set_ylabel('Model output (a.u.)')
     ax.set_xlabel('Time (a.u.)')
+    
+    handles = ax.get_lines()
     plt.legend(handles, labels, loc='upper left',bbox_to_anchor=(1.0, 1.0))
+
+    return ax
+
+
+def draw_ref_data(ax,model,colors):
+    
+    t_ref =  model.reference_data[:,0]
+    y_ref =  model.reference_data[:,1:]
+    idx_refed_compart = model.prep_ref_data()[1]
+
+    colors_ref = [item for ii,item in enumerate(colors) if 
+        ii in idx_refed_compart]
+    if np.shape(y_ref)[0] < 20:
+        for ii in np.arange(np.shape(y_ref)[1]):
+            #sns.lineplot(t_ref,y_ref,palette=colors)
+            plt.scatter(t_ref,y_ref[:,ii], color=colors_ref[ii])
+
+    else:
+        for ii in np.arange(np.shape(y_ref)[1]):
+            #sns.lineplot(t_ref,y_ref,palette=colors)
+            plt.plot(t_ref,y_ref[:,ii],ls='--',linewidth=2, color=colors_ref[ii])
 
     return ax
 
@@ -184,11 +237,19 @@ def draw_optimization_overview(model):
         if non_steady_state:
             t_ref =  model.reference_data[:,0]
             y_ref =  model.reference_data[:,1:]
-            plt.plot(t_ref,y_ref,ls='--',linewidth=2)
+
+            colors = sns.color_palette('husl',len(model.compartment))
+
+            ax2.title.set_text('optimized model')
+            
+            # plotting model output
             time_series = nemf.forward_model(model,t_eval=t_ref)
             time_series_model = time_series.log['time_series']
-            ax2 =  draw_model_output(ax2, model)
-            ax2.title.set_text('optimized model')
+            ax2 =  draw_model_output(ax2, model,colors=colors)
+        
+            # plotting reference data
+            ax2 = draw_ref_data(ax2,model,colors)
+            
         else: # steady-state
             t_max = model.configuration['max_time_evo']
             dt = model.configuration['dt_time_evo']
