@@ -198,9 +198,8 @@ def sloppy_feeding(holling_type,coeff,*args):
 			+"Use one of the following: ['0','I','II','III']")
 	
 
-def nutrition_limited_growth(X,idx_A,idx_B,growth_rate,half_saturation):
-	""" non-linear response with respect to *origin/pray* with linear response
-	    with respect to *destination/predator* compartment
+def nutrient_limited_growth(X,idx_A,idx_B,growth_rate,half_saturation):
+	""" non-linear response with respect to *destination/predator* compartment
 
 	Similar to holling_type_II and is a reparameterization of holling II.
 	The response with respect to the origin compartment 'B' is approximately 

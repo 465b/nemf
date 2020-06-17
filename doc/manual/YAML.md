@@ -81,7 +81,7 @@ interactions:
   # the functions are automatically multiplied by the value
   # of the second compartment 
   N:P:                              # name of source:destination of the flow
-  - fkt: nutrition_limited_growth   # function defining the type of flow
+  - fkt: nutrient_limited_growth   # function defining the type of flow
     parameters:
     - 'N'                           # the first parameter is the current value
     - 0.27                          # of the 'N' compartment

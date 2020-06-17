@@ -35,7 +35,7 @@ interactions:
   # of the secondly named compartment 
   
   P:N:                              # names of the interacting compartments
-  - fkt: nutrition_limited_growth   # name of the type of interaction 
+  - fkt: nutrient_limited_growth   # name of the type of interaction 
     parameters:                     # list of parameters required for interaction
     - 'N'                           # Parameters can also be other compartments
     - 0.27
