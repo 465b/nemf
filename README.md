@@ -1,6 +1,6 @@
-# General Ecosystem Modeling Framework
+# Network-based ecosystem Modeling Framework
 
-GEMF is a ecosystem modelling framework written in python.
+NEMF is a ecosystem modelling framework written in python.
 It is designed to offer an easy to use method for modelling ecosystems with low- to intermediate complexity.  
 The framework offers the functionality to handle non-equilibrium, non-linear interactions.
 For the typical use-cases, user do need to write any code but only provide a model configuration.
@@ -15,7 +15,7 @@ For simplicity, the current version of the framework is limited to non-spatially
 Python and its package manger (pip) should be preinstalled.
 Hence, it can simply be installed through:
 ``` bash
-pip install gemf
+pip install nemf
 ```
 
 ### On Windows:
@@ -24,7 +24,7 @@ For example the 3.8.3 version installer
 This also installs pythons integrated package manager (pip).  
 Then, the following install command can be used in windows "powershell":
 ``` powershell
-python -m pip install gemf
+python -m pip install nemf
 ```
 
 ## Quick Start
@@ -36,21 +36,21 @@ See examples.py. For a set of exemplary framework configurations see [configurat
 
 
 ``` python
-import gemf as 
+import nemf as 
 
 # A model configuration is defined in a yaml file. To read this file:
-model = gemf.load_model_configuration('path/to/model_configuration.yml')
+model = nemf.load_model('path/to/model_configuration.yml')
 
 # To draw a graph visualizing the model configuration:
-gemf.interaction_graph(model)
+nemf.interaction_graph(model)
 
 # To solve the time integration of this model call:
-forward_results = gemf.forward_model(model)
+forward_results = nemf.forward_model(model)
 # To also solve the inverse problem as defined in the configuration, call:
-inverse_results = gemf.inverse_model(model)
+inverse_results = nemf.inverse_model(model)
 
 # To plot the results call 
-gemf.plot.output_summary(inverse_results)
+nemf.plot.output_summary(inverse_results)
 ```
 
 For details on the yaml configuration file, see [README_YAML.md](README_YAML.md)  

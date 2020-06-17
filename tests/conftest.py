@@ -1,4 +1,4 @@
-import gemf
+import nemf
 import pickle
 import pytest
 
@@ -13,7 +13,7 @@ def load_model(pkl,folder='tests/pickles/'):
 
 @pytest.fixture
 def model_minimal_yml():
-	return gemf.model_class('tests/test_models/minimal_model_example.yml')
+	return nemf.model_class('tests/test_models/minimal_model_example.yml')
 
 
 ## PICKLES

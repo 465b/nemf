@@ -5,7 +5,7 @@
 
 This is a minor release introducing a user-friendly option to rename interaction
 functions as well as constraints for optimized parameters.
-An initial documentation has been drafted and is hosted on [readthedocs.io](https://general-ecosystem-modeling-framework.readthedocs.io/en/latest/).
+An initial documentation has been drafted and is hosted on [readthedocs.io](https://nemf.readthedocs.io/en/latest/).
 
 ### Importing and renaming interaction functions
 
@@ -14,13 +14,13 @@ An initial documentation has been drafted and is hosted on [readthedocs.io](http
   It checks if alternative names for an existing interaction were declared in the 
   yaml configuration file.
   For details check the
-  [docs](https://general-ecosystem-modeling-framework.readthedocs.io/en/latest/README_interaction_functions.html).
+  [docs](https://nemf.readthedocs.io/en/latest/README_interaction_functions.html).
 
 * *import_interaction_functions( )*  
   This can be called in the execution file by the user to import user-defined or
   renamed interaction functions.
   For details check the
-  [docs](https://general-ecosystem-modeling-framework.readthedocs.io/en/latest/README_interaction_functions.html).
+  [docs](https://nemf.readthedocs.io/en/latest/README_interaction_functions.html).
 
 The previous version of renaming interaction functions was to declare the 
 alternative names in the execution file. However, this did not work consistently
@@ -33,7 +33,7 @@ functions to rename and/or import interaction functions.
 * Added *import_constraints( )*  
   Reads constraints from an python file and adds them to the model.
   For details check the
-  [docs](https://general-ecosystem-modeling-framework.readthedocs.io/en/latest/README_interaction_functions.html).
+  [docs](https://nemf.readthedocs.io/en/latest/README_interaction_functions.html).
 
 In some circumstances, the parameter fitted in an optimization run are not
 independent of each other. I.e. one might want to enforce that sum of two 
@@ -43,7 +43,7 @@ parameters is always equal to one. Such a behavior is enforced through
 
 ### Documentation
 
-* Hosted the current drafts of the documentation on [readthedocs.io](https://general-ecosystem-modeling-framework.readthedocs.io/en/latest/).
+* Hosted the current drafts of the documentation on [readthedocs.io](https://nemf.readthedocs.io/en/latest/).
 * Documentation created via sphinx
 * Added automated API reference creation based on docstrings via autodoc
 
