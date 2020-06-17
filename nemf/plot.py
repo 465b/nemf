@@ -126,7 +126,6 @@ def draw_parameters(ax,parameters,model,colors=None):
                             
     ax.title.set_text('parameters')
 
-    print(np.shape(parameters))
     if np.shape(parameters)[0] == 1:
         
         y = np.ones(shape[1])
