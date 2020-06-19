@@ -12,7 +12,7 @@ class model_class:
 	# initialization methods
 	# they are only used when a new model_class is created
 
-	def __init__(self,model_path,fit_data_path=None):
+	def __init__(self,model_path,ref_data_path=None):
 		self.init_sys_config = worker.initialize_ode_system(model_path)
 		self.sanity_check_input()
 		
@@ -25,9 +25,7 @@ class model_class:
 			self.init_sys_config['configuration'])
 		
 		# imports reference data
-		ref_data, ref_headers = self.load_reference_data(fit_data_path)
-		self.reference_data = ref_data
-		self.reference_headers = ref_headers
+		self.load_reference_data(ref_data_path)
 
 		# imports sinks and sources
 		if ('sinks' in self.configuration) and ('sources' in self.configuration):
@@ -69,16 +67,23 @@ class model_class:
 				worker.import_reference_data(ref_data_path,*args)
 			if len(np.shape(ref_data)) == 1:
 				ref_data = np.reshape(ref_data,(1,len(ref_data)))
-			return ref_data, ref_headers
+			self.reference_data = ref_data
+			self.reference_headers = ref_headers
+			print('Reference data set has been added.')
+
 		elif 'ref_data_path' in self.configuration:
 			ref_data_path = self.configuration['fit_data_path']
 			ref_data,ref_headers = worker.import_reference_data(ref_data_path)
 			if len(np.shape(ref_data)) == 1:
 				ref_data = np.reshape(ref_data,(1,len(ref_data)))
-			return ref_data, ref_headers
+			self.reference_data = ref_data
+			self.reference_headers = ref_headers
+			print('Reference data set has been added.')
+
 		else:
+			self.reference_data = None
+			self.reference_headers = None
 			print('No reference data has been provided')
-			return None, None
 
 
 	def prep_ref_data(self):
