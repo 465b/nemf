@@ -50,7 +50,7 @@ class model_class:
 		Parameters
 		----------
 
-		fit_data_path : string (optional)
+		ref_data_path : string (optional)
 			path to the file containing the reference data
 
 		Returns
@@ -72,7 +72,7 @@ class model_class:
 			print('Reference data set has been added.')
 
 		elif 'ref_data_path' in self.configuration:
-			ref_data_path = self.configuration['fit_data_path']
+			ref_data_path = self.configuration['ref_data_path']
 			ref_data,ref_headers = worker.import_reference_data(ref_data_path)
 			if len(np.shape(ref_data)) == 1:
 				ref_data = np.reshape(ref_data,(1,len(ref_data)))
