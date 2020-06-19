@@ -8,7 +8,7 @@ import nemf.interaction_functions
 
 from nemf.models import model_class as model_class
 
-def load_model(model_path,ref_data_path):
+def load_model(model_path,ref_data_path=None):
 	""" Loads a model by reading its model configuration from from file
 
 	Parameters
@@ -16,7 +16,7 @@ def load_model(model_path,ref_data_path):
 	
 	model_path : string
 		path to yaml file containing the model
-	ref_data_path : string
+	ref_data_path : string (optional)
 		path to file, plain text or xls(x), containing reference data to the 
 		model.
 		See: https://nemf.readthedocs.io/en/latest/README_reference_data.html
