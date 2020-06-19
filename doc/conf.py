@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'gemf'
+project = 'NEMF'
 copyright = '2020, Laurin Steidle'
 author = 'Laurin Steidle'
 
@@ -27,6 +27,8 @@ author = 'Laurin Steidle'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
+
+
 extensions = [
 	# For conversion from markdown to html
 	'recommonmark',
@@ -55,20 +57,25 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
+
 #html_theme = 'alabaster'
+#html_theme = 'classic'
 html_theme = 'sphinx_rtd_theme'
+#import sphinx_bootstrap_theme
+#html_theme = 'bootstrap'
+#html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+html_logo = 'figures/logo.png'
 
 # -- Laurin added this -------------------------------------------------------
  
 # Sphinx error:master file 
 # /home/docs/checkouts/readthedocs.org/user_builds/ ...
-#  ... general-ecosystem-modeling-framework/checkouts/latest/doc/
+#  ... nemf/checkouts/latest/doc/
 #  ... contents.rst not found
 # to fix the error
 
@@ -77,6 +84,7 @@ master_doc = 'index'
 autodoc_mock_imports = [
 	'numpy',
 	'seaborn',
+	'pandas',
 	'matplotlib',
 	'networkx',
 	'termcolor',

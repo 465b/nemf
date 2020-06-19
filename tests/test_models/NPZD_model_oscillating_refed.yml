@@ -1,7 +1,7 @@
 # This is an example of a configuration for the 
-# General Ecosystem Modelling Framework (GEMF).
+# Network-based ecosystem Modelling Framework (NEMF).
 # For details see:
-# https://github.com/465b/General-Ecosystem-Modeling-Framework/blob/master/README_YAML.md
+# https://github.com/465b/nemf/blob/master/README_YAML.md
 # We present a simple NPZD model in this example, see
 # https://doi.org/10.1016/j.ecolmodel.2013.01.012
 
@@ -35,7 +35,7 @@ interactions:
   # of the secondly named compartment 
   
   P:N:                              # names of the interacting compartments
-  - fkt: nutrition_limited_growth   # name of the type of interaction 
+  - fkt: nutrient_limited_growth   # name of the type of interaction 
     parameters:                     # list of parameters required for interaction
     - 'N'                           # Parameters can also be other compartments
     - 0.27

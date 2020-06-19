@@ -2,7 +2,7 @@
 
 
 def inverse_type_0(X,idx_A,idx_B,coefficient):
-	""" linear response with respect to *source/prey* compartment
+	""" linear response with respect to *origin/prey* compartment
 
 	Parameters
 	----------
@@ -64,7 +64,7 @@ def holling_type_0(X,idx_A,coefficient):
 
 
 def holling_type_I(X,idx_A,idx_B,coefficient):
-	""" linear response with respect to both *source/pray* and 
+	""" linear response with respect to both *origin/pray* and 
 		*destination/predator* compartment.
 	
 	For examples see:
@@ -99,7 +99,8 @@ def holling_type_I(X,idx_A,idx_B,coefficient):
 
 
 def holling_type_II(X,idx_A,idx_B,food_processing_time,hunting_rate):
-	""" non-linear response with respect to *destination/predator* compartment
+	""" non-linear response with respect to *origin/pray* with linear response
+	    with respect to *destination/predator* compartment
 	
 	The response with respect to the origin compartment 'B' is approximately 
 	linear for small 'B' and converges towards an upper limit governed by the
@@ -139,7 +140,8 @@ def holling_type_II(X,idx_A,idx_B,food_processing_time,hunting_rate):
 
 
 def holling_type_III(X,idx_A,idx_B,saturation_rate,consumption_rate_limit):
-	""" non-linear response with respect to *destination/predator* compartment
+	""" non-linear response with respect to *origin/pray* with linear response
+	    with respect to *destination/predator* compartment
 	
 	The response with respect to the origin compartment 'B' is approximately 
 	quadratic for small 'B' and converges towards an upper limit governed by the
@@ -157,8 +159,13 @@ def holling_type_III(X,idx_A,idx_B,saturation_rate,consumption_rate_limit):
 		index of the element representing the destination/predator compartment
 	idx_B : integer
 		index of the element representing the origin/pray compartment
-	coefficient : float
-		governs the slope of the linear response
+	saturation_rate : float
+		first parameter of the interaction.
+		governs the slope of the non lineare response for small pray 
+		populations.
+	consumption_rate_limit : float
+		second parameter of the interaction.
+		governs the upper limit of the response.
 
 	Returns
 	-------
@@ -196,13 +203,13 @@ def sloppy_feeding(holling_type,coeff,*args):
 			+"Use one of the following: ['0','I','II','III']")
 	
 
-def nutrition_limited_growth(X,idx_A,idx_B,growth_rate,half_saturation):
+def nutrient_limited_growth(X,idx_A,idx_B,growth_rate,half_saturation):
 	""" non-linear response with respect to *destination/predator* compartment
 
 	Similar to holling_type_II and is a reparameterization of holling II.
 	The response with respect to the origin compartment 'B' is approximately 
 	linear for small 'B' and converges towards an upper limit governed by the
-	'food_processing_time' for large 'B'.
+	'growth_rate' for large 'B'.
 	For examples see:
 	`Examples <https://gist.github.com/465b/cce390f58d64d70613a593c8038d4dc6>`_
 
@@ -216,8 +223,12 @@ def nutrition_limited_growth(X,idx_A,idx_B,growth_rate,half_saturation):
 		index of the element representing the destination/predator compartment
 	idx_B : integer
 		index of the element representing the origin/pray compartment
-	coefficient : float
-		governs the slope of the linear response
+	growth_rate : float
+		first parameter of the interaction.
+		governs the upper limit of the response.
+	half_saturation : float
+		second parameter of the interaction.
+		governs the slope of the response.
 
 	Returns
 	-------
