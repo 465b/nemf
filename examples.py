@@ -4,10 +4,12 @@
 import nemf
 
 # provide the path of model/system configuration
-path = ('example_files/exemplary_NPZD_model.yml')
+model_path = 'example_files/NPZD/NPZD_model.yml'
+ref_data_path = 'example_files/NPZD/NPZD_ref_oscillating.csv'
 
 # load the model configuration
-model_config = nemf.model_class(path)
+model_config = nemf.model_class(model_path,ref_data_path)
+
 # visualise the model configuration to check for errors
 nemf.interaction_graph(model_config)
 
