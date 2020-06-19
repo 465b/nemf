@@ -6,8 +6,19 @@ Importing Model
 ---------------
 
 .. automodule:: nemf
-   :members: load_model
+   :members: load_model,model_class
    :show-inheritance:
+
+
+Model Functions
+---------------
+
+.. automodule:: nemf.models
+   :members:
+   :show-inheritance:
+
+   .. autoclass:: model_class
+      :members: load_reference_data
 
 
 Visualizing Model
@@ -41,8 +52,9 @@ Visualizing Results
    :members: output_summary
    :noindex:
 
+
 Interaction Functions
----------------------
+=====================
 
 Here a list of all currently implemented interaction functions is presented.
 These can be used in the YAML model configuration to describe interactions 
