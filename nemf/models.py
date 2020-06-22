@@ -40,7 +40,7 @@ class model_class:
 			self.load_constraints(self.configuration['constraints_path'])
 
 
-	def load_reference_data(self,ref_data_path=None,*args):
+	def load_reference_data(self,ref_data_path=None,**kwargs):
 		""" Loads reference data used in model optimization from file 
 
 		Either, the path to the reference data is provided in the yaml 
@@ -64,7 +64,7 @@ class model_class:
 
 		if ref_data_path != None:
 			ref_data,ref_headers = \
-				worker.import_reference_data(ref_data_path,*args)
+				worker.import_reference_data(ref_data_path,**kwargs)
 			if len(np.shape(ref_data)) == 1:
 				ref_data = np.reshape(ref_data,(1,len(ref_data)))
 			self.reference_data = ref_data
