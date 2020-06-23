@@ -261,12 +261,10 @@ class model_class:
 			def callback(xk, opt):# -> bool
 				if debug: print(f'xk: \n{xk}')
 				model.to_log(xk,cost=opt.fun)
-		elif method == 'SLSQP':
+		else:
 			def callback(xk):# -> bool
 				if debug: print(f'xk: \n{xk}')
 				model.to_log(xk)
-		else:
-			raise Exception
 			
 		return callback
 
