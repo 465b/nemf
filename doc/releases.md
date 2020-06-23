@@ -1,8 +1,97 @@
 # Releases
 
+## v0.3.3 (June 2020)
+
+This is a minor release introducing new options for both non-linear-programming
+aka fitting solvers and initial-value-problem aka forecasting solvers. It also
+brings some bugfixes and consistency changes as well as additional 
+documentation.
+
+## New Non-Linear-Programming (NLP) solvers
+
+  Previously, only the two solvers that worked in all cases (bounded, 
+  constraint & bounded) were properly implemented.
+
+  However, both 'SLSQP' and 'trust-constr' showed to be sometimes outperformed 
+  by other solvers. 'trust-constr' showed to be much slower, and 'SLSQP' while 
+  fast sometimes exited without actually optimizing the result.
+  For that reason we added additional solves which are available in the case 
+  where no constraints are present.
+  
+  The full list of solvers is now:  
+    * ‘SLSQP’
+    * ‘trust-constr’
+    * **'L-BFGS-B'**
+    * **'TNC'**
+    * **'Powell'**
+  where the bold ones are newly implemented.
+  To distinguish the NLP and IVP solvers, the key used to pass them to the 
+  inverse_model has been changed from 'method' to 'nlp_method'.
+  For more detail, see the [API references](api.rst)
+
+## New Initial-Value-Problem (IVP) solvers
+
+  Previously, the IVP solver was not free for the user to change and always 
+  defaulted to de 'RK45' solver.
+  However, the 'RK45' showed to have some issues.
+  In some cases it got stuck, mostly because the numerical errors resulted in 
+  negative compartment values even if the ODE would not allow it.
+  Hence, the error increased over time drastically and the output,
+  if calculated in a reasonable time were unusable.
+
+  Other solvers showed to performed better in these circumstances.
+  The default solver is now 'Radau'. While it is generally slower then the 
+  'RK45' it showed to perform better in the above described circumstances.
+
+  The full list of IVP solvers is now:
+    * 'Radau' (default)
+		* 'RK45'
+    * 'RK23'
+    * 'DOP853'
+    * 'BDF'
+    * 'LSODA'
+  To distinguish the NLP and IVP solvers, the key used to pass them is called
+  'ivp_method'.
+  For more detail, see the [API references](api.rst)
+
+## Bug fixed and consistency changes
+
+### Changes
+
+* Different verbosity options can now be used for 'trust-constr', providing 
+  more information during runtime. See [API references](api.rst) for more 
+  details.
+
+* Changed the output of the *load_reference_data()* function. Previously it 
+  returned the output directly. Hence, the user had to pass it back to the 
+  model. Because there is (currently) no application to use it without passing 
+  it back to the model it does this now automatically.
+
+### Bugs
+
+* *load_model()* did not allow to not pass a reference data path as presented 
+  in the examples. This is now possible.
+
+* *load_reference_data()* did not correctly accept keyword arguments but only
+  non-keyword ones. This as an error as all optional ones are kwargs.
+  
+### Minor internal changes
+
+* *internal:* In some cases the reference data sets have been referred to as 
+  'fit data' because it has been at some point during development used 
+  exclusively for fitting. Because is does not need to be used to fit anymore 
+  but can also be used to plot, we now call it reference data everywhere.
+
+* *internal*: The data type used to describe the bounds of parameters during the 
+  optimization process was inconsistent. The compartments used list while 
+  the interactions used sets. This was not also inconsistent but also caused 
+  issues as some solvers did not parse them correctly.
+  Now, all bounds are passed as lists.
+
+
 ## v0.3.2 (June 2020)
 
-This is a major release introducing the new name "nemf" of the framework as 
+This is a minor release introducing the new name "nemf" of the framework as 
 well as a improved reference data import and some changes in the plotting of 
 the framework output.
 
@@ -48,7 +137,8 @@ the framework output.
       (Lines require two points, and are drawn empty if only one is present)
 
     * Avoids implying a linear behavior between two distant points, which can 
-      confuse the user while interpreting the plot.
+      confuse the user while interpret
+      ing the plot.
 
   * *Minor*: Implemented a new color selection scheme when plotting. This 
     avoids that colors are reused when many lines are present. Additionally, it 
