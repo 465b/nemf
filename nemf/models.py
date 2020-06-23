@@ -440,7 +440,7 @@ class model_class:
 							
 							idx_args.append(current_idx_args)
 							val_args.append(current_val_args)
-							bnd_args.append( (lower_bound,upper_bound) )
+							bnd_args.append([lower_bound,upper_bound])
 
 
 		fit_indices = [idx_state,idx_args]
