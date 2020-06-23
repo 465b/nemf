@@ -215,16 +215,33 @@ def inverse_model(model,nlp_method='SLSQP',
 		logger = model.construct_callback(method=nlp_method,debug=debug)
 		model.initialize_log(maxiter=maxiter)
 
+		if ((verbose != True) & (nlp_method != 'trust-constr')):
+			print(f"Verbose = {verbose} is no valid option for this method. "
+					+"The only valid option is 'True'.")
+			verbose = True
+
 		cons = model.fetch_constraints()
 		if cons ==  None:
-			out = minimize(objective_function,fit_param,method=method,
+			if nlp_method == 'trust-constr':
+				out = minimize(objective_function,fit_param,method=nlp_method,
+							bounds=bnd_param,callback=logger,
+							options={'verbose': verbose, 'maxiter': maxiter})
+			else:
+				out = minimize(objective_function,fit_param,method=nlp_method,
 							bounds=bnd_param,callback=logger,
 							options={'disp': verbose, 'maxiter': maxiter})
+							
 		else:
-			out = minimize(objective_function,fit_param,method=method,
+			if nlp_method == 'trust-constr':
+				out = minimize(objective_function,fit_param,method=nlp_method,
+							bounds=bnd_param,constraints=cons,callback=logger,tol=1e-6,
+							options={'verbose': verbose,'maxiter': maxiter})
+			else:
+				out = minimize(objective_function,fit_param,method=nlp_method,
 							bounds=bnd_param,constraints=cons,callback=logger,tol=1e-6,
 							options={'disp': verbose,'maxiter': maxiter})
-		
+
+
 		model.update_system_with_parameters(out.x)
 		if verbose:
 			print(out)
