@@ -12,7 +12,7 @@ class model_class:
 	# initialization methods
 	# they are only used when a new model_class is created
 
-	def __init__(self,model_path,fit_data_path=None):
+	def __init__(self,model_path,ref_data_path=None):
 		self.init_sys_config = worker.initialize_ode_system(model_path)
 		self.sanity_check_input()
 		
@@ -25,9 +25,7 @@ class model_class:
 			self.init_sys_config['configuration'])
 		
 		# imports reference data
-		ref_data, ref_headers = self.load_reference_data(fit_data_path)
-		self.reference_data = ref_data
-		self.reference_headers = ref_headers
+		self.load_reference_data(ref_data_path)
 
 		# imports sinks and sources
 		if ('sinks' in self.configuration) and ('sources' in self.configuration):
@@ -42,7 +40,7 @@ class model_class:
 			self.load_constraints(self.configuration['constraints_path'])
 
 
-	def load_reference_data(self,ref_data_path=None,*args):
+	def load_reference_data(self,ref_data_path=None,**kwargs):
 		""" Loads reference data used in model optimization from file 
 
 		Either, the path to the reference data is provided in the yaml 
@@ -52,7 +50,7 @@ class model_class:
 		Parameters
 		----------
 
-		fit_data_path : string (optional)
+		ref_data_path : string (optional)
 			path to the file containing the reference data
 
 		Returns
@@ -66,19 +64,26 @@ class model_class:
 
 		if ref_data_path != None:
 			ref_data,ref_headers = \
-				worker.import_reference_data(ref_data_path,*args)
+				worker.import_reference_data(ref_data_path,**kwargs)
 			if len(np.shape(ref_data)) == 1:
 				ref_data = np.reshape(ref_data,(1,len(ref_data)))
-			return ref_data, ref_headers
+			self.reference_data = ref_data
+			self.reference_headers = ref_headers
+			print('Reference data set has been added.')
+
 		elif 'ref_data_path' in self.configuration:
-			ref_data_path = self.configuration['fit_data_path']
+			ref_data_path = self.configuration['ref_data_path']
 			ref_data,ref_headers = worker.import_reference_data(ref_data_path)
 			if len(np.shape(ref_data)) == 1:
 				ref_data = np.reshape(ref_data,(1,len(ref_data)))
-			return ref_data, ref_headers
+			self.reference_data = ref_data
+			self.reference_headers = ref_headers
+			print('Reference data set has been added.')
+
 		else:
+			self.reference_data = None
+			self.reference_headers = None
 			print('No reference data has been provided')
-			return None, None
 
 
 	def prep_ref_data(self):
@@ -256,12 +261,10 @@ class model_class:
 			def callback(xk, opt):# -> bool
 				if debug: print(f'xk: \n{xk}')
 				model.to_log(xk,cost=opt.fun)
-		elif method == 'SLSQP':
+		else:
 			def callback(xk):# -> bool
 				if debug: print(f'xk: \n{xk}')
 				model.to_log(xk)
-		else:
-			raise Exception
 			
 		return callback
 
@@ -435,7 +438,7 @@ class model_class:
 							
 							idx_args.append(current_idx_args)
 							val_args.append(current_val_args)
-							bnd_args.append( (lower_bound,upper_bound) )
+							bnd_args.append([lower_bound,upper_bound])
 
 
 		fit_indices = [idx_state,idx_args]

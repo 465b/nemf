@@ -86,21 +86,47 @@ def import_ref_from_excel(path):
 	return da, names
 
 
-def import_ref_from_csv(path,*args):
+def import_ref_from_csv(path,**kwargs):
 
-	if 'delimiter' in list(args):
-		data = np.genfromtxt(path,skip_header=1,*args,)
-		names = np.genfromtxt(path,names=True,delimiter=',',*args).dtype.names
+	if 'delimiter' in list(kwargs):
+		if 'skip_header' in list(kwargs):
+			n_header = kwargs.pop('skip_header')
+			data = np.genfromtxt(path,
+				skip_header=1+n_header,**kwargs,)
+			names = np.genfromtxt(path,
+				names=True,
+				delimiter=',',
+				skip_header=n_header,**kwargs).dtype.names
+		else:	
+			data = np.genfromtxt(path,
+				skip_header=1,**kwargs,)
+			names = np.genfromtxt(path,
+				names=True,
+				delimiter=',',**kwargs).dtype.names
 	else:
-		data = np.genfromtxt(path,skip_header=1,delimiter=',',*args)
-		names = np.genfromtxt(path,names=True,delimiter=',',*args).dtype.names
+		if 'skip_header' in list(kwargs):
+			n_header = kwargs.pop('skip_header')
+			data = np.genfromtxt(path,
+				skip_header=1+n_header,
+				delimiter=',',**kwargs)
+			names = np.genfromtxt(path,
+				names=True,
+				skip_header=n_header,
+				delimiter=',',**kwargs).dtype.names
+		else:	
+			data = np.genfromtxt(path,
+				skip_header=1,
+				delimiter=',',**kwargs)
+			names = np.genfromtxt(path,
+				names=True,
+				delimiter=',',**kwargs).dtype.names
 	
 	names = check_datetime(names)
 	
 	return data, names
 
 
-def import_reference_data(path,*args):
+def import_reference_data(path,**kwargs):
 	""" Main function to import reference data of different formats.
 
 
@@ -126,10 +152,10 @@ def import_reference_data(path,*args):
 	excel_suffixes = ['xls','xlsx']
 	if file_suffix in excel_suffixes:
 		# excel import
-		da, names = import_ref_from_excel(path,*args)
+		da, names = import_ref_from_excel(path,**kwargs)
 	else:
 		# numpy import
-		da, names = import_ref_from_csv(path,*args)
+		da, names = import_ref_from_csv(path,**kwargs)
 		
 	return da, names
 
@@ -249,7 +275,8 @@ def update_param(initial_param, fit_param, fit_idx):
 	return [states_t0,args]
 
 
-def construct_objective(model,time_series_events=None,debug=False):
+def construct_objective(model,method='Radau',time_series_events=None,
+						debug=False):
 	
 	differential_equation = model.de_constructor()
 	fit_indices = model.fetch_to_optimize_args()[0][0]
@@ -281,7 +308,7 @@ def construct_objective(model,time_series_events=None,debug=False):
 				cprint(f'updated_param: ','magenta')
 				print(updated_param)
 			ode_sol = solve_ivp(differential_equation,t_span,y0,
-								args=args,dense_output=True,
+								method=method,args=args,dense_output=True,
 								events=time_series_events)
 		   
 
@@ -328,7 +355,8 @@ def construct_objective(model,time_series_events=None,debug=False):
 				print(updated_param)
 	
 			ode_sol = solve_ivp(differential_equation,t_span,y0,
-								args=args,dense_output=True, t_eval=t_eval)
+								method=method,args=args,dense_output=True, 
+								t_eval=t_eval)
 		   
 			x = ode_sol.sol(t_eval).T
 			x = x[:,idx_refed_compart]

@@ -88,7 +88,7 @@ configuration:
   # integration_scheme: euler_forward
   
   # fitting - details for the inverse modelling
-  # fit_data_path: path
+  # ref_data_path: path
   
   ## sinks and sources 
   # models are expected to conserve their model currency/quantity.
