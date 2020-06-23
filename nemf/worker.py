@@ -275,7 +275,8 @@ def update_param(initial_param, fit_param, fit_idx):
 	return [states_t0,args]
 
 
-def construct_objective(model,time_series_events=None,debug=False):
+def construct_objective(model,method='Radau',time_series_events=None,
+						debug=False):
 	
 	differential_equation = model.de_constructor()
 	fit_indices = model.fetch_to_optimize_args()[0][0]
@@ -307,7 +308,7 @@ def construct_objective(model,time_series_events=None,debug=False):
 				cprint(f'updated_param: ','magenta')
 				print(updated_param)
 			ode_sol = solve_ivp(differential_equation,t_span,y0,
-								args=args,dense_output=True,
+								method=method,args=args,dense_output=True,
 								events=time_series_events)
 		   
 
@@ -354,7 +355,8 @@ def construct_objective(model,time_series_events=None,debug=False):
 				print(updated_param)
 	
 			ode_sol = solve_ivp(differential_equation,t_span,y0,
-								args=args,dense_output=True, t_eval=t_eval)
+								method=method,args=args,dense_output=True, 
+								t_eval=t_eval)
 		   
 			x = ode_sol.sol(t_eval).T
 			x = x[:,idx_refed_compart]
