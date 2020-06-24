@@ -53,13 +53,6 @@ class model_class:
 		ref_data_path : string (optional)
 			path to the file containing the reference data
 
-		Returns
-		-------
-
-		reference_data : np.array or None
-			if reference data was found returns it in a numpy array or if not
-			or no path provided returns None
-
 		"""
 
 		if ref_data_path != None:
