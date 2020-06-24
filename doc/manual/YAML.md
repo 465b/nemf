@@ -8,9 +8,9 @@ their time integration, the fitting methods and its configuration including the
 reference to the data that shall be used to fit.
 
 If you first want to take a look at a rough overview of the library,
-see [README.md](README.md).
+see [introduction](../introduction).
 If you would like to get a better understanding how the library works internally,
-see [README_concept.md](README_concept.md).
+see [manual/concept](concept).
 
 Even a the small NPZD-type model that is presented in the library overview
 has numerous interactions and many more parameters and constants.
@@ -43,7 +43,7 @@ The relevant information that needs to be defined is:
 In the YAML format this looks like the following:
 
 ``` yaml
-compartment:           # header of the compartment section
+compartment:      # header of the compartment section
   N:              # name of compartment 
     value: 1.0    # initial value of the compartment
     optimise:     
@@ -59,7 +59,7 @@ A more detailed description of all the possible options is provided further down
 
 Interactions represent any flow from one compartment to an other.
 A interaction is described either by a function (keyword: 'fkt')
-defined in the framework library (see [models.py/#interaction_models](modules/models.py)),\
+defined in the framework library (see [models.py/#interaction_models](../api)),\
 or by a user defined function.
 The only condition to the function name provided in the yaml file
 is that has to match the function known to the python interpreter exactly.
@@ -92,22 +92,10 @@ interactions:
         lower: 0.1                  # and values in the range of 
         upper: 0.3                  # [0.1,0.3] are allowed to be used
 ```
-A crucial implementation detail is, that by default, an interaction is always linear with respect to the second named compartment.
-Meaning that if I want to model the following flow,
-<p align=center>
-<a href="https://www.codecogs.com/eqnedit.php?latex=\partial_{t}A&space;=&space;-f_{AB}(x_{1},x_{2})B&space;|_{x_{1}=1,&space;x_{2}=2}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\partial_{t}A&space;=&space;-f_{AB}(x_{1},x_{2})B&space;|_{x_{1}=1,&space;x_{2}=2}" title="\partial_{t}A = -f_{AB}(x_{1},x_{2})B |_{x_{1}=1, x_{2}=2}" /></a>
-</p>
-it has to be defined like:
+A crucial implementation detail is, that by default, the first named compartment
+is implicitly passed as an parameter to the interaction functions.
+The second compartment needs to be explicitly named.
 
-``` yaml
-A:B:
-  - fkt: f_AB
-  - parameters:
-    - 1
-    - 2
-  - sign: '-1'
-  - optimise:
-```
 
 ### Configuration
 
@@ -117,64 +105,14 @@ Find a annotated example below.
 
 ``` yaml
 # ode solver related details:
-integration_scheme: euler_forward
 time_evo_max: 100
 dt_time_evo: 0.1
-ode_coeff_model: interaction_model_generator
-
-# to check if the ode time evolution is stable and converges:
-stability_rel_tolerance: 1e-3
-tail_length_stability_check: 10
-start_stability_check: 50
-
-# fitting related details
-sources: null
-sinks: null
-fit_model: direct_fit_model
-fit_target: [1,1,0,0]
 ```
 
 #### ode solver related configuration details:
 
-* **integration scheme**: name of the function that calculates the next time
-  integration step. It can either be chosen from
-  [models.py/#integration_schemes](modules/models.py), or defined by the user.
 * **time_exo_max**: Ideally the ode system reached a stable state and stops
   automatically.
   If this is not the case it stops the latest at the ode-model time defined here.
 * **dt_time_evo** defines the step size in ode-model time
-* **ode_coeff_model**: Every step in the time time integration can be represented
-  by a matrix multiplication.
-  ode_coeff_model defines how this matrix is constructed.
-  Usually, you do not want to change this from the default. However, it is implemented in such a way that this function can be defined by the user if needed.
-
-#### convergence check configurations:
-
-* **start_stability_check**: time step in model time after which the convergence
-  of the ode-model output is checked.
-* **stability_check_tail_length** defines the number last ode-model outputs
-  (hence, tail) to use to check the stability
-* **stability_rel_tolerance**: to test the convergence, we define a range
-  in which the model is allowed to fluctuate.
-  This range is defined relatively to its value.
-  Hence, a value of 1e-3 allows the ode-model to fluctuate by one permille.
-  If this range is exceeded the model is (not yet) stable.
-
-#### fitting related details:
-
-* **fit_model**: The ODE-model output can be of arbitrary shape.
-  Depending on its application, there are many possible derived quantities
-  you might want to fit your model to.
-  One of the simplest examples could be that the model reaches a certain
-  steady-state.
-  However, more complex derived complex quantities might also be of interest.
-  I.e. for a ecosystem model it might be desirable that your model
-  does have a net-zero energy flow.
-  All this can be done with a suitable choice of the the fit_model function.
-  A fit model can either be chosen from the 
-  [models.py/#fit_models](modules/models.py) functions or be by the user.
-* **fit_target**: defines that output value or the set of values
-  that your model is fitted to.
-  In the case that a zero net flux is desired would be set to zero.
-* **sources/sinks**: marks certain compartments as sources or sinks,
   needed for a net-flux fit model.

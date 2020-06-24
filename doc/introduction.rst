@@ -69,7 +69,7 @@ Let’s go through the lines one by one to see what happened:
    Models are typically defined in an extra file. This file contains the
    description of the model in a humon-readable standard called YAML.
    Hence, the file extension *.yml* More on the yml standard and how it
-   is used to define models can be found :doc:`here<REAME_YAML.md>`.
+   is used to define models can be found :doc:`here<manual/YAML>`.
 
 
 3. We visualize the network defined in the model configuration by
@@ -175,7 +175,7 @@ Interactions are defined similarly: ::
 
 
 A description of how this works in detail can be found in the 
-:doc:`YAML section of the manual<README_YAML>`.
+:doc:`YAML section of the manual<manual/YAML>`.
 
 
 Inverse modelling
@@ -215,7 +215,7 @@ There are two things we need to provide:
 
 The reference data is expected do be in a separate file.
 Details about its format and how it can be imported can be found in the 
-:doc:`reference data section of the manual<README_reference_data>`.
+:doc:`reference data section of the manual<manual/reference_data>`.
 
 
 The parameters that shall be optimized are selected in the YAML configuration 
@@ -232,7 +232,7 @@ which the method tries to find the best solution.
          upper: 2    # upper bound during the fitting process
 
 Detail on the configuration of the YAML file can be found in the 
-:doc:`yaml section of the manual<README_YAML>`.
+:doc:`yaml section of the manual<manual/YAML>`.
 
 The results are then visualized with:
 

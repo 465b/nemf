@@ -34,7 +34,7 @@ For the typical use-cases, user do need to write any code but only provide a
 model configuration.
 
 The range of use-cases can easily be extended with simple 
-:doc:`user-written functions<README_interaction_functions>` without needing to 
+:doc:`user-written functions<manual/interaction_functions>` without needing to 
 change any of the framework code.
 NEMF offers an easy to use method to *fit any model parameter* such that the 
 model mimics the studied system.
@@ -67,7 +67,7 @@ issues (i.e. if the installation fails).
    :caption: Contents:
 
    Introduction <introduction.rst>
-   examples.md
+   examples.rst
    Paper <paper>
    installation.md
    manual.rst

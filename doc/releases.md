@@ -27,7 +27,7 @@ documentation.
   where the bold ones are newly implemented.
   To distinguish the NLP and IVP solvers, the key used to pass them to the 
   inverse_model has been changed from 'method' to 'nlp_method'.
-  For more detail, see the [API references](api.rst)
+  For more detail, see the [API references](api)
 
 ## New Initial-Value-Problem (IVP) solvers
 
@@ -52,14 +52,14 @@ documentation.
     * 'LSODA'
   To distinguish the NLP and IVP solvers, the key used to pass them is called
   'ivp_method'.
-  For more detail, see the [API references](api.rst)
+  For more detail, see the [API references](api)
 
 ## Bug fixed and consistency changes
 
 ### Changes
 
 * Different verbosity options can now be used for 'trust-constr', providing 
-  more information during runtime. See [API references](api.rst) for more 
+  more information during runtime. See [API references](api) for more 
   details.
 
 * Changed the output of the *load_reference_data()* function. Previously it 
@@ -172,13 +172,13 @@ An initial documentation has been drafted and is hosted on
   It checks if alternative names for an existing interaction were declared in the 
   yaml configuration file.
   For details check the
-  [docs](https://nemf.readthedocs.io/en/latest/README_interaction_functions.html).
+  [docs](https://nemf.readthedocs.io/en/latest/api.html#interaction-functions).
 
 * *import_interaction_functions( )*  
   This can be called in the execution file by the user to import user-defined or
   renamed interaction functions.
   For details check the
-  [docs](https://nemf.readthedocs.io/en/latest/README_interaction_functions.html).
+  [docs](https://nemf.readthedocs.io/en/latest/api.html#interaction-functions).
 
 The previous version of renaming interaction functions was to declare the 
 alternative names in the execution file. However, this did not work consistently
@@ -191,7 +191,7 @@ functions to rename and/or import interaction functions.
 * Added *import_constraints( )*  
   Reads constraints from an python file and adds them to the model.
   For details check the
-  [docs](https://nemf.readthedocs.io/en/latest/README_interaction_functions.html).
+  [docs](https://nemf.readthedocs.io/en/latest/api.html#interaction-functionsl).
 
 In some circumstances, the parameter fitted in an optimization run are not
 independent of each other. I.e. one might want to enforce that sum of two 
