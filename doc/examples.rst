@@ -91,16 +91,16 @@ model we execute the following lines of code:
    model_path = 'path/to/the/yaml/file/presented/above/example.yml'
 
    # load the model configuration
-   model_config = nemf.model_class(model_path)
+   model = nemf.load_model(model_path)
 
    # visualise the model configuration to check for errors
-   nemf.interaction_graph(model_config)
+   nemf.interaction_graph(model)
 
    # for a time evolution of the model call:
-   output_dict = nemf.forward_model(model_config)
+   output_forward = nemf.forward_model(model)
 
    # the results of the time evolution can be visualized with:
-   nemf.output_summary(output_dict)
+   nemf.output_summary(output_forward)
 
 To read more about the functions present in the NEMF framework, take a
 look at the `API references <api.rst>`__.
@@ -224,7 +224,7 @@ For our example we use the following data set:
 Read more about the reference data format
 `here <manual/reference_data.rst>`__.
 
-To tell the framework to perfore a fitting-run we execute the following
+To tell the framework to perform a fitting-run we execute the following
 small script. It will also generate the interaction graph above and will
 draw a plot presenting the result.
 
@@ -237,16 +237,16 @@ draw a plot presenting the result.
    reference_data_path = 'path/to/the/data/file/representing/the/model_ref.csv'
 
    # load the model configuration
-   model_config = nemf.model_class(model_path)
+   model = nemf.load_model(model_path,reference_data_path)
 
    # visualise the model configuration to check for errors
-   nemf.interaction_graph(model_config)
+   nemf.interaction_graph(model)
 
    # for a simple time evolution of the model call:
-   output_dict = nemf.inverse_model(model_config)
+   output_forward = nemf.inverse_model(model)
 
    # the results of the time evolution can be visualized with:
-   nemf.output_summary(output_dict)
+   nemf.output_summary(output_forward)
 
 which will create the following plot: |plot:NPZD_fit|
 

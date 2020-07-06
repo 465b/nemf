@@ -42,10 +42,11 @@ To calculate the forecast of a model we run the following few lines of code:
 .. code:: python
 
    import nemf
-   model = nemf.load_model('exemplary_npzd_model.yml')
+   model_path = 'emplary_npzd_model.yml'
+   model = nemf.load_model(model_path)
    nemf.interaction_graph(model)
-   results = nemf.forward_model(model)
-   nemf.output_summary(results)
+   output_forward = nemf.forward_model(model)
+   nemf.output_summary(output_forward)
 
 
 Let’s go through the lines one by one to see what happened:
@@ -64,7 +65,8 @@ Let’s go through the lines one by one to see what happened:
 
    .. code:: python
 
-      model = nemf.load_model('exemplary_npzd_model.yml')
+      model_path = 'exemplary_npzd_model.yml'
+      model = nemf.load_model(model_path)
 
    Models are typically defined in an extra file. This file contains the
    description of the model in a humon-readable standard called YAML.
@@ -97,7 +99,7 @@ Let’s go through the lines one by one to see what happened:
 
    .. code:: python
 
-      results = nemf.forward_model(model)
+      output_forward = nemf.forward_model(model)
 
    The network implicitly defines a set of differential equation that couples 
    the compartments to each other, through the interactions between them.
@@ -109,7 +111,7 @@ Let’s go through the lines one by one to see what happened:
 
    .. code:: python
 
-      nemf.output_summary(results)
+      nemf.output_summary(output_forward)
 
    which generates the following plot:
    
@@ -191,23 +193,40 @@ We can achieve this with the *inverse_model* method.
 .. code:: python
 
    import nemf
-   model = nemf.load_model('exemplary_npzd_model.yml')
-   results = nemf.inverse_model(model)
-   nemf.output_summary(results)
+   model_path = 'path/to/the/yaml/file/presented/above/example.yml'
+   reference_data_path = 'path/to/the/data/file/representing/the/model_ref.csv'
+   model = nemf.load_model(model_path,reference_data_path)
+   output_inverse = nemf.inverse_model(model)
+   nemf.output_summary(output_inverse)
 
 Most of this code is the same as previously shown.
-The only new line is:
+The are only two new lines.
+The first binds the path of the reference data file:
 
 .. code:: python
 
-   results = nemf.inverse_model(model)
+   reference_data_path = 'path/to/the/data/file/representing/the/model_ref.csv'
 
-Instead of calculating the forecast once as previously, the *inverse_model* we 
-now calculates it for different sets of parameters in such a way that we find 
-the best solution quickly.
+This is path is then used when loading the model:
 
-However, for this to work we implicitly provided some additional information in 
-the yaml configuration file.
+.. code:: python
+
+   model = nemf.load_model(model_path,reference_data_path)
+
+Hence, making both the model description as well as the reference data available
+to the framework.
+
+The second new line is:
+
+.. code:: python
+
+   output_inverse = nemf.inverse_model(model)
+
+Instead of calculating the forecast once as previously shown, 
+the *inverse_model* now calculates it for different sets of parameters 
+in such a way that we find the best solution quickly.
+
+However, for this to work we provided some additional information.
 There are two things we need to provide:
 
 1. Reference data (i.e observational data)
@@ -216,7 +235,6 @@ There are two things we need to provide:
 The reference data is expected do be in a separate file.
 Details about its format and how it can be imported can be found in the 
 :doc:`reference data section of the manual<manual/reference_data>`.
-
 
 The parameters that shall be optimized are selected in the YAML configuration 
 file by adding the 'optimise' key and providing its upper and lower bounds in
@@ -231,6 +249,9 @@ which the method tries to find the best solution.
          lower: 0    # lower and
          upper: 2    # upper bound during the fitting process
 
+The reference data can either be passed directly when loading the model or 
+alternatively be set in the yaml file as well.
+
 Detail on the configuration of the YAML file can be found in the 
 :doc:`yaml section of the manual<manual/YAML>`.
 
@@ -238,7 +259,7 @@ The results are then visualized with:
 
 .. code:: python
 
-   nemf.output_summary(results)
+   nemf.output_summary(output_inverse)
 
 
 Which creates the following figure:
