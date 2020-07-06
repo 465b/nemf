@@ -364,9 +364,10 @@ def inverse_model(model,nlp_method='SLSQP',
 		logger = model.construct_callback(method=nlp_method,debug=debug)
 		model.initialize_log(maxiter=maxiter)
 
-		if ((verbose != True) & (nlp_method != 'trust-constr')):
-			print(f"Verbose = {verbose} is no valid option for this method. "
-					+"The only valid option is 'True'.")
+		if ((verbose != True) & (verbose != False) 
+			& (nlp_method != 'trust-constr')):
+			print(f"verbose = {verbose} is no valid option for this method. "
+					+"The only valid options are 'True' or 'False'.")
 			verbose = True
 
 		cons = model.fetch_constraints()
