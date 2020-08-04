@@ -517,7 +517,7 @@ def import_interaction_functions(func):
 	for item in func:
 		name = item.__name__
 		if name in globals():
-			print(f'Warning! A function with the same name as interaction ' 
-				+ 'function {name} is already known in globals!\n'
+			print('Warning! A function with the same name as interaction ' 
+				+ f"function '{name}' is already known in globals!\n"
 				+ 'Function will be overwritten!')
 		globals()[name] = item
