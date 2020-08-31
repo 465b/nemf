@@ -498,9 +498,11 @@ class model_class:
 					# {list(self\.compartment)[kk]} outof {list(self\.compartment)[ll]}')
 	
 					# flows into kk (outof ll)
-					y[kk,ll] += globals()[edge['fkt']](x,kk,*args[ii][jj])
+					y[kk,ll] += \
+						max(0,globals()[edge['fkt']](x,kk,*args[ii][jj]))
 					# flow outof ll (into kk)
-					y[ll,kk] -= globals()[edge['fkt']](x,kk,*args[ii][jj])
+					y[ll,kk] -= \
+						max(0,globals()[edge['fkt']](x,kk,*args[ii][jj]))
 	
 			return np.sum(y,axis=1)
 	
