@@ -12,7 +12,7 @@ import warnings
 #					level=logging.DEBUG)
 
 
-def forward_model(model,method='RK45',verbose=False,t_eval=None):
+def forward_model(model,method='Radau',verbose=False,t_eval=None,**kwargs):
 	""" Runs the time integration for a provided model configuration.
 		
 	Parameters
@@ -123,7 +123,7 @@ def forward_model(model,method='RK45',verbose=False,t_eval=None):
 		t = np.linspace(t_start,t_stop,num=1000)
 	
 	sol = solve_ivp(differential_equation,[t_start,t_stop],initial_states,
-					method=method,args=[args], dense_output=True)
+					method=method,args=[args], dense_output=True,**kwargs)
 	y_t = sol.sol(t).T
 
 	if verbose:
@@ -132,6 +132,7 @@ def forward_model(model,method='RK45',verbose=False,t_eval=None):
 
 	t = np.reshape(t,(len(t),1))
 	time_series = np.concatenate( (t,y_t),axis=1)
+	model.log['sol'] = sol
 	model.log['time_series'] = time_series
 
 	return model
