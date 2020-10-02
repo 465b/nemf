@@ -215,6 +215,13 @@ class model_class:
 				worker.assert_if_exists_non_empty('fkt',edge,item,)
 				worker.assert_if_exists('parameters',edge,item)
 
+		for interaction in unit['interactions']:
+			for fkt in unit['interactions'][interaction]:
+				allowed_items = ['fkt', 'parameters', 'optimise']
+				for item in list(fkt):
+					assert item in allowed_items, \
+						f"Invalid key: {item} in interaction {interaction}"
+
 		# checks if configuration is well defined
 		worker.assert_if_exists_non_empty('configuration', unit)
 		required_elements = ['time_evo_max']
