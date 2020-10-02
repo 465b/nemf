@@ -1,5 +1,34 @@
 # Releases
 
+## v0.3.4 ( Oktober 2020)
+
+This is a minor release introducing the option to enforce strictly positive 
+solutions besides several minor changes.
+
+### Strictly positive ODE solutions
+
+Depending on the model you are trying to develop the differential equations
+might be [stiff](https://en.wikipedia.org/wiki/Stiff_equation). 
+As a result of that it can happen that the solution to the differential 
+equations diverge from the exact solution. 
+Most notably this happens if a compartment value reaches a negative value for 
+a compartment where this should not be possible (i.e. negative populations).
+Because the differential equations are no longer well defined in such a case
+the solutions become nonphysical.
+To avoid this behaviour we implemented interactions functions 
+(i.e. "non_negative_holling_type_II") that can be used if stiffness becomes a 
+problem.
+
+### Others
+
+* Radau is now the default solver for the ODE solver implemented in 
+  **forward_model()**
+* Fixed bug in **forward_model()** where key-word arguments where not parsed
+  correctly
+* Minor bug fixed and docstring changes
+
+
+
 ## v0.3.3 (June 2020)
 
 This is a minor release introducing new options for both non-linear-programming
@@ -7,7 +36,7 @@ aka fitting solvers and initial-value-problem aka forecasting solvers. It also
 brings some bugfixes and consistency changes as well as additional 
 documentation.
 
-## New Non-Linear-Programming (NLP) solvers
+### New Non-Linear-Programming (NLP) solvers
 
   Previously, only the two solvers that worked in all cases (bounded, 
   constraint & bounded) were properly implemented.
@@ -27,9 +56,9 @@ documentation.
   where the bold ones are newly implemented.
   To distinguish the NLP and IVP solvers, the key used to pass them to the 
   inverse_model has been changed from 'method' to 'nlp_method'.
-  For more detail, see the [API references](api.rst)
+  For more detail, see the [API references](api)
 
-## New Initial-Value-Problem (IVP) solvers
+### New Initial-Value-Problem (IVP) solvers
 
   Previously, the IVP solver was not free for the user to change and always 
   defaulted to de 'RK45' solver.
@@ -52,14 +81,14 @@ documentation.
     * 'LSODA'
   To distinguish the NLP and IVP solvers, the key used to pass them is called
   'ivp_method'.
-  For more detail, see the [API references](api.rst)
+  For more detail, see the [API references](api)
 
-## Bug fixed and consistency changes
+### Bug fixed and consistency changes
 
-### Changes
+#### Changes
 
 * Different verbosity options can now be used for 'trust-constr', providing 
-  more information during runtime. See [API references](api.rst) for more 
+  more information during runtime. See [API references](api) for more 
   details.
 
 * Changed the output of the *load_reference_data()* function. Previously it 
@@ -67,7 +96,7 @@ documentation.
   model. Because there is (currently) no application to use it without passing 
   it back to the model it does this now automatically.
 
-### Bugs
+#### Bugs
 
 * *load_model()* did not allow to not pass a reference data path as presented 
   in the examples. This is now possible.
@@ -75,7 +104,7 @@ documentation.
 * *load_reference_data()* did not correctly accept keyword arguments but only
   non-keyword ones. This as an error as all optional ones are kwargs.
   
-### Minor internal changes
+#### Minor internal changes
 
 * *internal:* In some cases the reference data sets have been referred to as 
   'fit data' because it has been at some point during development used 
@@ -172,13 +201,13 @@ An initial documentation has been drafted and is hosted on
   It checks if alternative names for an existing interaction were declared in the 
   yaml configuration file.
   For details check the
-  [docs](https://nemf.readthedocs.io/en/latest/README_interaction_functions.html).
+  [docs](https://nemf.readthedocs.io/en/latest/api.html#interaction-functions).
 
 * *import_interaction_functions( )*  
   This can be called in the execution file by the user to import user-defined or
   renamed interaction functions.
   For details check the
-  [docs](https://nemf.readthedocs.io/en/latest/README_interaction_functions.html).
+  [docs](https://nemf.readthedocs.io/en/latest/api.html#interaction-functions).
 
 The previous version of renaming interaction functions was to declare the 
 alternative names in the execution file. However, this did not work consistently
@@ -191,7 +220,7 @@ functions to rename and/or import interaction functions.
 * Added *import_constraints( )*  
   Reads constraints from an python file and adds them to the model.
   For details check the
-  [docs](https://nemf.readthedocs.io/en/latest/README_interaction_functions.html).
+  [docs](https://nemf.readthedocs.io/en/latest/api.html#interaction-functionsl).
 
 In some circumstances, the parameter fitted in an optimization run are not
 independent of each other. I.e. one might want to enforce that sum of two 

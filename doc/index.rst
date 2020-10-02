@@ -30,11 +30,11 @@ low- to intermediate complexity. It consists of three conceptual parts:
 
 The framework offers the functionality to handle *non-equilibrium*, 
 *non-linear interactions*.
-For the typical use-cases, user do need to write any code but only provide a 
+For the typical use-cases, user do not need to write any code but only provide a 
 model configuration.
 
 The range of use-cases can easily be extended with simple 
-:doc:`user-written functions<README_interaction_functions>` without needing to 
+:doc:`user-written functions<manual/interaction_functions>` without needing to 
 change any of the framework code.
 NEMF offers an easy to use method to *fit any model parameter* such that the 
 model mimics the studied system.
@@ -56,7 +56,7 @@ while the code is documented in the :doc:`API reference <api>` section.
 
 To see the code, please visit the `github repository
 <https://github.com/465b/nemf>`_.
-To report a bug, please raise a 'Issue' in `githubs issue tracker
+To report a bug, please raise an "Issue" in `githubs issue tracker
 <https://github.com/465b/nemf/issues>`_.
 Please feel free to contact laurin.steidle@uni-hamburg.de with general 
 issues (i.e. if the installation fails).
@@ -67,7 +67,7 @@ issues (i.e. if the installation fails).
    :caption: Contents:
 
    Introduction <introduction.rst>
-   examples.md
+   examples.rst
    Paper <paper>
    installation.md
    manual.rst
