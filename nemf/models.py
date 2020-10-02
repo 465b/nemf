@@ -215,6 +215,13 @@ class model_class:
 				worker.assert_if_exists_non_empty('fkt',edge,item,)
 				worker.assert_if_exists('parameters',edge,item)
 
+		for interaction in unit['interactions']:
+			for fkt in unit['interactions'][interaction]:
+				allowed_items = ['fkt', 'parameters', 'optimise']
+				for item in list(fkt):
+					assert item in allowed_items, \
+						f"Invalid key: {item} in interaction {interaction}"
+
 		# checks if configuration is well defined
 		worker.assert_if_exists_non_empty('configuration', unit)
 		required_elements = ['time_evo_max']
@@ -497,10 +504,11 @@ class model_class:
 					#print(f'{edge["fkt"]} \t\t flows into '+'
 					# {list(self\.compartment)[kk]} outof {list(self\.compartment)[ll]}')
 	
+					flow = max(0,globals()[edge['fkt']](x,kk,*args[ii][jj]))
 					# flows into kk (outof ll)
-					y[kk,ll] += globals()[edge['fkt']](x,kk,*args[ii][jj])
+					y[kk,ll] += flow
 					# flow outof ll (into kk)
-					y[ll,kk] -= globals()[edge['fkt']](x,kk,*args[ii][jj])
+					y[ll,kk] -= flow
 	
 			return np.sum(y,axis=1)
 	
@@ -517,7 +525,7 @@ def import_interaction_functions(func):
 	for item in func:
 		name = item.__name__
 		if name in globals():
-			print(f'Warning! A function with the same name as interaction ' 
-				+ 'function {name} is already known in globals!\n'
+			print('Warning! A function with the same name as interaction ' 
+				+ f"function '{name}' is already known in globals!\n"
 				+ 'Function will be overwritten!')
 		globals()[name] = item

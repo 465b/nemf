@@ -1,4 +1,26 @@
-# Network-based ecosystem Modeling Framework
+# NEMF: network-based ecosystem modeling framework
+
+
+<div class="row">
+
+<a href=https://nemf.readthedocs.io/en/latest/introduction.html#network-and-forward>
+<img src="doc/figures/model_graph_small_square.png" height="250" width="250">
+</a>
+
+<a href=https://nemf.readthedocs.io/en/latest/introduction.html#network-and-forward>
+<img src="doc/figures/model_forecast_small_square.png" height="250" width="250">
+</a>
+
+<a href=https://nemf.readthedocs.io/en/latest/introduction.html#inverse-modelling>
+<img src="doc/figures/model_fit_small_square.png" height="250" width="250">
+</a>
+
+</div>
+
+---
+
+[![build & publish](https://github.com/465b/nemf/workflows/build%20&%20publish/badge.svg)](https://pypi.org/project/nemf/)
+[![Documentation Status](https://readthedocs.org/projects/nemf/badge/?version=latest)](https://nemf.readthedocs.io/en/latest/?badge=latest)
 
 NEMF is a ecosystem modelling framework written in python.
 It is designed to offer an easy to use method for modelling ecosystems with low- to intermediate complexity.  
@@ -8,28 +30,21 @@ The use-cases can easily be extended with simple user written functions without 
 The framework offers an easy to use method that fits any parameter of the model to mimic the studied system.
 For simplicity, the current version of the framework is limited to non-spatially resolved models (box-models).
 
+A detailed introduction and many more resources can be found at: nemf.readthedocs.io
 
 ## Installation
 
-### On Linux
-Python and its package manger (pip) should be preinstalled.
-Hence, it can simply be installed through:
+The package can be installed using pythons integrated package manager *pip*.
 ``` bash
 pip install nemf
 ```
-
-### On Windows:
-Get the latest python version from here.
-For example the 3.8.3 version installer
-This also installs pythons integrated package manager (pip).  
-Then, the following install command can be used in windows "powershell":
-``` powershell
-python -m pip install nemf
-```
+For a detailed description how it can be installed, see 
+[install notes](https://nemf.readthedocs.io/en/latest/installation.html)
 
 ## Quick Start
 
-See examples.py. For a set of exemplary framework configurations see [configuration_files](configuration_files/)
+See examples.py. For a set of exemplary framework configurations see 
+[configuration_files](example_files/)
 
 
 ## Usage
@@ -53,13 +68,16 @@ inverse_results = nemf.inverse_model(model)
 nemf.plot.output_summary(inverse_results)
 ```
 
-For details on the yaml configuration file, see [README_YAML.md](README_YAML.md)  
-The presented functions offer many (crucial) options, which are discussed in the [documentation](doc/index.md).
+For details on the yaml configuration file, see 
+[yaml documentation](https://nemf.readthedocs.io/en/latest/manual/YAML.html)  
+The presented functions offer many (crucial) options, which are discussed in 
+the [documentation](https://nemf.readthedocs.io/en/latest/api.html).
 
 
 ## How does it work?
 
-For a conceptual description of the internals of this library, see [README_concept.md](README_concept.md)
+For a conceptual description of the internals of this library, see 
+[model concept](https://nemf.readthedocs.io/en/latest/manual/concept.html)
 
 
 ## Example

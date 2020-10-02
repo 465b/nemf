@@ -115,14 +115,14 @@ Repository <https://github.com/465b/nemf/blob/master/example_files/NPZD_oscillat
 The headers has some flexibility how it is defined.
 The line may start with a comment symbol (default: "#')
 
-.. code-block:: csv
+.. code-block::
 
    # Datetime, A, B, [...]
 
 Leading and trailing white spaces in a name are ignored.
 Hence,
 
-.. code-block:: csv
+.. code-block::
 
    Datetime,A,B = Datetime, A, B
 
@@ -131,7 +131,7 @@ It is also possible to write the name inside of quotation marks. This is
 typically used to mark character strings.
 Hence,
 
-.. code-block:: csv
+.. code-block::
 
    "Datetime","A","B" = 'Datetime','A','B' = Datetime, A, B
 
@@ -142,14 +142,14 @@ Hence,
 Generally, it is assumed that the names of the column are defined in the in the 
 very first row of the document.
 
-.. code-block:: csv
+.. code-block::
 
    1 Datetime, A, B
    2 t0,A(t0),B(t0)
 
 If this is not the case, i.e. the file is formatted something like this,
 
-.. code-block:: csv
+.. code-block::
 
    Some additional information about the file and its origin
    before the data column headers are parsed

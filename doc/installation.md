@@ -39,13 +39,13 @@ get the latest python version from
 Scroll down to get the *"macOS 64-bit installer"*
 
 To installs pythons integrated package manager (pip).
-``` terminal
+```
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 python get-pip.py
 ```
 
 Then, the following install command can be used in the *terminal*:
-``` terminal
+```
 python -m pip install nemf
 ```
 
