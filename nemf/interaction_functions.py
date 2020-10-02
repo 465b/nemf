@@ -191,13 +191,19 @@ def sloppy_feeding(holling_type,coeff,*args):
         a different compartment """
         
     if holling_type == '0':
-        return coeff*holling_type_0(*args)
+        X, idx_A, coefficient = args
+        return coeff*holling_type_0(X, idx_A, coefficient)
     elif holling_type == 'I':
-        return coeff*holling_type_I(*args)
+        X, idx_A, idx_B, coefficient = args
+        return coeff*holling_type_I(X, idx_A, idx_B, coefficient)
     elif holling_type == 'II':
-        return coeff*holling_type_II(*args)
+        X, idx_A, idx_B, food_processing_time, hunting_rate  = args
+        return coeff*holling_type_II(X, idx_A, idx_B, 
+                                     food_processing_time, hunting_rate)
     elif holling_type == 'III':
-        return coeff*holling_type_III(*args)
+        X, idx_A, idx_B, saturation_rate, consumption_rate_limit = args
+        return coeff*holling_type_III(X, idx_A, idx_B, 
+                                      saturation_rate, consumption_rate_limit)
     else:
         raise ValueError("The defined holling_type is not available. "
             +"Use one of the following: ['0','I','II','III']")
